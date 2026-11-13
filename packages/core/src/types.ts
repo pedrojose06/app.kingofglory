@@ -19,7 +19,16 @@ export type ClassRow = Row<'classes'>
 export type LessonPlan = Row<'lesson_plans'>
 export type Attendance = Row<'attendance'>
 export type ClassPhoto = Row<'class_photos'>
-export type StudentProgress = Public['Views']['student_progress']['Row']
+/** Linha de student_progress. O Postgres reporta colunas de view como anuláveis; aqui só as que de fato podem ser nulas. */
+export interface StudentProgress {
+  student_id: string
+  gym_id: string
+  current_rank_id: string | null
+  last_graduated_at: string | null
+  attendance_since: number
+  attendance_total: number
+  last_attendance_on: string | null
+}
 
 export type AttendanceStatus = Enum<'attendance_status'>
 export type AttendanceSource = Enum<'attendance_source'>

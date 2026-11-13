@@ -1,9 +1,13 @@
-// Tipos do banco no formato do `supabase gen types typescript`.
-// Regenerar com `pnpm db:types` depois de aplicar migrations (ver README).
+// Tipos do banco, conferidos com a saída do `supabase gen types typescript` do projeto real.
+// Versão enxuta: sem os metadados de Relationships (o app não usa selects embutidos).
+// `pnpm db:types` sobrescreve este arquivo com a saída completa do gerador.
 
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[]
 
 export type Database = {
+  __InternalSupabase: {
+    PostgrestVersion: "14.18"
+  }
   public: {
     Tables: {
       attendance: {
@@ -370,19 +374,19 @@ export type Database = {
     Views: {
       student_progress: {
         Row: {
-          student_id: string
-          gym_id: string
+          student_id: string | null
+          gym_id: string | null
           current_rank_id: string | null
           last_graduated_at: string | null
-          attendance_since: number
-          attendance_total: number
+          attendance_since: number | null
+          attendance_total: number | null
           last_attendance_on: string | null
         }
         Relationships: []
       }
     }
     Functions: {
-      today_sp: { Args: Record<PropertyKey, never>; Returns: string }
+      today_sp: { Args: never; Returns: string }
       ensure_classes: { Args: { p_until?: string }; Returns: number }
       mark_attendance_batch: { Args: { p_items: Json }; Returns: number }
       add_walk_ins: {
@@ -396,14 +400,15 @@ export type Database = {
       }
       conclude_class: { Args: { p_class_id: string }; Returns: undefined }
       walk_in_locations: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: { location_label: string; uses: number }[]
       }
       is_gym_member: { Args: { p_gym_id: string }; Returns: boolean }
       is_gym_owner: { Args: { p_gym_id: string }; Returns: boolean }
-      is_instructor: { Args: Record<PropertyKey, never>; Returns: boolean }
+      is_instructor: { Args: never; Returns: boolean }
       is_own_student: { Args: { p_student_id: string }; Returns: boolean }
       can_manage_student: { Args: { p_student_id: string }; Returns: boolean }
+      storage_path_gym: { Args: { p_name: string }; Returns: string }
       can_manage_class: { Args: { p_class_id: string }; Returns: boolean }
     }
     Enums: {

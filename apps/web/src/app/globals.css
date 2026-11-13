@@ -1,0 +1,82 @@
+@import 'tailwindcss';
+@import '@kog/ui/tokens.css';
+@source '../../../../packages/ui/src';
+
+@layer base {
+  html {
+    -webkit-tap-highlight-color: transparent;
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    background: var(--kog-bg);
+    color: var(--kog-text);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    overscroll-behavior-y: none;
+  }
+  ::selection {
+    background: var(--kog-gold);
+    color: var(--kog-ink);
+  }
+  button {
+    cursor: pointer;
+  }
+}
+
+/* ── Editor do plano de aula (Tiptap) ── */
+.plan-editor .tiptap {
+  min-height: 45dvh;
+  outline: none;
+  font-size: 16px;
+  line-height: 1.6;
+  padding-bottom: 30dvh;
+}
+.plan-editor .tiptap > * + * {
+  margin-top: 0.5em;
+}
+.plan-editor .tiptap h1,
+.plan-editor .tiptap h2,
+.plan-editor .tiptap h3 {
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  line-height: 1.15;
+  margin-top: 1em;
+}
+.plan-editor .tiptap h1 { font-size: 28px; }
+.plan-editor .tiptap h2 { font-size: 22px; color: var(--kog-accent); }
+.plan-editor .tiptap h3 { font-size: 18px; }
+.plan-editor .tiptap ul:not([data-type='taskList']) { list-style: disc; padding-left: 1.3em; }
+.plan-editor .tiptap ol { list-style: decimal; padding-left: 1.4em; }
+.plan-editor .tiptap blockquote { border-left: 3px solid var(--kog-gold); padding-left: 0.8em; color: var(--kog-text-soft); }
+.plan-editor .tiptap hr { border: 0; border-top: 1px solid var(--kog-border-strong); margin: 1.2em 0; }
+.plan-editor .tiptap code { background: var(--kog-surface-2); border-radius: 4px; padding: 0.1em 0.3em; font-size: 0.9em; }
+.plan-editor .tiptap a { color: var(--kog-accent); text-decoration: underline; }
+.plan-editor .tiptap ul[data-type='taskList'] { list-style: none; padding: 0; }
+.plan-editor .tiptap ul[data-type='taskList'] li { display: flex; gap: 0.6em; align-items: flex-start; }
+.plan-editor .tiptap ul[data-type='taskList'] li > label { margin-top: 0.28em; }
+.plan-editor .tiptap ul[data-type='taskList'] li > label input { width: 18px; height: 18px; accent-color: var(--kog-gold); }
+.plan-editor .tiptap ul[data-type='taskList'] li > div { flex: 1; }
+.plan-editor .tiptap ul[data-type='taskList'] li[data-checked='true'] > div { color: var(--kog-text-dim); text-decoration: line-through; }
+.plan-editor .tiptap .details { display: flex; gap: 0.3em; margin-top: 0.5em; }
+.plan-editor .tiptap .details > button {
+  width: 24px; height: 26px; flex: none; display: flex; align-items: center; justify-content: center;
+  color: var(--kog-accent); background: none; border: 0;
+}
+.plan-editor .tiptap .details > button::before { content: '▸'; font-size: 14px; }
+.plan-editor .tiptap .details.is-open > button::before { content: '▾'; }
+.plan-editor .tiptap .details > div { flex: 1; min-width: 0; }
+.plan-editor .tiptap .details summary { font-weight: 700; list-style: none; }
+.plan-editor .tiptap .details summary::-webkit-details-marker { display: none; }
+.plan-editor .tiptap .details [data-type='detailsContent'] { margin-top: 0.3em; }
+.plan-editor .tiptap p.is-empty::before,
+.plan-editor .tiptap h1.is-empty::before,
+.plan-editor .tiptap h2.is-empty::before,
+.plan-editor .tiptap h3.is-empty::before,
+.plan-editor .tiptap summary.is-empty::before {
+  content: attr(data-placeholder);
+  color: var(--kog-text-faint);
+  float: left;
+  height: 0;
+  pointer-events: none;
+}
