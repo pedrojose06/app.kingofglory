@@ -153,7 +153,7 @@ export default function StudentPage() {
               <Card className="mt-2 divide-y divide-line">
                 {stats.byMonth.slice(0, showAll ? undefined : 6).map((m) => (
                   <div key={m.month} className="flex justify-between px-3 py-2 text-sm">
-                    <span className="capitalize text-soft">{formatMonth(m.month)}</span>
+                    <span className="text-soft first-letter:uppercase">{formatMonth(m.month)}</span>
                     <span className="font-bold text-text">{m.count}</span>
                   </div>
                 ))}

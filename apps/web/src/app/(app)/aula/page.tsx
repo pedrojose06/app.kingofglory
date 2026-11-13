@@ -99,8 +99,8 @@ export default function ClassPage() {
                     </>
                   ) : (
                     <>
-                      <Button variant="plain" onPress={cancel}>Não houve</Button>
-                      <Button className="flex-1" onPress={conclude}>{inQueue ? 'Concluir e próxima' : 'Concluir chamada'}</Button>
+                      <Button variant="plain" className="px-3 whitespace-nowrap" onPress={cancel}>Não houve</Button>
+                      <Button className="flex-1" onPress={conclude}>{inQueue ? 'Concluir · próxima' : 'Concluir chamada'}</Button>
                     </>
                   )}
                 </div>

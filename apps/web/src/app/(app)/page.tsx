@@ -64,9 +64,9 @@ export default function TodayPage() {
           <Section title="Atalhos">
             <div className="grid grid-cols-2 gap-2">
               <Link href="/avulsa">
-                <Button variant="ghost" block className="h-14"><MapPinPlus className="size-4" /> Presença avulsa</Button>
+                <Button variant="ghost" block className="h-14 px-2 text-xs"><MapPinPlus className="size-4" /> Presença avulsa</Button>
               </Link>
-              <Button variant="ghost" block className="h-14" onPress={() => (gyms.data?.length === 1 ? createExtra.mutate(gyms.data[0]!.id) : setExtraOpen(true))} loading={createExtra.isPending}>
+              <Button variant="ghost" block className="h-14 px-2 text-xs" onPress={() => (gyms.data?.length === 1 ? createExtra.mutate(gyms.data[0]!.id) : setExtraOpen(true))} loading={createExtra.isPending}>
                 <Plus className="size-4" /> Aula extra
               </Button>
             </div>
