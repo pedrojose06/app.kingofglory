@@ -72,6 +72,9 @@ export default function StudentPage() {
     setGradOpen(true)
   }
   const rows = attendance.data ?? []
+  // O cache offline pode ter alunos salvos antes de o saldo existir.
+  const openingPresent = student.opening_present ?? 0
+  const openingAbsent = student.opening_absent ?? 0
   const shown = showAll ? rows : rows.slice(0, 12)
 
   return (
@@ -131,14 +134,19 @@ export default function StudentPage() {
           <>
             <div className="grid grid-cols-2 gap-2">
               <Card className="p-3">
-                <p className="font-display text-3xl text-accent">{stats.total}</p>
+                <p className="font-display text-3xl text-accent">{stats.total + openingPresent}</p>
                 <p className="text-xs text-dim">presenças no total</p>
               </Card>
               <Card className="p-3">
-                <p className="font-display text-3xl text-text">{stats.absences}</p>
+                <p className="font-display text-3xl text-text">{stats.absences + openingAbsent}</p>
                 <p className="text-xs text-dim">faltas registradas</p>
               </Card>
             </div>
+            {openingPresent + openingAbsent > 0 ? (
+              <p className="mt-2 text-xs text-dim">
+                Inclui o saldo importado{student.opening_until ? ` até ${formatDateBR(student.opening_until)}` : ''}: {openingPresent} presenças e {openingAbsent} faltas, sem registro por data.
+              </p>
+            ) : null}
             {stats.byLocation.length > 0 ? (
               <Card className="mt-2 divide-y divide-line">
                 {stats.byLocation.map((l) => (

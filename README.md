@@ -65,6 +65,7 @@ As migrations em `supabase/migrations` já estão aplicadas no projeto remoto, c
 | `attendance` | presenças, presença avulsa, RPCs idempotentes e a view `student_progress` |
 | `photos` | `class_photos` + bucket privado `class-photos` com policies por academia |
 | `harden_functions` | nenhuma função é chamável sem login |
+| `opening_balance` | saldo inicial por aluno (`opening_present`, `opening_absent`, `opening_until`), somado em `student_progress` |
 | `…future_face_recognition.sql.disabled` | schema previsto da Fase 4 (pgvector), não aplicado |
 
 Para criar uma migration nova e aplicar (com a CLI do Supabase):

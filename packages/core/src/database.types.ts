@@ -343,6 +343,9 @@ export type Database = {
           image_consent_at: string | null
           notes: string | null
           created_at: string
+          opening_present: number
+          opening_absent: number
+          opening_until: string | null
         }
         Insert: {
           id?: string
@@ -355,6 +358,9 @@ export type Database = {
           image_consent_at?: string | null
           notes?: string | null
           created_at?: string
+          opening_present?: number
+          opening_absent?: number
+          opening_until?: string | null
         }
         Update: {
           id?: string
@@ -367,6 +373,9 @@ export type Database = {
           image_consent_at?: string | null
           notes?: string | null
           created_at?: string
+          opening_present?: number
+          opening_absent?: number
+          opening_until?: string | null
         }
         Relationships: []
       }
