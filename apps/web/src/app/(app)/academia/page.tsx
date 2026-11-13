@@ -1,0 +1,123 @@
+'use client'
+
+import {
+  createSchedule, endSchedule, firstIssue, formatDateBR, formatTime, gymInput, keys, scheduleInput, updateGym, WEEKDAYS,
+  WEEKDAYS_SHORT, type ClassSchedule,
+} from '@kog/core'
+import { Button, Card, Chip, EmptyState, Field, Input, Sheet } from '@kog/ui'
+import { Plus } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { Section, useParam } from '@/components/common'
+import { Loading, Page } from '@/components/shell'
+import { useGyms, useSave, useSchedules, useToday } from '@/lib/queries'
+import { db } from '@/lib/supabase'
+import { toast } from '@/lib/toast'
+
+export default function GymPage() {
+  const id = useParam('id')
+  const today = useToday()
+  const gyms = useGyms()
+  const schedules = useSchedules()
+  const gym = gyms.data?.find((g) => g.id === id)
+  const [name, setName] = useState('')
+  const [address, setAddress] = useState('')
+  const [open, setOpen] = useState(false)
+  const [days, setDays] = useState<number[]>([2, 4])
+  const [time, setTime] = useState('19:00')
+  const [title, setTitle] = useState('Muay Thai')
+  const [startsOn, setStartsOn] = useState(today)
+
+  useEffect(() => {
+    setName(gym?.name ?? '')
+    setAddress(gym?.address ?? '')
+  }, [gym?.name, gym?.address])
+
+  const saveGym = useSave(
+    async () => {
+      const parsed = gymInput.safeParse({ name, address })
+      if (!parsed.success) throw new Error(firstIssue(parsed.error))
+      await updateGym(db(), id, parsed.data)
+    },
+    [keys.gyms],
+    () => toast('Academia atualizada'),
+  )
+
+  const addSchedules = useSave(
+    async () => {
+      if (days.length === 0) throw new Error('Escolha ao menos um dia')
+      for (const weekday of days) {
+        const parsed = scheduleInput.safeParse({ gym_id: id, weekday, start_time: time, title, starts_on: startsOn })
+        if (!parsed.success) throw new Error(firstIssue(parsed.error))
+        await createSchedule(db(), parsed.data)
+      }
+    },
+    [keys.schedules, ['classes']],
+    () => setOpen(false),
+  )
+  const remove = useSave((s: ClassSchedule) => endSchedule(db(), s.id, today), [keys.schedules])
+
+  if (gyms.isPending) return <Loading />
+  if (!gym) {
+    return (
+      <Page title="Academia" back="/academias">
+        <EmptyState title="Academia não encontrada" />
+      </Page>
+    )
+  }
+
+  const grade = (schedules.data ?? []).filter((s) => s.gym_id === id)
+  const dirty = name !== gym.name || address !== (gym.address ?? '')
+
+  return (
+    <Page title={gym.name} kicker="Academia" back="/academias">
+      <div className="space-y-3">
+        <Field label="Nome"><Input value={name} onChange={(e) => setName(e.target.value)} /></Field>
+        <Field label="Endereço"><Input value={address} onChange={(e) => setAddress(e.target.value)} /></Field>
+        {dirty ? <Button block loading={saveGym.isPending} onPress={() => saveGym.mutate()}>Salvar alterações</Button> : null}
+      </div>
+
+      <Section title="Grade semanal" action={<Button size="sm" variant="ghost" onPress={() => { setStartsOn(today); setOpen(true) }}><Plus className="size-4" /> Horário</Button>}>
+        {grade.length === 0 ? (
+          <EmptyState title="Sem horários">Adicione os dias e horários das aulas. Elas passam a aparecer em “Hoje” automaticamente.</EmptyState>
+        ) : (
+          <Card className="divide-y divide-line">
+            {grade.map((s) => (
+              <div key={s.id} className="flex items-center gap-3 px-3 py-2.5">
+                <span className="w-24 shrink-0 font-display text-base uppercase text-accent">{WEEKDAYS_SHORT[s.weekday]} {formatTime(s.start_time)}</span>
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-sm text-text">{s.title}</span>
+                  <span className="block text-xs text-dim">desde {formatDateBR(s.starts_on)}</span>
+                </span>
+                <button type="button" className="h-9 px-2 text-xs font-bold uppercase tracking-[0.1em] text-danger" onClick={() => window.confirm('Encerrar este horário? As aulas já geradas continuam no histórico.') && remove.mutate(s)}>
+                  Encerrar
+                </button>
+              </div>
+            ))}
+          </Card>
+        )}
+      </Section>
+
+      <Sheet open={open} onClose={() => setOpen(false)} title="Novo horário">
+        <div className="space-y-3">
+          <div>
+            <span className="mb-1.5 block text-xs font-bold uppercase tracking-[0.12em] text-dim">Dias</span>
+            <div className="flex flex-wrap gap-2">
+              {WEEKDAYS.map((label, weekday) => (
+                <Chip key={label} active={days.includes(weekday)} onPress={() => setDays((d) => (d.includes(weekday) ? d.filter((x) => x !== weekday) : [...d, weekday].sort()))}>
+                  {WEEKDAYS_SHORT[weekday]}
+                </Chip>
+              ))}
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <Field label="Horário"><Input type="time" value={time} onChange={(e) => setTime(e.target.value)} /></Field>
+            <Field label="A partir de"><Input type="date" value={startsOn} onChange={(e) => setStartsOn(e.target.value || today)} /></Field>
+          </div>
+          <Field label="Nome da aula"><Input value={title} onChange={(e) => setTitle(e.target.value)} /></Field>
+          <p className="text-xs text-dim">Se a data de início for no passado, as aulas desde então entram em Pendências para você lançar a chamada.</p>
+          <Button block loading={addSchedules.isPending} onPress={() => addSchedules.mutate()}>Adicionar</Button>
+        </div>
+      </Sheet>
+    </Page>
+  )
+}

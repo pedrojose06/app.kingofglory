@@ -1,0 +1,251 @@
+'use client'
+
+import {
+  addGraduation, attendanceStats, deleteGraduation, firstIssue, formatDateBR, formatMonth, graduationInput, graduationStatus,
+  keys, setImageConsent, updateStudent, type Graduation,
+} from '@kog/core'
+import { Badge, Button, Card, EmptyState, Field, Input, ProgressBar, RankBand, Select, Sheet } from '@kog/ui'
+import { Pencil } from 'lucide-react'
+import { useMemo, useState } from 'react'
+import { Section, StatusBadge, useParam } from '@/components/common'
+import { Loading, Page } from '@/components/shell'
+import { StudentForm } from '@/components/student-form'
+import { useGraduations, useGyms, useProgress, useRanks, useSave, useStudentAttendance, useStudents, useToday } from '@/lib/queries'
+import { db } from '@/lib/supabase'
+import { toast } from '@/lib/toast'
+
+export default function StudentPage() {
+  const id = useParam('id')
+  const today = useToday()
+  const students = useStudents()
+  const gyms = useGyms()
+  const ranks = useRanks()
+  const progress = useProgress()
+  const attendance = useStudentAttendance(id)
+  const graduations = useGraduations(id)
+  const [editOpen, setEditOpen] = useState(false)
+  const [gradOpen, setGradOpen] = useState(false)
+  const [gradRank, setGradRank] = useState('')
+  const [gradDate, setGradDate] = useState(today)
+  const [gradNotes, setGradNotes] = useState('')
+  const [showAll, setShowAll] = useState(false)
+
+  const student = students.data?.find((s) => s.id === id)
+  const gymName = gyms.data?.find((g) => g.id === student?.gym_id)?.name ?? 'Academia'
+  const status = useMemo(
+    () => graduationStatus(progress.data?.find((p) => p.student_id === id), ranks.data ?? [], student?.created_at.slice(0, 10) ?? today, today),
+    [progress.data, ranks.data, student, id, today],
+  )
+  const stats = useMemo(() => attendanceStats(attendance.data ?? [], gymName), [attendance.data, gymName])
+  const rankOf = (rankId: string) => ranks.data?.find((r) => r.id === rankId)
+
+  const invalidate = [keys.students, keys.progress, keys.graduations(id)] as const
+  const graduate = useSave(
+    async () => {
+      const parsed = graduationInput.safeParse({ student_id: id, rank_id: gradRank, graduated_at: gradDate, notes: gradNotes })
+      if (!parsed.success) throw new Error(firstIssue(parsed.error))
+      await addGraduation(db(), parsed.data)
+    },
+    invalidate,
+    () => {
+      setGradOpen(false)
+      toast('Graduação registrada')
+    },
+  )
+  const removeGraduation = useSave((g: Graduation) => deleteGraduation(db(), g.id), invalidate)
+  const setActive = useSave((active: boolean) => updateStudent(db(), id, { active }), invalidate)
+  const setConsent = useSave((consented: boolean) => setImageConsent(db(), id, consented), invalidate)
+
+  if (students.isPending) return <Loading />
+  if (!student) {
+    return (
+      <Page title="Aluno" back>
+        <EmptyState title="Aluno não encontrado" />
+      </Page>
+    )
+  }
+
+  const openGraduate = () => {
+    setGradRank(status.next?.id ?? '')
+    setGradDate(today)
+    setGradNotes('')
+    setGradOpen(true)
+  }
+  const rows = attendance.data ?? []
+  const shown = showAll ? rows : rows.slice(0, 12)
+
+  return (
+    <Page
+      title={student.name}
+      kicker={`${gymName}${student.active ? '' : ' · inativo'}`}
+      back
+      actions={<Button variant="ghost" size="sm" onPress={() => setEditOpen(true)} aria-label="Editar aluno"><Pencil className="size-4" /></Button>}
+    >
+      <Card className="p-4">
+        <div className="flex items-center gap-3">
+          <div className="min-w-0 flex-1">
+            <p className="kicker">Grau atual</p>
+            <p className="mt-1 truncate font-display text-xl uppercase text-text">
+              {status.current ? `${status.current.grade}º · ${status.current.name}` : 'Sem grau'}
+            </p>
+            <p className="text-xs text-dim">{status.current?.level}</p>
+          </div>
+          {status.current ? <RankBand colors={status.current.colors} className="h-3.5 w-20" /> : null}
+        </div>
+
+        {status.next ? (
+          <div className="mt-4 border-t border-line pt-4">
+            <div className="mb-2 flex items-center justify-between gap-2">
+              <p className="text-sm font-bold text-text">Próximo: {status.next.name}</p>
+              {status.eligible ? <Badge tone="success">Apto</Badge> : status.configured ? <Badge tone="gold">Em progresso</Badge> : <Badge>Sem requisito</Badge>}
+            </div>
+            {status.needed != null ? (
+              <>
+                <ProgressBar value={status.count} max={status.needed} />
+                <p className="mt-1.5 text-sm text-soft">
+                  <strong className="text-text">{status.count}</strong> de {status.needed} presenças
+                  <span className="text-dim"> ({status.minPercent ?? 100}% de {status.requiredClasses} aulas)</span>
+                  {status.missingClasses > 0 ? ` · faltam ${status.missingClasses}` : ''}
+                </p>
+              </>
+            ) : (
+              <p className="text-sm text-soft"><strong className="text-text">{status.count}</strong> presenças desde a última graduação</p>
+            )}
+            {status.monthsNeeded != null ? (
+              <p className="mt-1 text-sm text-soft">
+                <strong className="text-text">{status.monthsElapsed}</strong> de {status.monthsNeeded} meses
+                {status.missingMonths > 0 ? ` · faltam ${status.missingMonths}` : ''}
+              </p>
+            ) : null}
+            {!status.configured ? <p className="mt-1 text-xs text-dim">Defina os requisitos deste grau em Mais › Graus.</p> : null}
+          </div>
+        ) : null}
+
+        <Button block className="mt-4" variant={status.eligible ? 'gold' : 'ghost'} onPress={openGraduate}>Registrar graduação</Button>
+      </Card>
+
+      <Section title="Presenças">
+        {attendance.isPending ? (
+          <Loading />
+        ) : (
+          <>
+            <div className="grid grid-cols-2 gap-2">
+              <Card className="p-3">
+                <p className="font-display text-3xl text-accent">{stats.total}</p>
+                <p className="text-xs text-dim">presenças no total</p>
+              </Card>
+              <Card className="p-3">
+                <p className="font-display text-3xl text-text">{stats.absences}</p>
+                <p className="text-xs text-dim">faltas registradas</p>
+              </Card>
+            </div>
+            {stats.byLocation.length > 0 ? (
+              <Card className="mt-2 divide-y divide-line">
+                {stats.byLocation.map((l) => (
+                  <div key={l.location} className="flex justify-between px-3 py-2 text-sm">
+                    <span className="truncate text-soft">{l.location}</span>
+                    <span className="font-bold text-text">{l.count}</span>
+                  </div>
+                ))}
+              </Card>
+            ) : null}
+            {stats.byMonth.length > 0 ? (
+              <Card className="mt-2 divide-y divide-line">
+                {stats.byMonth.slice(0, showAll ? undefined : 6).map((m) => (
+                  <div key={m.month} className="flex justify-between px-3 py-2 text-sm">
+                    <span className="capitalize text-soft">{formatMonth(m.month)}</span>
+                    <span className="font-bold text-text">{m.count}</span>
+                  </div>
+                ))}
+              </Card>
+            ) : null}
+          </>
+        )}
+      </Section>
+
+      <Section title="Registros">
+        {rows.length === 0 ? (
+          <EmptyState title="Nenhuma presença registrada" />
+        ) : (
+          <>
+            <Card className="divide-y divide-line">
+              {shown.map((a) => (
+                <div key={a.id} className="flex items-center gap-3 px-3 py-2">
+                  <span className="w-20 shrink-0 text-sm font-medium text-text">{formatDateBR(a.date)}</span>
+                  <span className="min-w-0 flex-1 truncate text-sm text-dim">{a.class_id ? gymName : a.location_label}</span>
+                  <StatusBadge status={a.status} />
+                </div>
+              ))}
+            </Card>
+            {rows.length > 12 && !showAll ? (
+              <Button variant="plain" block className="mt-1" onPress={() => setShowAll(true)}>Ver todos ({rows.length})</Button>
+            ) : null}
+          </>
+        )}
+      </Section>
+
+      <Section title="Graduações">
+        {(graduations.data ?? []).length === 0 ? (
+          <EmptyState title="Nenhuma graduação registrada">Sem registro, o aluno é tratado como Branco (grau 1).</EmptyState>
+        ) : (
+          <Card className="divide-y divide-line">
+            {(graduations.data ?? []).map((g) => {
+              const rank = rankOf(g.rank_id)
+              return (
+                <div key={g.id} className="flex items-center gap-3 px-3 py-2.5">
+                  {rank ? <RankBand colors={rank.colors} /> : null}
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-sm font-medium text-text">{rank ? `${rank.grade}º · ${rank.name}` : 'Grau'}</span>
+                    <span className="block truncate text-xs text-dim">{formatDateBR(g.graduated_at)}{g.notes ? ` · ${g.notes}` : ''}</span>
+                  </span>
+                  <button type="button" className="h-9 px-2 text-xs font-bold uppercase tracking-[0.1em] text-danger" onClick={() => window.confirm('Remover esta graduação?') && removeGraduation.mutate(g)}>
+                    Remover
+                  </button>
+                </div>
+              )
+            })}
+          </Card>
+        )}
+      </Section>
+
+      <Section title="Cadastro">
+        <Card className="divide-y divide-line text-sm">
+          {student.phone ? <div className="flex justify-between px-3 py-2.5"><span className="text-dim">Telefone</span><a href={`tel:${student.phone}`} className="font-medium text-accent">{student.phone}</a></div> : null}
+          {student.birth_date ? <div className="flex justify-between px-3 py-2.5"><span className="text-dim">Nascimento</span><span className="text-text">{formatDateBR(student.birth_date)}</span></div> : null}
+          {student.notes ? <div className="px-3 py-2.5 text-soft">{student.notes}</div> : null}
+          <label className="flex items-center justify-between gap-3 px-3 py-2.5">
+            <span>
+              <span className="block text-text">Autorizou uso de imagem</span>
+              <span className="block text-xs text-dim">{student.image_consent_at ? `Aceite registrado em ${formatDateBR(student.image_consent_at.slice(0, 10))}` : 'Sem aceite registrado (LGPD)'}</span>
+            </span>
+            <input type="checkbox" className="size-5 accent-[var(--kog-gold)]" checked={!!student.image_consent_at} onChange={(e) => setConsent.mutate(e.target.checked)} />
+          </label>
+        </Card>
+        <Button variant={student.active ? 'danger' : 'ghost'} block className="mt-3" loading={setActive.isPending} onPress={() => setActive.mutate(!student.active)}>
+          {student.active ? 'Inativar aluno' : 'Reativar aluno'}
+        </Button>
+        <p className="mt-2 text-center text-xs text-dim">Inativar tira o aluno da chamada. O histórico de presenças é mantido.</p>
+      </Section>
+
+      <StudentForm open={editOpen} onClose={() => setEditOpen(false)} gyms={gyms.data ?? []} ranks={ranks.data ?? []} student={student} />
+
+      <Sheet open={gradOpen} onClose={() => setGradOpen(false)} title="Registrar graduação">
+        <div className="space-y-3">
+          <Field label="Grau">
+            <Select value={gradRank} onChange={(e) => setGradRank(e.target.value)}>
+              <option value="">Escolha…</option>
+              {(ranks.data ?? []).map((r) => <option key={r.id} value={r.id}>{r.grade}. {r.name}</option>)}
+            </Select>
+          </Field>
+          <Field label="Data da graduação" hint="A contagem de presenças para o próximo grau recomeça depois desta data.">
+            <Input type="date" value={gradDate} max={today} onChange={(e) => setGradDate(e.target.value)} />
+          </Field>
+          <Field label="Observação">
+            <Input value={gradNotes} onChange={(e) => setGradNotes(e.target.value)} />
+          </Field>
+          <Button block loading={graduate.isPending} onPress={() => graduate.mutate()}>Confirmar graduação</Button>
+        </div>
+      </Sheet>
+    </Page>
+  )
+}
