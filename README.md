@@ -137,7 +137,7 @@ altere apenas `parseAttendanceExport` em `packages/core/src/domain/import.ts`.
    `xxxx.vercel-dns-017.com`); se mostrar, use o que estiver lá. O certificado HTTPS é emitido sozinho
    alguns minutos depois de o DNS propagar.
 6. **Supabase › Authentication › URL Configuration**: Site URL `https://app.kingofglory.com.br` e a mesma URL
-   em Redirect URLs (necessário para o link de "esqueci a senha").
+   em Redirect URLs, mais `https://app.kingofglory.com.br/login-professor` (necessário para o link de "esqueci a senha").
 7. **Criar sua conta** no app e depois, em Supabase › Authentication › Sign In / Providers, desligar
    "Allow new users to sign up". Enquanto estiver ligado, qualquer pessoa com o link consegue criar uma conta
    de professor (ela não vê seus dados, mas poderia editar os requisitos dos graus).

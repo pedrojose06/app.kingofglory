@@ -53,7 +53,7 @@ export default function LoginPage() {
         if (error) throw error
         if (!data.session) setMessage({ text: 'Conta criada. Confirme pelo link enviado ao seu e-mail e depois entre.', error: false })
       } else if (mode === 'reset') {
-        const { error } = await auth.resetPasswordForEmail(email, { redirectTo: `${window.location.origin}/login` })
+        const { error } = await auth.resetPasswordForEmail(email, { redirectTo: `${window.location.origin}/login-professor` })
         if (error) throw error
         setMessage({ text: 'Se o e-mail existir, você receberá um link para criar uma nova senha.', error: false })
       } else {

@@ -15,7 +15,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
   const userId = session?.user.id
 
   useEffect(() => {
-    if (ready && !session) router.replace('/login')
+    if (ready && !session) router.replace('/login-professor')
   }, [ready, session, router])
 
   useEffect(() => {

@@ -24,6 +24,8 @@ export default function GymPage() {
   const [open, setOpen] = useState(false)
   const [days, setDays] = useState<number[]>([2, 4])
   const [time, setTime] = useState('19:00')
+  const [different, setDifferent] = useState(false)
+  const [times, setTimes] = useState<Record<number, string>>({})
   const [title, setTitle] = useState('Muay Thai')
   const [startsOn, setStartsOn] = useState(today)
 
@@ -45,11 +47,14 @@ export default function GymPage() {
   const addSchedules = useSave(
     async () => {
       if (days.length === 0) throw new Error('Escolha ao menos um dia')
-      for (const weekday of days) {
-        const parsed = scheduleInput.safeParse({ gym_id: id, weekday, start_time: time, title, starts_on: startsOn })
-        if (!parsed.success) throw new Error(firstIssue(parsed.error))
-        await createSchedule(db(), parsed.data)
-      }
+      // Valida tudo antes de gravar, para um horário inválido não deixar a grade pela metade.
+      const inputs = days.map((weekday) => {
+        const start_time = different ? (times[weekday] ?? time) : time
+        const parsed = scheduleInput.safeParse({ gym_id: id, weekday, start_time, title, starts_on: startsOn })
+        if (!parsed.success) throw new Error(`${WEEKDAYS[weekday]}: ${firstIssue(parsed.error)}`)
+        return parsed.data
+      })
+      for (const input of inputs) await createSchedule(db(), input)
     },
     [keys.schedules, ['classes']],
     () => setOpen(false),
@@ -109,9 +114,26 @@ export default function GymPage() {
               ))}
             </div>
           </div>
+          <label className="flex min-h-11 items-center gap-2.5 text-sm text-text">
+            <input type="checkbox" className="size-5 accent-accent" checked={different} onChange={(e) => setDifferent(e.target.checked)} />
+            Horários diferentes por dia
+          </label>
+          {different ? (
+            days.length === 0 ? (
+              <p className="text-xs text-dim">Escolha os dias para informar o horário de cada um.</p>
+            ) : (
+              <div className="grid grid-cols-2 gap-2">
+                {days.map((weekday) => (
+                  <Field key={weekday} label={WEEKDAYS[weekday] ?? ""}>
+                    <Input type="time" value={times[weekday] ?? time} onChange={(e) => setTimes((t) => ({ ...t, [weekday]: e.target.value }))} />
+                  </Field>
+                ))}
+              </div>
+            )
+          ) : null}
           <div className="grid grid-cols-2 gap-2">
-            <Field label="Horário"><Input type="time" value={time} onChange={(e) => setTime(e.target.value)} /></Field>
-            <Field label="A partir de"><Input type="date" value={startsOn} onChange={(e) => setStartsOn(e.target.value || today)} /></Field>
+            {different ? null : <Field label="Horário"><Input type="time" value={time} onChange={(e) => setTime(e.target.value)} /></Field>}
+            <Field label="A partir de" className={different ? 'col-span-2' : undefined}><Input type="date" value={startsOn} onChange={(e) => setStartsOn(e.target.value || today)} /></Field>
           </div>
           <Field label="Nome da aula"><Input value={title} onChange={(e) => setTitle(e.target.value)} /></Field>
           <p className="text-xs text-dim">Se a data de início for no passado, as aulas desde então entram em Pendências para você lançar a chamada.</p>

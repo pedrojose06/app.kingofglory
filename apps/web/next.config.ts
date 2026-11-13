@@ -5,7 +5,7 @@ import type { NextConfig } from 'next'
 // Todas as rotas são estáticas (ids vão em ?id=), então o shell inteiro pode ser pré-cacheado
 // e o app abre offline mesmo em telas que nunca foram visitadas.
 const ROUTES = [
-  '/', '/login', '/aula', '/pendencias', '/avulsa', '/alunos', '/aluno', '/graduacao', '/historico',
+  '/', '/login-professor', '/aula', '/pendencias', '/avulsa', '/alunos', '/aluno', '/graduacao', '/historico',
   '/mais', '/academias', '/academia', '/graus', '/importar', '/sync',
 ]
 const revision = process.env.VERCEL_GIT_COMMIT_SHA ?? randomUUID()
