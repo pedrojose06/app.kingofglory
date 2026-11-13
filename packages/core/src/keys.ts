@@ -1,0 +1,20 @@
+/** Chaves do TanStack Query, compartilhadas entre web e (futuro) mobile. */
+export const keys = {
+  profile: ['profile'] as const,
+  gyms: ['gyms'] as const,
+  schedules: ['schedules'] as const,
+  students: ['students'] as const,
+  ranks: ['ranks'] as const,
+  progress: ['progress'] as const,
+  graduations: (studentId: string) => ['graduations', studentId] as const,
+  classesByDate: (date: string) => ['classes', 'date', date] as const,
+  classesPending: ['classes', 'pending'] as const,
+  classesRange: (gymId: string | null, from: string, to: string) => ['classes', 'range', gymId, from, to] as const,
+  classCounts: (ids: readonly string[]) => ['classes', 'counts', [...ids].sort().join(',')] as const,
+  class: (id: string) => ['class', id] as const,
+  classAttendance: (classId: string) => ['attendance', 'class', classId] as const,
+  studentAttendance: (studentId: string) => ['attendance', 'student', studentId] as const,
+  walkInLocations: ['attendance', 'locations'] as const,
+  lessonPlan: (classId: string) => ['lesson-plan', classId] as const,
+  classPhotos: (classId: string) => ['photos', classId] as const,
+}
