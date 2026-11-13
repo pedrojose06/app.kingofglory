@@ -21,6 +21,9 @@ const withSerwist = withSerwistInit({
 
 const nextConfig: NextConfig = {
   transpilePackages: ['@kog/core', '@kog/ui'],
+  // O Serwist injeta config de webpack (usada no build). Em dev o service worker fica desligado,
+  // então o Turbopack roda sem configuração extra; sem esta linha o `next dev` aborta.
+  turbopack: {},
 }
 
 export default withSerwist(nextConfig)
