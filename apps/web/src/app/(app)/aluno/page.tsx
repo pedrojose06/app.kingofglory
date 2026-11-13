@@ -2,12 +2,12 @@
 
 import {
   addGraduation, attendanceStats, deleteGraduation, firstIssue, formatDateBR, formatMonth, graduationInput, graduationStatus,
-  keys, setImageConsent, updateStudent, type Graduation,
+  keys, missingLabel, setImageConsent, updateStudent, type Graduation,
 } from '@kog/core'
 import { Badge, Button, Card, EmptyState, Field, Input, ProgressBar, RankBand, Select, Sheet } from '@kog/ui'
 import { Pencil } from 'lucide-react'
 import { useMemo, useState } from 'react'
-import { Section, StatusBadge, useParam } from '@/components/common'
+import { Section, StatusBadge, studentSince, useParam } from '@/components/common'
 import { Loading, Page } from '@/components/shell'
 import { StudentForm } from '@/components/student-form'
 import { useGraduations, useGyms, useProgress, useRanks, useSave, useStudentAttendance, useStudents, useToday } from '@/lib/queries'
@@ -33,7 +33,7 @@ export default function StudentPage() {
   const student = students.data?.find((s) => s.id === id)
   const gymName = gyms.data?.find((g) => g.id === student?.gym_id)?.name ?? 'Academia'
   const status = useMemo(
-    () => graduationStatus(progress.data?.find((p) => p.student_id === id), ranks.data ?? [], student?.created_at.slice(0, 10) ?? today, today),
+    () => graduationStatus(progress.data?.find((p) => p.student_id === id), ranks.data ?? [], student ? studentSince(student) : today, today),
     [progress.data, ranks.data, student, id, today],
   )
   const stats = useMemo(() => attendanceStats(attendance.data ?? [], gymName), [attendance.data, gymName])
@@ -89,9 +89,9 @@ export default function StudentPage() {
           <div className="min-w-0 flex-1">
             <p className="kicker">Grau atual</p>
             <p className="mt-1 truncate font-display text-xl uppercase text-text">
-              {status.current ? `${status.current.grade}º · ${status.current.name}` : 'Sem grau'}
+              {status.current ? `${status.current.grade}º · ${status.current.name}` : 'Sem graduação'}
             </p>
-            <p className="text-xs text-dim">{status.current?.level}</p>
+            <p className="text-xs text-dim">{status.current?.level ?? `Início em ${formatDateBR(studentSince(student))}`}</p>
           </div>
           {status.current ? <RankBand colors={status.current.colors} className="h-3.5 w-20" /> : null}
         </div>
@@ -102,24 +102,25 @@ export default function StudentPage() {
               <p className="text-sm font-bold text-text">Próximo: {status.next.name}</p>
               {status.eligible ? <Badge tone="success">Apto</Badge> : status.configured ? <Badge tone="gold">Em progresso</Badge> : <Badge>Sem requisito</Badge>}
             </div>
-            {status.needed != null ? (
-              <>
-                <ProgressBar value={status.count} max={status.needed} />
-                <p className="mt-1.5 text-sm text-soft">
-                  <strong className="text-text">{status.count}</strong> de {status.needed} presenças
-                  <span className="text-dim"> ({status.minPercent ?? 100}% de {status.requiredClasses} aulas)</span>
-                  {status.missingClasses > 0 ? ` · faltam ${status.missingClasses}` : ''}
-                </p>
-              </>
-            ) : (
-              <p className="text-sm text-soft"><strong className="text-text">{status.count}</strong> presenças desde a última graduação</p>
-            )}
+            {status.minPercent != null ? (
+              <ProgressBar value={Math.min(status.percent ?? 0, status.minPercent)} max={status.minPercent || 1} />
+            ) : null}
+            <p className="mt-1.5 text-sm text-soft">
+              <strong className="text-text">{status.count}</strong> presenças em {status.classes} aulas
+              {status.percent != null ? <> · <strong className="text-text">{status.percent}%</strong></> : null}
+              <span className="text-dim"> {status.current ? 'desde a última graduação' : 'desde o início'}</span>
+            </p>
+            {status.minPercent != null || status.minPresences != null ? (
+              <p className="mt-1 text-sm text-soft">
+                Exige {[status.minPercent != null ? `${status.minPercent}% de presença` : null, status.minPresences != null ? `${status.minPresences} presenças` : null].filter(Boolean).join(' e ')}
+              </p>
+            ) : null}
             {status.monthsNeeded != null ? (
               <p className="mt-1 text-sm text-soft">
                 <strong className="text-text">{status.monthsElapsed}</strong> de {status.monthsNeeded} meses
-                {status.missingMonths > 0 ? ` · faltam ${status.missingMonths}` : ''}
               </p>
             ) : null}
+            {status.configured && !status.eligible ? <p className="mt-1 text-sm font-medium text-text first-letter:uppercase">{missingLabel(status)}</p> : null}
             {!status.configured ? <p className="mt-1 text-xs text-dim">Defina os requisitos deste grau em Mais › Graus.</p> : null}
           </div>
         ) : null}
@@ -194,7 +195,7 @@ export default function StudentPage() {
 
       <Section title="Graduações">
         {(graduations.data ?? []).length === 0 ? (
-          <EmptyState title="Nenhuma graduação registrada">Sem registro, o aluno é tratado como Branco (grau 1).</EmptyState>
+          <EmptyState title="Nenhuma graduação registrada">A primeira graduação pode ser Branco ou direto Vermelho e Branco.</EmptyState>
         ) : (
           <Card className="divide-y divide-line">
             {(graduations.data ?? []).map((g) => {
@@ -239,7 +240,7 @@ export default function StudentPage() {
 
       <Sheet open={gradOpen} onClose={() => setGradOpen(false)} title="Registrar graduação">
         <div className="space-y-3">
-          <Field label="Grau">
+          <Field label="Grau" hint={status.next ? `Sugerido: ${status.next.name}. Dá para pular graus se for o caso.` : undefined}>
             <Select value={gradRank} onChange={(e) => setGradRank(e.target.value)}>
               <option value="">Escolha…</option>
               {(ranks.data ?? []).map((r) => <option key={r.id} value={r.id}>{r.grade}. {r.name}</option>)}

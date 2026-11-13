@@ -346,6 +346,7 @@ export type Database = {
           opening_present: number
           opening_absent: number
           opening_until: string | null
+          started_on: string
         }
         Insert: {
           id?: string
@@ -361,6 +362,7 @@ export type Database = {
           opening_present?: number
           opening_absent?: number
           opening_until?: string | null
+          started_on?: string
         }
         Update: {
           id?: string
@@ -376,6 +378,7 @@ export type Database = {
           opening_present?: number
           opening_absent?: number
           opening_until?: string | null
+          started_on?: string
         }
         Relationships: []
       }
@@ -390,6 +393,7 @@ export type Database = {
           attendance_since: number | null
           attendance_total: number | null
           last_attendance_on: string | null
+          classes_since: number | null
         }
         Relationships: []
       }

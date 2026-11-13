@@ -1,10 +1,10 @@
 'use client'
 
-import { graduationStatus } from '@kog/core'
+import { graduationStatus, missingLabel } from '@kog/core'
 import { Badge, EmptyState, ProgressBar, RankBand } from '@kog/ui'
 import Link from 'next/link'
 import { useMemo, useState } from 'react'
-import { GymChips } from '@/components/common'
+import { GymChips, studentSince } from '@/components/common'
 import { Loading, Page } from '@/components/shell'
 import { useGyms, useProgress, useRanks, useStudents, useToday } from '@/lib/queries'
 
@@ -20,7 +20,7 @@ export default function GraduationPage() {
     const progressOf = new Map((progress.data ?? []).map((p) => [p.student_id, p]))
     return (students.data ?? [])
       .filter((s) => s.active && (!gymId || s.gym_id === gymId))
-      .map((s) => ({ student: s, status: graduationStatus(progressOf.get(s.id), ranks.data ?? [], s.created_at.slice(0, 10), today) }))
+      .map((s) => ({ student: s, status: graduationStatus(progressOf.get(s.id), ranks.data ?? [], studentSince(s), today) }))
       .sort(
         (a, b) =>
           Number(b.status.eligible) - Number(a.status.eligible) ||
@@ -51,13 +51,12 @@ export default function GraduationPage() {
                 </div>
                 {status.next ? (
                   <>
-                    {status.needed != null ? <ProgressBar value={status.count} max={status.needed} className="mt-2 h-1.5" /> : null}
+                    {status.minPercent != null ? <ProgressBar value={Math.min(status.percent ?? 0, status.minPercent)} max={status.minPercent || 1} className="mt-2 h-1.5" /> : null}
                     <p className="mt-1.5 text-xs text-dim">
-                      {status.needed != null ? `${status.count}/${status.needed} presenças` : `${status.count} presenças`}
+                      {`${status.count}/${status.classes} aulas`}
+                      {status.percent != null ? ` · ${status.percent}%${status.minPercent != null ? ` de ${status.minPercent}%` : ''}` : ''}
                       {status.monthsNeeded != null ? ` · ${status.monthsElapsed}/${status.monthsNeeded} meses` : ''}
-                      {status.configured && !status.eligible
-                        ? ` · falta${status.missingClasses > 0 ? ` ${status.missingClasses} aulas` : ''}${status.missingClasses > 0 && status.missingMonths > 0 ? ' e' : ''}${status.missingMonths > 0 ? ` ${status.missingMonths} ${status.missingMonths === 1 ? 'mês' : 'meses'}` : ''}`
-                        : ''}
+                      {status.configured && !status.eligible ? ` · ${missingLabel(status)}` : ''}
                       {` → ${status.next.name}`}
                     </p>
                   </>

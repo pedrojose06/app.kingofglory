@@ -20,6 +20,7 @@ export const studentInput = z.object({
   phone: optionalText,
   birth_date: isoDate.nullable().optional(),
   notes: optionalText,
+  started_on: isoDate.optional(),
   active: z.boolean().optional(),
 })
 export type StudentInput = z.infer<typeof studentInput>

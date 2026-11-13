@@ -24,6 +24,7 @@ export function StudentForm({ open, onClose, gyms, ranks, student, defaultGymId 
   const [gymId, setGymId] = useState('')
   const [phone, setPhone] = useState('')
   const [birth, setBirth] = useState('')
+  const [startedOn, setStartedOn] = useState('')
   const [notes, setNotes] = useState('')
   const [rankId, setRankId] = useState('')
   const [graduatedAt, setGraduatedAt] = useState('')
@@ -34,6 +35,7 @@ export function StudentForm({ open, onClose, gyms, ranks, student, defaultGymId 
     setGymId(student?.gym_id ?? defaultGymId ?? gyms[0]?.id ?? '')
     setPhone(student?.phone ?? '')
     setBirth(student?.birth_date ?? '')
+    setStartedOn(student?.started_on ?? student?.created_at.slice(0, 10) ?? '')
     setNotes(student?.notes ?? '')
     setRankId('')
     setGraduatedAt('')
@@ -41,7 +43,7 @@ export function StudentForm({ open, onClose, gyms, ranks, student, defaultGymId 
 
   const save = useSave(
     async (keepOpen: boolean) => {
-      const parsed = studentInput.safeParse({ gym_id: gymId, name, phone, birth_date: birth || null, notes })
+      const parsed = studentInput.safeParse({ gym_id: gymId, name, phone, birth_date: birth || null, notes, started_on: startedOn || undefined })
       if (!parsed.success) throw new Error(firstIssue(parsed.error))
       if (rankId && !graduatedAt) throw new Error('Informe a data da última graduação')
       if (student) {
@@ -91,9 +93,12 @@ export function StudentForm({ open, onClose, gyms, ranks, student, defaultGymId 
             <Input value={birth} onChange={(e) => setBirth(e.target.value)} type="date" />
           </Field>
         </div>
+        <Field label="Início" hint="Base do intervalo mínimo enquanto o aluno não tem graduação. Vazio = hoje.">
+          <Input value={startedOn} onChange={(e) => setStartedOn(e.target.value)} type="date" />
+        </Field>
         {!student ? (
           <div className="grid grid-cols-2 gap-2">
-            <Field label="Grau atual" hint="Vazio = Branco (grau 1)">
+            <Field label="Grau atual" hint="Vazio = sem graduação">
               <Select value={rankId} onChange={(e) => setRankId(e.target.value)}>
                 <option value="">—</option>
                 {ranks.map((r) => <option key={r.id} value={r.id}>{r.grade}. {r.name}</option>)}

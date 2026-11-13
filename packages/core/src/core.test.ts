@@ -29,31 +29,46 @@ describe('dates', () => {
 const rank = (grade: number, extra: Partial<Rank> = {}): Rank => ({
   id: `r${grade}`, grade, name: `G${grade}`, level: '', colors: [], min_months: null, required_classes: null, min_percent: null, ...extra,
 })
-const ranks = [rank(1), rank(2, { min_months: 6, required_classes: 48, min_percent: 75 }), rank(3)]
+const ranks = [rank(1, { min_percent: 50 }), rank(2, { min_months: 6, min_percent: 75 }), rank(3)]
 
 describe('graduationStatus', () => {
-  it('sem graduação: trata como grau 1 e conta desde o cadastro', () => {
-    const s = graduationStatus(undefined, ranks, '2026-01-01', '2026-03-15')
-    expect(s.current?.grade).toBe(1)
-    expect(s.next?.grade).toBe(2)
-    expect(s.needed).toBe(36)
-    expect(s.missingClasses).toBe(36)
-    expect(s.missingMonths).toBe(4)
+  it('sem graduação: não tem grau, próximo é o primeiro e conta desde o início', () => {
+    const s = graduationStatus({ current_rank_id: null, last_graduated_at: null, attendance_since: 3, classes_since: 10 }, ranks, '2026-01-01', '2026-03-15')
+    expect(s.current).toBeNull()
+    expect(s.next?.grade).toBe(1)
+    expect(s.percent).toBe(30)
+    // (3 + x) / (10 + x) >= 50%  →  x = 4
+    expect(s.missingClasses).toBe(4)
+    expect(s.monthsElapsed).toBe(2)
     expect(s.eligible).toBe(false)
   })
-  it('apto quando cumpre presenças mínimas (75% de 48) e o intervalo', () => {
-    const p = { current_rank_id: 'r1', last_graduated_at: '2026-01-10', attendance_since: 36 }
+  it('apto quando cumpre o % sobre as aulas do período e o intervalo', () => {
+    const p = { current_rank_id: 'r1', last_graduated_at: '2026-01-10', attendance_since: 36, classes_since: 48 }
     expect(graduationStatus(p, ranks, '2025-01-01', '2026-07-09').eligible).toBe(false)
     expect(graduationStatus(p, ranks, '2025-01-01', '2026-07-10').eligible).toBe(true)
-    expect(graduationStatus({ ...p, attendance_since: 35 }, ranks, '2025-01-01', '2026-08-01').eligible).toBe(false)
+    const low = graduationStatus({ ...p, attendance_since: 35 }, ranks, '2025-01-01', '2026-08-01')
+    expect(low.eligible).toBe(false)
+    expect(low.missingClasses).toBe(4) // (35 + 4) / (48 + 4) = 75%
+  })
+  it('presenças mínimas somam ao %', () => {
+    const r = [rank(1), rank(2, { required_classes: 48, min_percent: 50 })]
+    const s = graduationStatus({ current_rank_id: 'r1', last_graduated_at: '2026-01-01', attendance_since: 13, classes_since: 20 }, r, '2025-01-01', '2026-03-01')
+    expect(s.missingClasses).toBe(35)
+    expect(s.eligible).toBe(false)
+  })
+  it('100% com alguma falta é inalcançável', () => {
+    const r = [rank(1), rank(2, { min_percent: 100 })]
+    const s = graduationStatus({ current_rank_id: 'r1', last_graduated_at: '2026-01-01', attendance_since: 9, classes_since: 10 }, r, '2025-01-01', '2026-03-01')
+    expect(s.percentUnreachable).toBe(true)
+    expect(s.eligible).toBe(false)
   })
   it('grau sem requisito configurado nunca aparece como apto', () => {
-    const s = graduationStatus({ current_rank_id: 'r2', last_graduated_at: '2020-01-01', attendance_since: 999 }, ranks, '2019-01-01', '2026-01-01')
+    const s = graduationStatus({ current_rank_id: 'r2', last_graduated_at: '2020-01-01', attendance_since: 999, classes_since: 999 }, ranks, '2019-01-01', '2026-01-01')
     expect(s.configured).toBe(false)
     expect(s.eligible).toBe(false)
   })
   it('último grau não tem próximo', () => {
-    expect(graduationStatus({ current_rank_id: 'r3', last_graduated_at: null, attendance_since: 1 }, ranks, '2026-01-01', '2026-02-01').next).toBeNull()
+    expect(graduationStatus({ current_rank_id: 'r3', last_graduated_at: null, attendance_since: 1, classes_since: 1 }, ranks, '2026-01-01', '2026-02-01').next).toBeNull()
   })
 })
 

@@ -34,11 +34,10 @@ export default function RanksPage() {
     () => setEditing(null),
   )
 
-  const needed = toNumber(classes) != null ? Math.ceil((Number(classes) * (toNumber(percent) ?? 100)) / 100) : null
 
   return (
     <Page title="Graus" kicker="Kruang · Prajied" back="/mais">
-      <p className="mb-3 text-sm text-dim">Toque num grau para definir o que o aluno precisa cumprir para chegar nele.</p>
+      <p className="mb-3 text-sm text-dim">Toque num grau para definir o que o aluno precisa cumprir para chegar nele. A presença é a % das aulas que o aluno teve desde a graduação anterior (ou desde o início, para quem ainda não tem graduação).</p>
       {ranks.isPending ? (
         <Loading />
       ) : (
@@ -50,11 +49,9 @@ export default function RanksPage() {
                 <span className="block truncate text-sm font-bold text-text">{r.name}</span>
                 <span className="block truncate text-xs text-dim">
                   {r.level}
-                  {r.grade === 1
-                    ? ' · grau inicial'
-                    : r.min_months == null && r.required_classes == null
-                      ? ' · sem requisito definido'
-                      : ` · ${[r.min_months != null ? `${r.min_months} meses` : null, r.required_classes != null ? `${r.min_percent ?? 100}% de ${r.required_classes} aulas` : null].filter(Boolean).join(' · ')}`}
+                  {r.min_months == null && r.min_percent == null && r.required_classes == null
+                    ? ' · sem requisito definido'
+                    : ` · ${[r.min_months != null ? `${r.min_months} meses` : null, r.min_percent != null ? `${r.min_percent}% de presença` : null, r.required_classes != null ? `${r.required_classes} presenças` : null].filter(Boolean).join(' · ')}`}
                 </span>
               </span>
               <RankBand colors={r.colors} />
@@ -65,18 +62,22 @@ export default function RanksPage() {
 
       <Sheet open={!!editing} onClose={() => setEditing(null)} title={editing ? `${editing.grade}º · ${editing.name}` : ''}>
         <div className="space-y-3">
-          <Field label="Intervalo mínimo (meses)" hint="Tempo desde a graduação anterior. Ex.: 6, 12, 18.">
+          <Field label="Intervalo mínimo (meses)" hint="Tempo desde a graduação anterior (ou desde o início do aluno). Ex.: 6, 12, 18.">
             <Input inputMode="numeric" value={months} onChange={(e) => setMonths(e.target.value.replace(/\D/g, ''))} placeholder="—" />
           </Field>
           <div className="grid grid-cols-2 gap-2">
-            <Field label="Aulas no período">
+            <Field label="% mínima de presença">
+              <Input inputMode="numeric" value={percent} onChange={(e) => setPercent(e.target.value.replace(/\D/g, ''))} placeholder="—" />
+            </Field>
+            <Field label="Presenças mínimas">
               <Input inputMode="numeric" value={classes} onChange={(e) => setClasses(e.target.value.replace(/\D/g, ''))} placeholder="—" />
             </Field>
-            <Field label="% mínima">
-              <Input inputMode="numeric" value={percent} onChange={(e) => setPercent(e.target.value.replace(/\D/g, ''))} placeholder="100" />
-            </Field>
           </div>
-          {needed != null ? <p className="text-sm text-soft">O aluno precisa de <strong className="text-text">{needed} presenças</strong> desde a última graduação.</p> : null}
+          <p className="text-sm text-soft">
+            {toNumber(percent) != null
+              ? <>Ex.: com {percent}%, quem teve 40 aulas no período precisa de <strong className="text-text">{Math.ceil((40 * Number(percent)) / 100)} presenças</strong>.</>
+              : 'Deixe em branco o que não for exigido.'}
+          </p>
           <Button block loading={save.isPending} onPress={() => save.mutate()}>Salvar</Button>
         </div>
       </Sheet>

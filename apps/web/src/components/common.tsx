@@ -1,6 +1,6 @@
 'use client'
 
-import { formatDayShort, formatTime, STATUS_LABEL, type AttendanceStatus, type ClassRow, type Gym } from '@kog/core'
+import { formatDayShort, formatTime, STATUS_LABEL, type AttendanceStatus, type ClassRow, type Gym, type Student } from '@kog/core'
 import { Badge, Card, Chip, cn } from '@kog/ui'
 import { Check, ChevronRight } from 'lucide-react'
 import Link from 'next/link'
@@ -8,6 +8,9 @@ import { useSearchParams } from 'next/navigation'
 import type { ReactNode } from 'react'
 
 export const useParam = (name: string) => useSearchParams().get(name) ?? ''
+
+/** Início do aluno; o cache offline pode ter alunos salvos antes de started_on existir. */
+export const studentSince = (s: Student) => s.started_on ?? s.created_at.slice(0, 10)
 
 /** Filtro de academia em chips; `null` = todas. Some quando há só uma academia. */
 export function GymChips({ gyms, value, onChange, all = true }: { gyms: readonly Gym[]; value: string | null; onChange: (id: string | null) => void; all?: boolean }) {

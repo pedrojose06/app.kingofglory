@@ -96,8 +96,10 @@ pnpm db:types
   chaves estrangeiras são `RESTRICT`. Aluno é inativado; aula é cancelada.
 - **RLS**: o professor só enxerga academias em que está em `gym_instructors` e os dados ligados a elas.
   Presença avulsa é visível a quem marcou e ao aluno dono do registro.
-- **Graduação**: contam presença e atraso; falta (justificada ou não) não conta. Cada grau tem intervalo mínimo
-  em meses, quantidade de aulas de referência e porcentagem mínima (editáveis em Mais › Graus).
+- **Graduação**: o aluno começa sem graduação; a primeira pode ser Branco ou direto Vermelho e Branco (dá
+  para pular graus). Cada grau pode exigir intervalo mínimo em meses, % mínima de presença e presenças mínimas
+  (Mais › Graus). A % é presenças ÷ aulas do período (presenças + faltas, inclusive o saldo importado) desde a
+  última graduação, ou desde o início do aluno. Presença e atraso contam; falta justificada fica fora da conta.
 
 ## Como funciona o offline
 

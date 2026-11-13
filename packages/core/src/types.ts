@@ -28,6 +28,8 @@ export interface StudentProgress {
   attendance_since: number
   attendance_total: number
   last_attendance_on: string | null
+  /** Aulas do período (presenças + faltas) desde a última graduação. */
+  classes_since: number
 }
 
 export type AttendanceStatus = Enum<'attendance_status'>
