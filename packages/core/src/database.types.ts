@@ -307,6 +307,7 @@ export type Database = {
           name: string
           role: Database["public"]["Enums"]["profile_role"]
           avatar_url: string | null
+          absence_alert_threshold: number
           created_at: string
         }
         Insert: {
@@ -314,6 +315,7 @@ export type Database = {
           name?: string
           role?: Database["public"]["Enums"]["profile_role"]
           avatar_url?: string | null
+          absence_alert_threshold?: number
           created_at?: string
         }
         Update: {
@@ -321,6 +323,7 @@ export type Database = {
           name?: string
           role?: Database["public"]["Enums"]["profile_role"]
           avatar_url?: string | null
+          absence_alert_threshold?: number
           created_at?: string
         }
         Relationships: []
@@ -447,6 +450,25 @@ export type Database = {
       }
     }
     Views: {
+      student_absence_streaks: {
+        Row: {
+          student_id: string | null
+          gym_id: string | null
+          last_present_on: string | null
+          absences_in_row: number | null
+        }
+        Relationships: []
+      }
+      class_turnout: {
+        Row: {
+          class_id: string | null
+          gym_id: string | null
+          date: string | null
+          start_time: string | null
+          present: number | null
+        }
+        Relationships: []
+      }
       student_progress: {
         Row: {
           student_id: string | null

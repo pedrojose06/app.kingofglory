@@ -7,6 +7,8 @@ export const keys = {
   students: ['students'] as const,
   ranks: ['ranks'] as const,
   progress: ['progress'] as const,
+  absenceStreaks: ['attendance', 'streaks'] as const,
+  classTurnout: ['attendance', 'turnout'] as const,
   graduations: (studentId: string) => ['graduations', studentId] as const,
   classesByDate: (date: string) => ['classes', 'date', date] as const,
   classesPending: ['classes', 'pending'] as const,

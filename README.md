@@ -68,6 +68,7 @@ As migrations em `supabase/migrations` já estão aplicadas no projeto remoto, c
 | `harden_functions` | nenhuma função é chamável sem login |
 | `opening_balance` | saldo inicial por aluno (`opening_present`, `opening_absent`, `opening_until`), somado em `student_progress` |
 | `attendance_reminders` | lembrete de chamada por push: `attendance_reminders`, `push_subscriptions` e o job do `pg_cron` |
+| `attendance_insights` | limite de faltas seguidas por professor (`profiles.absence_alert_threshold`) e as views `student_absence_streaks` e `class_turnout` usadas em Pendências |
 | `…future_face_recognition.sql.disabled` | schema previsto da Fase 4 (pgvector), não aplicado |
 
 Para criar uma migration nova e aplicar (com a CLI do Supabase):
@@ -113,6 +114,17 @@ pnpm db:types
   de presença vence a marcação mais recente.
 - O selo no topo das telas mostra quantas alterações estão pendentes; Mais › Sincronização lista cada uma.
 - Cadastros (academias, alunos, graus) e importação exigem conexão.
+
+## Faltas e padrões de frequência (Pendências)
+
+- **Faltas seguidas**: lista os alunos ativos que passaram do limite de faltas seguidas desde a última presença
+  (presença avulsa conta como presença; falta justificada não conta nem zera). Cada professor ajusta o próprio
+  limite em Pendências › Ajustar (padrão 5: avisa a partir da 6ª falta).
+- **Padrões**: compara a média de alunos por aula no início, meio e fim do mês, entre os dias da semana da grade e
+  nas últimas 8 semanas contra as 8 anteriores, por academia. Só vira aviso a diferença de pelo menos 10% que
+  passa no teste t de Welch: "Padrão" com t ≥ 2, "Sinal leve" com t ≥ 1,3. Dias com poucas aulas (extras fora da
+  grade) e academias com menos de 12 aulas concluídas ficam de fora. A lógica está em
+  `packages/core/src/domain/insights.ts`.
 
 ## Lembrete de chamada (push)
 

@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import {
-  addDays, buildImportPlan, diffReminders, enqueue, formatDayLong, graduationStatus, monthsBetween, nextBatch, overlayAttendance,
-  overlayClassStatus, parseAttendanceExport, parseCsv, parseDateLoose, toCsv, toReminderPlan, todayISO, weekdayOf, attendanceStats,
-  type Attendance, type AttendanceReminder, type OutboxItem, type OutboxOp, type Rank,
+  absenceAlerts, addDays, analyzeTurnout, buildImportPlan, diffReminders, enqueue, formatDayLong, graduationStatus, monthsBetween, nextBatch, overlayAttendance,
+  overlayClassStatus, parseAttendanceExport, parseCsv, parseDateLoose, toCsv, toReminderPlan, todayISO, weekdayOf, welchT, attendanceStats,
+  type AbsenceStreak, type Attendance, type AttendanceReminder, type ClassTurnout, type OutboxItem, type OutboxOp, type Rank,
 } from './index'
 
 describe('dates', () => {
@@ -185,5 +185,74 @@ describe('lembretes de chamada', () => {
       insert: [{ schedule_id: null, remind_at: '22:30' }],
     })
     expect(diffReminders(current, { general: null, bySchedule: {} }).remove).toEqual(['2', '3'])
+  })
+})
+
+describe('faltas seguidas', () => {
+  const s = (id: string, n: number, last: string | null = null): AbsenceStreak => ({ student_id: id, gym_id: 'g', last_present_on: last, absences_in_row: n })
+
+  it('avisa só quem passou do limite, quem falta há mais tempo primeiro', () => {
+    const list = [s('a', 5), s('b', 6, '2026-10-01'), s('c', 12, '2026-08-01'), s('d', 6, '2026-09-01')]
+    expect(absenceAlerts(list, 5).map((x) => x.student_id)).toEqual(['c', 'd', 'b'])
+    expect(absenceAlerts(list, 10).map((x) => x.student_id)).toEqual(['c'])
+  })
+})
+
+describe('padrões de frequência', () => {
+  // Gera aulas às terças e quintas entre duas datas, com a lotação dada por dia.
+  function classes(gym: string, from: string, to: string, present: (date: string) => number): ClassTurnout[] {
+    const out: ClassTurnout[] = []
+    for (let d = from; d <= to; d = addDays(d, 1)) {
+      const wd = weekdayOf(d)
+      if (wd === 2 || wd === 4) out.push({ class_id: `${gym}-${d}`, gym_id: gym, date: d, present: present(d) })
+    }
+    return out
+  }
+  // ruído determinístico: 0, 1, 2, 0, 1, 2…
+  const noise = (d: string) => Number(d.slice(8, 10)) % 3
+
+  it('aponta o fim do mês mais cheio quando a diferença é clara', () => {
+    const rows = classes('g1', '2026-01-01', '2026-10-31', (d) => (Number(d.slice(8, 10)) > 20 ? 9 : 4) + noise(d))
+    const [gym] = analyzeTurnout(rows, '2026-11-01')
+    const period = gym!.insights.find((i) => i.kind === 'period')
+    expect(period?.strength).toBe('strong')
+    expect(period?.text).toContain('O fim do mês (dias 21–31) tem mais alunos')
+  })
+
+  it('não inventa padrão quando a lotação é a mesma', () => {
+    const rows = classes('g1', '2026-01-01', '2026-10-31', (d) => 5 + noise(d))
+    const [gym] = analyzeTurnout(rows, '2026-11-01')
+    expect(gym!.insights.filter((i) => i.kind === 'period' || i.kind === 'weekday')).toEqual([])
+    expect(gym!.byPeriod.map((b) => b.label)).toEqual(['Início (1–10)', 'Meio (11–20)', 'Fim (21–31)'])
+  })
+
+  it('compara dias da semana e detecta queda recente', () => {
+    const rows = classes('g1', '2026-01-01', '2026-10-31', (d) =>
+      (weekdayOf(d) === 2 ? 8 : 4) + noise(d) - (d > '2026-09-05' ? 3 : 0),
+    )
+    const [gym] = analyzeTurnout(rows, '2026-10-31')
+    expect(gym!.insights.find((i) => i.kind === 'weekday')?.text).toContain('Terça enche mais que quinta')
+    const trend = gym!.insights.find((i) => i.kind === 'trend')
+    expect(trend?.text).toContain('caindo')
+    expect(gym!.byWeekday.map((b) => b.label)).toEqual(['Terça', 'Quinta'])
+  })
+
+  it('deixa de fora dias com poucas aulas extras (não são da grade)', () => {
+    const regular = classes('g1', '2026-01-01', '2026-10-31', (d) => 6 + noise(d))
+    const extras: ClassTurnout[] = ['2026-02-06', '2026-03-13', '2026-03-20', '2026-07-24', '2026-10-09', '2026-04-03']
+      .map((date) => ({ class_id: `x-${date}`, gym_id: 'g1', date, present: 1 }))
+    const [gym] = analyzeTurnout([...regular, ...extras], '2026-11-01')
+    expect(gym!.byWeekday.map((b) => b.label)).toEqual(['Terça', 'Quinta'])
+    expect(gym!.insights.find((i) => i.kind === 'weekday')).toBeUndefined()
+  })
+
+  it('ignora academias com poucas aulas', () => {
+    const rows = classes('g2', '2026-10-01', '2026-10-20', () => 3)
+    expect(analyzeTurnout(rows, '2026-11-01')).toEqual([])
+  })
+
+  it('welchT cresce com a diferença e com o número de aulas', () => {
+    expect(welchT([5, 5, 5], [5, 5, 5])).toBe(0)
+    expect(welchT([4, 6, 4, 6], [5, 7, 5, 7])).toBeLessThan(welchT([4, 6, 4, 6, 4, 6, 4, 6], [5, 7, 5, 7, 5, 7, 5, 7]))
   })
 })
