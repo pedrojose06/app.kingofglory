@@ -20,7 +20,7 @@ export default function GraduationPage() {
     const progressOf = new Map((progress.data ?? []).map((p) => [p.student_id, p]))
     return (students.data ?? [])
       .filter((s) => s.active && (!gymId || s.gym_id === gymId))
-      .map((s) => ({ student: s, status: graduationStatus(progressOf.get(s.id), ranks.data ?? [], studentSince(s), today, trackOf(s)) }))
+      .map((s) => ({ student: s, status: graduationStatus(progressOf.get(s.id), ranks.data ?? [], studentSince(s), today, { track: trackOf(s), birthDate: s.birth_date }) }))
       .sort(
         (a, b) =>
           Number(b.status.eligible) - Number(a.status.eligible) ||
@@ -52,6 +52,13 @@ export default function GraduationPage() {
                 </div>
                 {status.next ? (
                   <>
+                    {status.byAge ? (
+                      <p className="mt-1.5 text-xs text-dim">
+                        Infantil{status.ageThisYear != null ? ` · completa ${status.ageThisYear} anos este ano` : ''}
+                        {status.configured && !status.eligible ? ` · ${missingLabel(status)}` : ''}
+                        {` → ${status.next.name}`}
+                      </p>
+                    ) : <>
                     {status.needed != null ? <ProgressBar value={Math.min(status.count, status.needed)} max={status.needed || 1} className="mt-2 h-1.5" /> : null}
                     <p className="mt-1.5 text-xs text-dim">
                       {status.needed != null ? `${status.count}/${status.needed} treinos` : `${status.count} treinos`}
@@ -59,6 +66,7 @@ export default function GraduationPage() {
                       {status.configured && !status.eligible ? ` · ${missingLabel(status)}` : ''}
                       {` → ${status.next.name}${status.skipTo ? ` ou ${status.skipTo.name}` : ''}`}
                     </p>
+                    </>}
                   </>
                 ) : null}
               </Link>

@@ -53,6 +53,7 @@ export const rankRequirementInput = z.object({
   min_months: nullableInt(240),
   required_classes: nullableInt(2000),
   min_percent: nullableInt(100),
+  min_age: nullableInt(99).optional(),
 })
 export type RankRequirementInput = z.infer<typeof rankRequirementInput>
 

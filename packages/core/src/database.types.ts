@@ -339,6 +339,7 @@ export type Database = {
           required_classes: number | null
           min_percent: number | null
           track: string
+          min_age: number | null
         }
         Insert: {
           id?: string
@@ -350,6 +351,7 @@ export type Database = {
           required_classes?: number | null
           min_percent?: number | null
           track?: string
+          min_age?: number | null
         }
         Update: {
           id?: string
@@ -361,6 +363,7 @@ export type Database = {
           required_classes?: number | null
           min_percent?: number | null
           track?: string
+          min_age?: number | null
         }
         Relationships: []
       }

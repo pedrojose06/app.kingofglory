@@ -33,12 +33,14 @@ export default function StudentPage() {
   const student = students.data?.find((s) => s.id === id)
   const gymName = gyms.data?.find((g) => g.id === student?.gym_id)?.name ?? 'Academia'
   const status = useMemo(
-    () => graduationStatus(progress.data?.find((p) => p.student_id === id), ranks.data ?? [], student ? studentSince(student) : today, today, trackOf(student)),
+    () => graduationStatus(progress.data?.find((p) => p.student_id === id), ranks.data ?? [], student ? studentSince(student) : today, today, { track: trackOf(student), birthDate: student?.birth_date }),
     [progress.data, ranks.data, student, id, today],
   )
   const stats = useMemo(() => attendanceStats(attendance.data ?? [], gymName), [attendance.data, gymName])
   const rankOf = (rankId: string) => ranks.data?.find((r) => r.id === rankId)
   const trackRanks = useMemo(() => ranksOfTrack(ranks.data ?? [], trackOf(student)), [ranks.data, student])
+  // Infantil: o Branco não pode ser pulado.
+  const gradOptions = status.byAge && !status.current ? trackRanks.slice(0, 1) : trackRanks
 
   const invalidate = [keys.students, keys.progress, keys.graduations(id)] as const
   const graduate = useSave(
@@ -107,7 +109,17 @@ export default function StudentPage() {
               {status.skipTo ? <Badge tone="gold">Pode pular</Badge> : null}
               {status.eligible ? <Badge tone="success">Apto</Badge> : status.configured ? <Badge tone="gold">Em progresso</Badge> : <Badge>Sem requisito</Badge>}
             </div>
-            {status.needed != null ? (
+            {status.byAge ? (
+              <>
+                <p className="text-sm text-soft">
+                  {status.ageThisYear != null
+                    ? <>Completa <strong className="text-text">{status.ageThisYear} anos</strong> este ano</>
+                    : 'Sem data de nascimento cadastrada'}
+                  {status.ageNeeded != null ? <span className="text-dim"> · {status.next.name} a partir de {status.ageNeeded}</span> : null}
+                </p>
+                <p className="mt-1 text-xs text-dim">Graduação infantil por idade: o Branco não pode ser pulado; depois dele vai direto ao grau da idade. Uma graduação por ano.</p>
+              </>
+            ) : status.needed != null ? (
               <>
                 <ProgressBar value={Math.min(status.count, status.needed)} max={status.needed || 1} />
                 <p className="mt-1.5 text-sm text-soft">
@@ -119,12 +131,12 @@ export default function StudentPage() {
             ) : (
               <p className="text-sm text-soft"><strong className="text-text">{status.count}</strong> treinos {status.current ? 'desde a última graduação' : 'desde o início'}</p>
             )}
-            {status.monthsNeeded != null ? (
+            {!status.byAge && status.monthsNeeded != null ? (
               <p className="mt-1 text-sm text-soft">
                 <strong className="text-text">{status.monthsElapsed}</strong> de {status.monthsNeeded} meses
               </p>
             ) : null}
-            {status.rate != null ? <p className="mt-1 text-xs text-dim">Frequência no período: {status.rate}% ({status.count} de {status.classes} aulas)</p> : null}
+            {!status.byAge && status.rate != null ? <p className="mt-1 text-xs text-dim">Frequência no período: {status.rate}% ({status.count} de {status.classes} aulas)</p> : null}
             {openingExcluded ? (
               <p className="mt-1 text-xs text-dim">
                 {student.opening_after_grad != null
@@ -155,7 +167,7 @@ export default function StudentPage() {
                 </div>
               )
             })() : null}
-            {!status.configured ? <p className="mt-1 text-xs text-dim">Defina os requisitos deste grau em Mais › Graus.</p> : null}
+            {!status.configured ? <p className="mt-1 text-xs text-dim">Defina {status.byAge ? 'a idade' : 'os requisitos'} deste grau em Mais › Graus.</p> : null}
           </div>
         ) : null}
 
@@ -229,7 +241,9 @@ export default function StudentPage() {
 
       <Section title="Graduações">
         {(graduations.data ?? []).length === 0 ? (
-          <EmptyState title="Nenhuma graduação registrada">A primeira graduação pode ser {trackRanks[0]?.name ?? 'o primeiro grau'}{trackRanks[1] ? ` ou direto ${trackRanks[1].name}` : ''}.</EmptyState>
+          <EmptyState title="Nenhuma graduação registrada">{status.byAge
+            ? `A primeira graduação infantil é sempre ${trackRanks[0]?.name ?? 'o primeiro grau'}.`
+            : `A primeira graduação pode ser ${trackRanks[0]?.name ?? 'o primeiro grau'}${trackRanks[1] ? ` ou direto ${trackRanks[1].name}` : ''}.`}</EmptyState>
         ) : (
           <Card className="divide-y divide-line">
             {(graduations.data ?? []).map((g) => {
@@ -274,17 +288,17 @@ export default function StudentPage() {
 
       <Sheet open={gradOpen} onClose={() => setGradOpen(false)} title="Registrar graduação">
         <div className="space-y-3">
-          {!status.current && trackRanks.length > 1 ? (
+          {!status.current && !status.byAge && trackRanks.length > 1 ? (
             <div className="flex gap-2">
               {trackRanks.slice(0, 2).map((r) => (
                 <Chip key={r.id} active={gradRank === r.id} onPress={() => setGradRank(r.id)}>{r.name}</Chip>
               ))}
             </div>
           ) : null}
-          <Field label="Grau" hint={status.skipTo ? `Apto para ${status.next?.name}; com ${status.monthsElapsed} meses, pode pular para ${status.skipTo.name}.` : status.next ? `Sugerido: ${status.next.name}. Dá para pular graus se for o caso.` : undefined}>
+          <Field label="Grau" hint={status.skipTo ? `Apto para ${status.next?.name}; com ${status.monthsElapsed} meses, pode pular para ${status.skipTo.name}.` : status.next ? `Sugerido: ${status.next.name}.${status.byAge && !status.current ? '' : ' Dá para pular graus se for o caso.'}` : undefined}>
             <Select value={gradRank} onChange={(e) => setGradRank(e.target.value)}>
               <option value="">Escolha…</option>
-              {trackRanks.map((r) => <option key={r.id} value={r.id}>{r.grade}. {r.name}</option>)}
+              {gradOptions.map((r) => <option key={r.id} value={r.id}>{r.grade}. {r.name}</option>)}
             </Select>
           </Field>
           <Field label="Data da graduação" hint="A contagem de treinos para o próximo grau recomeça depois desta data.">

@@ -94,7 +94,7 @@ export function StudentForm({ open, onClose, gyms, ranks, student, defaultGymId 
           <Field label="Telefone">
             <Input value={phone} onChange={(e) => setPhone(e.target.value)} type="tel" inputMode="tel" />
           </Field>
-          <Field label="Nascimento">
+          <Field label="Nascimento" hint={track === 'infantil' ? 'Obrigatório na graduação infantil (é por idade).' : undefined}>
             <DateInput value={birth} onChange={(e) => setBirth(e.target.value)} />
           </Field>
         </div>

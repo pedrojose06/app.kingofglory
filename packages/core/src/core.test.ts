@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
-  absenceAlerts, addDays, analyzeTurnout, buildImportPlan, diffReminders, enqueue, formatDayLong, graduationStatus, monthsBetween, nextBatch, overlayAttendance,
+  absenceAlerts, addDays, analyzeTurnout, buildImportPlan, diffReminders, enqueue, formatDayLong, graduationStatus, missingLabel, monthsBetween, nextBatch, overlayAttendance,
   overlayClassStatus, parseAttendanceExport, parseCsv, parseDateLoose, toCsv, toReminderPlan, todayISO, weekdayOf, welchT, attendanceStats,
   type AbsenceStreak, type Attendance, type AttendanceReminder, type ClassTurnout, type OutboxItem, type OutboxOp, type Rank,
 } from './index'
@@ -27,7 +27,7 @@ describe('dates', () => {
 })
 
 const rank = (grade: number, extra: Partial<Rank> = {}): Rank => ({
-  id: `r${grade}`, grade, name: `G${grade}`, level: '', colors: [], min_months: null, required_classes: null, min_percent: null, track: 'adulto', ...extra,
+  id: `r${grade}`, grade, name: `G${grade}`, level: '', colors: [], min_months: null, required_classes: null, min_percent: null, track: 'adulto', min_age: null, ...extra,
 })
 const ranks = [
   rank(1, { required_classes: 24, min_months: 3 }),
@@ -69,14 +69,36 @@ describe('graduationStatus', () => {
   it('último grau não tem próximo', () => {
     expect(graduationStatus(prog('r4', null, 1), ranks, '2026-01-01', '2026-02-01').next).toBeNull()
   })
-  it('graduação infantil segue a própria trilha', () => {
-    const kids = [1, 2, 3, 4].map((g) => rank(g, { id: `k${g}`, track: 'infantil', name: ['Branco', 'Amarelo', 'Laranja', 'Verde'][g - 1] }))
+  it('graduação infantil por idade que completa no ano', () => {
+    const kids = [11, 12, 13, 14].map((age, i) =>
+      rank(i + 1, { id: `k${i + 1}`, track: 'infantil', name: ['Branco', 'Amarelo', 'Laranja', 'Verde'][i], min_age: age }))
     const all = [...ranks, ...kids]
-    expect(graduationStatus(prog('k1', '2025-12-13', 10), all, '2025-12-13', '2026-11-14', 'infantil').next?.name).toBe('Amarelo')
-    expect(graduationStatus(prog(null, null, 0), all, '2026-01-01', '2026-02-01', 'infantil').next?.id).toBe('k1')
-    expect(graduationStatus(prog('k4', '2026-01-01', 0), all, '2026-01-01', '2026-02-01', 'infantil').next).toBeNull()
+    const kid = (birthDate: string | null) => ({ track: 'infantil' as const, birthDate })
+    // Completa 11 no ano: Branco.
+    let s = graduationStatus(prog(null, null, 0), all, '2026-01-01', '2026-03-01', kid('2015-12-31'))
+    expect([s.next?.name, s.eligible]).toEqual(['Branco', true])
+    // Completa 10: ainda não.
+    s = graduationStatus(prog(null, null, 0), all, '2026-01-01', '2026-03-01', kid('2016-01-01'))
+    expect([s.next?.name, s.eligible, missingLabel(s)]).toEqual(['Branco', false, 'completa 11 anos em 2027'])
+    // 13 anos sem graduação: Branco não pode ser pulado.
+    s = graduationStatus(prog(null, null, 0), all, '2026-01-01', '2026-03-01', kid('2013-05-05'))
+    expect([s.next?.name, s.eligible]).toEqual(['Branco', true])
+    // Mesmo ano da Branco: espera o próximo ano.
+    s = graduationStatus(prog('k1', '2026-02-01', 0), all, '2026-01-01', '2026-03-01', kid('2013-05-05'))
+    expect([s.next?.name, s.eligible, missingLabel(s)]).toEqual(['Laranja', false, 'já graduou este ano; só no próximo'])
+    // Ano seguinte, completa 14: direto para Verde.
+    s = graduationStatus(prog('k1', '2026-02-01', 0), all, '2026-01-01', '2027-01-10', kid('2013-05-05'))
+    expect([s.next?.name, s.eligible]).toEqual(['Verde', true])
+    // Branco aos 11, ano seguinte completa 12: Amarelo.
+    s = graduationStatus(prog('k1', '2025-12-13', 0), all, '2025-01-01', '2026-11-14', kid('2014-08-01'))
+    expect([s.next?.name, s.eligible]).toEqual(['Amarelo', true])
+    // Sem nascimento.
+    s = graduationStatus(prog('k1', '2025-12-13', 0), all, '2025-01-01', '2026-11-14', kid(null))
+    expect([s.next?.name, s.eligible, missingLabel(s)]).toEqual(['Amarelo', false, 'falta a data de nascimento'])
+    // Verde: fim da trilha.
+    expect(graduationStatus(prog('k4', '2025-01-01', 0), all, '2025-01-01', '2026-11-14', kid('2010-01-01')).next).toBeNull()
     // Passou para o adulto: próximo é o primeiro grau adulto.
-    expect(graduationStatus(prog('k4', '2026-01-01', 0), all, '2026-01-01', '2026-02-01', 'adulto').next?.id).toBe('r1')
+    expect(graduationStatus(prog('k4', '2026-01-01', 0), all, '2026-01-01', '2026-02-01', { track: 'adulto' }).next?.id).toBe('r1')
     // Sem trilha informada continua no adulto.
     expect(graduationStatus(prog('r1', '2026-01-01', 0), all, '2026-01-01', '2026-02-01').next?.id).toBe('r2')
   })

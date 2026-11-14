@@ -15,18 +15,25 @@ export default function RanksPage() {
   const [months, setMonths] = useState('')
   const [classes, setClasses] = useState('')
   const [percent, setPercent] = useState('')
+  const [age, setAge] = useState('')
+  const byAge = editing ? trackOf(editing) === 'infantil' : false
 
   const open = (r: Rank) => {
     setEditing(r)
     setMonths(r.min_months?.toString() ?? '')
     setClasses(r.required_classes?.toString() ?? '')
     setPercent(r.min_percent?.toString() ?? '')
+    setAge(r.min_age?.toString() ?? '')
   }
 
   const save = useSave(
     async () => {
       if (!editing) return
-      const parsed = rankRequirementInput.safeParse({ min_months: toNumber(months), required_classes: toNumber(classes), min_percent: toNumber(percent) })
+      const parsed = rankRequirementInput.safeParse(
+        byAge
+          ? { min_months: null, required_classes: null, min_percent: null, min_age: toNumber(age) }
+          : { min_months: toNumber(months), required_classes: toNumber(classes), min_percent: toNumber(percent) },
+      )
       if (!parsed.success) throw new Error(firstIssue(parsed.error))
       await updateRankRequirements(db(), editing.id, parsed.data)
     },
@@ -52,7 +59,9 @@ export default function RanksPage() {
                 <span className="block truncate text-sm font-bold text-text">{r.name}</span>
                 <span className="block truncate text-xs text-dim">
                   {r.level}
-                  {r.min_months == null && r.min_percent == null && r.required_classes == null
+                  {trackOf(r) === 'infantil'
+                    ? (r.min_age != null ? ` · completa ${r.min_age} anos no ano` : ' · sem idade definida')
+                    : r.min_months == null && r.min_percent == null && r.required_classes == null
                     ? ' · sem requisito definido'
                     : ` · ${[r.min_months != null ? `${r.min_months} meses` : null, r.required_classes != null ? `${r.required_classes}${r.min_percent != null ? '*' : ''} treinos` : null].filter(Boolean).join(' · ')}`}
                 </span>
@@ -66,6 +75,14 @@ export default function RanksPage() {
       )}
 
       <Sheet open={!!editing} onClose={() => setEditing(null)} title={editing ? `${editing.grade}º · ${editing.name}${trackOf(editing) === 'infantil' ? ' (infantil)' : ''}` : ''}>
+        {byAge ? (
+        <div className="space-y-3">
+          <Field label="Idade que completa no ano" hint="Ex.: 11 = pode fazer este grau no ano em que completa 11 anos. O Branco não pode ser pulado; depois dele o aluno vai direto ao grau que a idade permite, uma graduação por ano.">
+            <Input inputMode="numeric" value={age} onChange={(e) => setAge(e.target.value.replace(/\D/g, ''))} placeholder="—" />
+          </Field>
+          <Button block loading={save.isPending} onPress={() => save.mutate()}>Salvar</Button>
+        </div>
+        ) : (
         <div className="space-y-3">
           <Field label="Intervalo mínimo (meses)" hint="Tempo desde a graduação anterior (ou desde o início do aluno). Ex.: 6, 12, 18.">
             <Input inputMode="numeric" value={months} onChange={(e) => setMonths(e.target.value.replace(/\D/g, ''))} placeholder="—" />
@@ -83,6 +100,7 @@ export default function RanksPage() {
           ) : null}
           <Button block loading={save.isPending} onPress={() => save.mutate()}>Salvar</Button>
         </div>
+        )}
       </Sheet>
     </Page>
   )
