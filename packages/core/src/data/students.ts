@@ -26,7 +26,7 @@ export async function setImageConsent(db: Db, id: string, consented: boolean): P
 }
 
 export async function listRanks(db: Db): Promise<Rank[]> {
-  return unwrap(await db.from('ranks').select('*').order('grade'))
+  return unwrap(await db.from('ranks').select('*').order('track').order('grade'))
 }
 
 export async function updateRankRequirements(db: Db, id: string, input: RankRequirementInput): Promise<void> {

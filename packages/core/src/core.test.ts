@@ -27,7 +27,7 @@ describe('dates', () => {
 })
 
 const rank = (grade: number, extra: Partial<Rank> = {}): Rank => ({
-  id: `r${grade}`, grade, name: `G${grade}`, level: '', colors: [], min_months: null, required_classes: null, min_percent: null, ...extra,
+  id: `r${grade}`, grade, name: `G${grade}`, level: '', colors: [], min_months: null, required_classes: null, min_percent: null, track: 'adulto', ...extra,
 })
 const ranks = [
   rank(1, { required_classes: 24, min_months: 3 }),
@@ -68,6 +68,17 @@ describe('graduationStatus', () => {
   })
   it('último grau não tem próximo', () => {
     expect(graduationStatus(prog('r4', null, 1), ranks, '2026-01-01', '2026-02-01').next).toBeNull()
+  })
+  it('graduação infantil segue a própria trilha', () => {
+    const kids = [1, 2, 3, 4].map((g) => rank(g, { id: `k${g}`, track: 'infantil', name: ['Branco', 'Amarelo', 'Laranja', 'Verde'][g - 1] }))
+    const all = [...ranks, ...kids]
+    expect(graduationStatus(prog('k1', '2025-12-13', 10), all, '2025-12-13', '2026-11-14', 'infantil').next?.name).toBe('Amarelo')
+    expect(graduationStatus(prog(null, null, 0), all, '2026-01-01', '2026-02-01', 'infantil').next?.id).toBe('k1')
+    expect(graduationStatus(prog('k4', '2026-01-01', 0), all, '2026-01-01', '2026-02-01', 'infantil').next).toBeNull()
+    // Passou para o adulto: próximo é o primeiro grau adulto.
+    expect(graduationStatus(prog('k4', '2026-01-01', 0), all, '2026-01-01', '2026-02-01', 'adulto').next?.id).toBe('r1')
+    // Sem trilha informada continua no adulto.
+    expect(graduationStatus(prog('r1', '2026-01-01', 0), all, '2026-01-01', '2026-02-01').next?.id).toBe('r2')
   })
 })
 

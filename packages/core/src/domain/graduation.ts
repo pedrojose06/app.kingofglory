@@ -1,6 +1,18 @@
 import { monthsBetween } from '../dates'
 import type { Rank, StudentProgress } from '../types'
 
+export type RankTrack = 'adulto' | 'infantil'
+export const RANK_TRACKS: readonly RankTrack[] = ['adulto', 'infantil']
+export const TRACK_LABEL: Record<RankTrack, string> = { adulto: 'Adulto', infantil: 'Infantil' }
+
+/** Trilha de um grau ou aluno (dados em cache antigos não têm o campo: adulto). */
+export const trackOf = (x: { track?: string | null } | null | undefined): RankTrack =>
+  x?.track === 'infantil' ? 'infantil' : 'adulto'
+
+/** Graus de uma trilha, em ordem. */
+export const ranksOfTrack = (ranks: readonly Rank[], track: RankTrack): Rank[] =>
+  ranks.filter((r) => trackOf(r) === track).sort((a, b) => a.grade - b.grade)
+
 export interface GraduationStatus {
   /** Grau atual; null = aluno ainda sem graduação. */
   current: Rank | null
@@ -37,10 +49,15 @@ export function graduationStatus(
   ranks: readonly Rank[],
   studentSince: string,
   today: string,
+  /** Trilha que o aluno segue; o próximo grau sai dela. */
+  track: RankTrack = 'adulto',
 ): GraduationStatus {
-  const sorted = [...ranks].sort((a, b) => a.grade - b.grade)
-  const current = sorted.find((r) => r.id === progress?.current_rank_id) ?? null
-  const next = current ? (sorted.find((r) => r.grade > current.grade) ?? null) : (sorted[0] ?? null)
+  const sorted = ranksOfTrack(ranks, track)
+  const current = ranks.find((r) => r.id === progress?.current_rank_id) ?? null
+  // Grau atual de outra trilha (ex.: criança que passou para o adulto): próximo é o primeiro da trilha.
+  const next = current && trackOf(current) === track
+    ? (sorted.find((r) => r.grade > current.grade) ?? null)
+    : (sorted[0] ?? null)
   const count = progress?.attendance_since ?? 0
   // Caches antigos não têm classes_since; nunca menor que as presenças.
   const classes = Math.max(progress?.classes_since ?? count, count)

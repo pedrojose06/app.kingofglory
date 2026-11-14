@@ -1,6 +1,6 @@
 'use client'
 
-import { normalizeName } from '@kog/core'
+import { normalizeName, ranksOfTrack, trackOf } from '@kog/core'
 import { Button, Card, Chip, EmptyState, Input, RankBand } from '@kog/ui'
 import { Award, ChevronRight, Plus, Search } from 'lucide-react'
 import Link from 'next/link'
@@ -22,7 +22,10 @@ export default function StudentsPage() {
 
   const progressOf = useMemo(() => new Map((progress.data ?? []).map((p) => [p.student_id, p])), [progress.data])
   const rankOf = useMemo(() => new Map((ranks.data ?? []).map((r) => [r.id, r])), [ranks.data])
-  const white = ranks.data?.find((r) => r.grade === 1)
+  const white = useMemo(
+    () => ({ adulto: ranksOfTrack(ranks.data ?? [], 'adulto')[0], infantil: ranksOfTrack(ranks.data ?? [], 'infantil')[0] }),
+    [ranks.data],
+  )
 
   const visible = useMemo(() => {
     const q = normalizeName(search)
@@ -64,14 +67,14 @@ export default function StudentsPage() {
         <ul className="space-y-1.5">
           {visible.map((s) => {
             const p = progressOf.get(s.id)
-            const rank = (p?.current_rank_id ? rankOf.get(p.current_rank_id) : undefined) ?? white
+            const rank = (p?.current_rank_id ? rankOf.get(p.current_rank_id) : undefined) ?? white[trackOf(s)]
             return (
               <li key={s.id}>
                 <Link href={`/aluno?id=${s.id}`} className="flex min-h-14 items-center gap-3 rounded-lg border border-line px-3 py-2 active:bg-tint">
                   <span className="min-w-0 flex-1">
                     <span className="block truncate font-medium text-text">{s.name}</span>
                     <span className="block truncate text-xs text-dim">
-                      {rank ? `${rank.grade}º grau · ` : ''}
+                      {rank ? `${rank.grade}º grau${trackOf(rank) === 'infantil' ? ' infantil' : ''} · ` : ''}
                       {p?.last_graduated_at ? `${p.attendance_since} treinos desde a graduação · ${p.attendance_total} no total` : `${p?.attendance_total ?? 0} treinos`}
                     </span>
                   </span>

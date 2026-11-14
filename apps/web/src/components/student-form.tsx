@@ -1,9 +1,10 @@
 'use client'
 
 import {
-  addGraduation, createStudent, firstIssue, keys, studentInput, updateStudent, type Gym, type Rank, type Student,
+  addGraduation, createStudent, firstIssue, keys, RANK_TRACKS, ranksOfTrack, studentInput, TRACK_LABEL, trackOf, updateStudent,
+  type Gym, type Rank, type RankTrack, type Student,
 } from '@kog/core'
-import { Button, DateInput, Field, Input, Select, Sheet, Textarea } from '@kog/ui'
+import { Button, Chip, DateInput, Field, Input, Select, Sheet, Textarea } from '@kog/ui'
 import { useEffect, useState } from 'react'
 import { useSave } from '@/lib/queries'
 import { db } from '@/lib/supabase'
@@ -27,6 +28,7 @@ export function StudentForm({ open, onClose, gyms, ranks, student, defaultGymId 
   const [startedOn, setStartedOn] = useState('')
   const [afterGrad, setAfterGrad] = useState('')
   const [notes, setNotes] = useState('')
+  const [track, setTrack] = useState<RankTrack>('adulto')
   const [rankId, setRankId] = useState('')
   const [graduatedAt, setGraduatedAt] = useState('')
 
@@ -39,13 +41,14 @@ export function StudentForm({ open, onClose, gyms, ranks, student, defaultGymId 
     setStartedOn(student?.started_on ?? student?.created_at.slice(0, 10) ?? '')
     setAfterGrad(student?.opening_after_grad?.toString() ?? '')
     setNotes(student?.notes ?? '')
+    setTrack(trackOf(student))
     setRankId('')
     setGraduatedAt('')
   }, [open, student, defaultGymId, gyms])
 
   const save = useSave(
     async (keepOpen: boolean) => {
-      const parsed = studentInput.safeParse({ gym_id: gymId, name, phone, birth_date: birth || null, notes, started_on: startedOn || undefined, ...(student && (student.opening_present ?? 0) > 0 ? { opening_after_grad: afterGrad === '' ? null : Number(afterGrad) } : {}) })
+      const parsed = studentInput.safeParse({ gym_id: gymId, name, phone, birth_date: birth || null, notes, track, started_on: startedOn || undefined, ...(student && (student.opening_present ?? 0) > 0 ? { opening_after_grad: afterGrad === '' ? null : Number(afterGrad) } : {}) })
       if (!parsed.success) throw new Error(firstIssue(parsed.error))
       if (rankId && !graduatedAt) throw new Error('Informe a data da última graduação')
       if (student) {
@@ -103,12 +106,19 @@ export function StudentForm({ open, onClose, gyms, ranks, student, defaultGymId 
             <Input inputMode="numeric" value={afterGrad} onChange={(e) => setAfterGrad(e.target.value.replace(/\D/g, ''))} placeholder="—" />
           </Field>
         ) : null}
+        <Field label="Graduação" hint="Define a sequência de graus sugerida para o aluno.">
+          <div className="flex gap-2">
+            {RANK_TRACKS.map((t) => (
+              <Chip key={t} active={track === t} onPress={() => { setTrack(t); setRankId('') }}>{TRACK_LABEL[t]}</Chip>
+            ))}
+          </div>
+        </Field>
         {!student ? (
           <div className="grid grid-cols-2 gap-2">
             <Field label="Grau atual" hint="Vazio = sem graduação">
               <Select value={rankId} onChange={(e) => setRankId(e.target.value)}>
                 <option value="">—</option>
-                {ranks.map((r) => <option key={r.id} value={r.id}>{r.grade}. {r.name}</option>)}
+                {ranksOfTrack(ranks, track).map((r) => <option key={r.id} value={r.id}>{r.grade}. {r.name}</option>)}
               </Select>
             </Field>
             <Field label="Graduou em">

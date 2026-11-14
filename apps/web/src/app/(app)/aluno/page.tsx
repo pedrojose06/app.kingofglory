@@ -2,7 +2,7 @@
 
 import {
   addGraduation, attendanceStats, deleteGraduation, firstIssue, formatDateBR, formatMonth, graduationInput, graduationStatus,
-  keys, missingLabel, setImageConsent, updateStudent, type Graduation,
+  keys, missingLabel, ranksOfTrack, setImageConsent, trackOf, updateStudent, type Graduation,
 } from '@kog/core'
 import { Badge, Button, Card, Chip, DateInput, EmptyState, Field, Input, ProgressBar, RankBand, Select, Sheet } from '@kog/ui'
 import { Pencil } from 'lucide-react'
@@ -33,11 +33,12 @@ export default function StudentPage() {
   const student = students.data?.find((s) => s.id === id)
   const gymName = gyms.data?.find((g) => g.id === student?.gym_id)?.name ?? 'Academia'
   const status = useMemo(
-    () => graduationStatus(progress.data?.find((p) => p.student_id === id), ranks.data ?? [], student ? studentSince(student) : today, today),
+    () => graduationStatus(progress.data?.find((p) => p.student_id === id), ranks.data ?? [], student ? studentSince(student) : today, today, trackOf(student)),
     [progress.data, ranks.data, student, id, today],
   )
   const stats = useMemo(() => attendanceStats(attendance.data ?? [], gymName), [attendance.data, gymName])
   const rankOf = (rankId: string) => ranks.data?.find((r) => r.id === rankId)
+  const trackRanks = useMemo(() => ranksOfTrack(ranks.data ?? [], trackOf(student)), [ranks.data, student])
 
   const invalidate = [keys.students, keys.progress, keys.graduations(id)] as const
   const graduate = useSave(
@@ -228,7 +229,7 @@ export default function StudentPage() {
 
       <Section title="Graduações">
         {(graduations.data ?? []).length === 0 ? (
-          <EmptyState title="Nenhuma graduação registrada">A primeira graduação pode ser Branco ou direto Vermelho e Branco.</EmptyState>
+          <EmptyState title="Nenhuma graduação registrada">A primeira graduação pode ser {trackRanks[0]?.name ?? 'o primeiro grau'}{trackRanks[1] ? ` ou direto ${trackRanks[1].name}` : ''}.</EmptyState>
         ) : (
           <Card className="divide-y divide-line">
             {(graduations.data ?? []).map((g) => {
@@ -273,9 +274,9 @@ export default function StudentPage() {
 
       <Sheet open={gradOpen} onClose={() => setGradOpen(false)} title="Registrar graduação">
         <div className="space-y-3">
-          {!status.current && ranks.data && ranks.data.length > 1 ? (
+          {!status.current && trackRanks.length > 1 ? (
             <div className="flex gap-2">
-              {[...ranks.data].sort((a, b) => a.grade - b.grade).slice(0, 2).map((r) => (
+              {trackRanks.slice(0, 2).map((r) => (
                 <Chip key={r.id} active={gradRank === r.id} onPress={() => setGradRank(r.id)}>{r.name}</Chip>
               ))}
             </div>
@@ -283,7 +284,7 @@ export default function StudentPage() {
           <Field label="Grau" hint={status.skipTo ? `Apto para ${status.next?.name}; com ${status.monthsElapsed} meses, pode pular para ${status.skipTo.name}.` : status.next ? `Sugerido: ${status.next.name}. Dá para pular graus se for o caso.` : undefined}>
             <Select value={gradRank} onChange={(e) => setGradRank(e.target.value)}>
               <option value="">Escolha…</option>
-              {(ranks.data ?? []).map((r) => <option key={r.id} value={r.id}>{r.grade}. {r.name}</option>)}
+              {trackRanks.map((r) => <option key={r.id} value={r.id}>{r.grade}. {r.name}</option>)}
             </Select>
           </Field>
           <Field label="Data da graduação" hint="A contagem de treinos para o próximo grau recomeça depois desta data.">

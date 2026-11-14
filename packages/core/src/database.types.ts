@@ -338,6 +338,7 @@ export type Database = {
           min_months: number | null
           required_classes: number | null
           min_percent: number | null
+          track: string
         }
         Insert: {
           id?: string
@@ -348,6 +349,7 @@ export type Database = {
           min_months?: number | null
           required_classes?: number | null
           min_percent?: number | null
+          track?: string
         }
         Update: {
           id?: string
@@ -358,6 +360,7 @@ export type Database = {
           min_months?: number | null
           required_classes?: number | null
           min_percent?: number | null
+          track?: string
         }
         Relationships: []
       }
@@ -409,6 +412,7 @@ export type Database = {
           started_on: string
           opening_from: string | null
           opening_after_grad: number | null
+          track: string
         }
         Insert: {
           id?: string
@@ -427,6 +431,7 @@ export type Database = {
           started_on?: string
           opening_from?: string | null
           opening_after_grad?: number | null
+          track?: string
         }
         Update: {
           id?: string
@@ -445,6 +450,7 @@ export type Database = {
           started_on?: string
           opening_from?: string | null
           opening_after_grad?: number | null
+          track?: string
         }
         Relationships: []
       }

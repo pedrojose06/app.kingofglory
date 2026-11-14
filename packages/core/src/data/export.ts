@@ -28,8 +28,8 @@ export async function exportAll(db: Db): Promise<ExportFile[]> {
     {
       name: 'alunos.csv',
       content: toCsv(
-        ['id', 'nome', 'academia', 'telefone', 'nascimento', 'ativo', 'consentimento_imagem', 'observacoes'],
-        students.map((s) => [s.id, s.name, gym.get(s.gym_id), s.phone, s.birth_date, s.active ? 'sim' : 'não', s.image_consent_at, s.notes]),
+        ['id', 'nome', 'academia', 'telefone', 'nascimento', 'ativo', 'graduacao', 'consentimento_imagem', 'observacoes'],
+        students.map((s) => [s.id, s.name, gym.get(s.gym_id), s.phone, s.birth_date, s.active ? 'sim' : 'não', s.track, s.image_consent_at, s.notes]),
       ),
     },
     {
@@ -55,8 +55,8 @@ export async function exportAll(db: Db): Promise<ExportFile[]> {
     {
       name: 'graduacoes.csv',
       content: toCsv(
-        ['data', 'aluno', 'grau', 'nome_do_grau', 'observacoes', 'aluno_id'],
-        graduations.map((g) => [g.graduated_at, student.get(g.student_id)?.name, rank.get(g.rank_id)?.grade, rank.get(g.rank_id)?.name, g.notes, g.student_id]),
+        ['data', 'aluno', 'trilha', 'grau', 'nome_do_grau', 'observacoes', 'aluno_id'],
+        graduations.map((g) => [g.graduated_at, student.get(g.student_id)?.name, rank.get(g.rank_id)?.track, rank.get(g.rank_id)?.grade, rank.get(g.rank_id)?.name, g.notes, g.student_id]),
       ),
     },
   ]

@@ -1,6 +1,6 @@
 'use client'
 
-import { firstIssue, keys, rankRequirementInput, updateRankRequirements, type Rank } from '@kog/core'
+import { firstIssue, keys, RANK_TRACKS, rankRequirementInput, ranksOfTrack, TRACK_LABEL, trackOf, updateRankRequirements, type Rank } from '@kog/core'
 import { Button, Card, Field, Input, RankBand, Sheet } from '@kog/ui'
 import { useState } from 'react'
 import { Loading, Page } from '@/components/shell'
@@ -41,8 +41,11 @@ export default function RanksPage() {
       {ranks.isPending ? (
         <Loading />
       ) : (
+        RANK_TRACKS.map((track) => ranksOfTrack(ranks.data ?? [], track)).filter((list) => list.length > 0).map((list) => (
+        <section key={trackOf(list[0])} className="mb-5">
+        <p className="kicker mb-2">Graduação {TRACK_LABEL[trackOf(list[0])].toLowerCase()}</p>
         <Card className="divide-y divide-line">
-          {(ranks.data ?? []).map((r) => (
+          {list.map((r) => (
             <button key={r.id} type="button" onClick={() => open(r)} className="flex w-full items-center gap-3 px-3 py-3 text-left active:bg-tint">
               <span className="w-6 shrink-0 text-center font-display text-lg text-accent">{r.grade}</span>
               <span className="min-w-0 flex-1">
@@ -58,9 +61,11 @@ export default function RanksPage() {
             </button>
           ))}
         </Card>
+        </section>
+        ))
       )}
 
-      <Sheet open={!!editing} onClose={() => setEditing(null)} title={editing ? `${editing.grade}º · ${editing.name}` : ''}>
+      <Sheet open={!!editing} onClose={() => setEditing(null)} title={editing ? `${editing.grade}º · ${editing.name}${trackOf(editing) === 'infantil' ? ' (infantil)' : ''}` : ''}>
         <div className="space-y-3">
           <Field label="Intervalo mínimo (meses)" hint="Tempo desde a graduação anterior (ou desde o início do aluno). Ex.: 6, 12, 18.">
             <Input inputMode="numeric" value={months} onChange={(e) => setMonths(e.target.value.replace(/\D/g, ''))} placeholder="—" />

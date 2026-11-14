@@ -22,6 +22,7 @@ export const studentInput = z.object({
   notes: optionalText,
   started_on: isoDate.optional(),
   opening_after_grad: z.number().int().min(0).max(5000).nullable().optional(),
+  track: z.enum(['adulto', 'infantil']).optional(),
   active: z.boolean().optional(),
 })
 export type StudentInput = z.infer<typeof studentInput>

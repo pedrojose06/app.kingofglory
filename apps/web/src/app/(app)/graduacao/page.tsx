@@ -1,6 +1,6 @@
 'use client'
 
-import { graduationStatus, missingLabel } from '@kog/core'
+import { graduationStatus, missingLabel, trackOf } from '@kog/core'
 import { Badge, EmptyState, ProgressBar, RankBand } from '@kog/ui'
 import Link from 'next/link'
 import { useMemo, useState } from 'react'
@@ -20,7 +20,7 @@ export default function GraduationPage() {
     const progressOf = new Map((progress.data ?? []).map((p) => [p.student_id, p]))
     return (students.data ?? [])
       .filter((s) => s.active && (!gymId || s.gym_id === gymId))
-      .map((s) => ({ student: s, status: graduationStatus(progressOf.get(s.id), ranks.data ?? [], studentSince(s), today) }))
+      .map((s) => ({ student: s, status: graduationStatus(progressOf.get(s.id), ranks.data ?? [], studentSince(s), today, trackOf(s)) }))
       .sort(
         (a, b) =>
           Number(b.status.eligible) - Number(a.status.eligible) ||
