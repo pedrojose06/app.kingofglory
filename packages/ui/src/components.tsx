@@ -94,6 +94,48 @@ export function Input({ className, ...rest }: ComponentProps<'input'>) {
   return <input className={cn(inputBase, className)} {...rest} />
 }
 
+type PickerProps = Omit<ComponentProps<'input'>, 'type' | 'value'> & { value: string; placeholder?: string }
+
+/**
+ * Campo de data/hora que sempre mostra o formato brasileiro (14/11/2026, 22:30), qualquer que seja o idioma do
+ * aparelho. O campo nativo fica por cima, invisível, e abre o seletor do sistema ao toque. `className` vale para
+ * a caixa (largura, altura).
+ */
+function Picker({ type, display, value, placeholder, className, disabled, onClick, ...rest }: PickerProps & { type: 'date' | 'time'; display: string }) {
+  return (
+    <div className={cn('relative h-12', disabled && 'opacity-50', className)}>
+      <input
+        type={type}
+        value={value}
+        disabled={disabled}
+        onClick={(e) => {
+          // No desktop, clicar no texto do campo não abre o seletor; showPicker abre.
+          try {
+            e.currentTarget.showPicker()
+          } catch {}
+          onClick?.(e)
+        }}
+        className="peer absolute inset-0 z-10 h-full w-full cursor-pointer opacity-0 disabled:cursor-default"
+        {...rest}
+      />
+      <div aria-hidden className={cn(inputBase, 'flex h-full items-center peer-focus:border-gold', !value && 'text-faint')}>
+        {value ? display : (placeholder ?? (type === 'date' ? 'dd/mm/aaaa' : '--:--'))}
+      </div>
+    </div>
+  )
+}
+
+/** 'YYYY-MM-DD' exibido como 'DD/MM/AAAA'. */
+export function DateInput(props: PickerProps) {
+  const [y, m, d] = props.value.split('-')
+  return <Picker {...props} type="date" display={y && m && d ? `${d}/${m}/${y}` : props.value} />
+}
+
+/** 'HH:MM' exibido em 24 horas. */
+export function TimeInput(props: PickerProps) {
+  return <Picker {...props} type="time" display={props.value.slice(0, 5)} />
+}
+
 export function Select({ className, ...rest }: ComponentProps<'select'>) {
   return <select className={cn(inputBase, 'appearance-none', className)} {...rest} />
 }

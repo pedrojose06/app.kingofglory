@@ -4,7 +4,7 @@ import {
   addGraduation, attendanceStats, deleteGraduation, firstIssue, formatDateBR, formatMonth, graduationInput, graduationStatus,
   keys, missingLabel, setImageConsent, updateStudent, type Graduation,
 } from '@kog/core'
-import { Badge, Button, Card, Chip, EmptyState, Field, Input, ProgressBar, RankBand, Select, Sheet } from '@kog/ui'
+import { Badge, Button, Card, Chip, DateInput, EmptyState, Field, Input, ProgressBar, RankBand, Select, Sheet } from '@kog/ui'
 import { Pencil } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { Section, StatusBadge, studentSince, useParam } from '@/components/common'
@@ -287,7 +287,7 @@ export default function StudentPage() {
             </Select>
           </Field>
           <Field label="Data da graduação" hint="A contagem de treinos para o próximo grau recomeça depois desta data.">
-            <Input type="date" value={gradDate} max={today} onChange={(e) => setGradDate(e.target.value)} />
+            <DateInput value={gradDate} max={today} onChange={(e) => setGradDate(e.target.value)} />
           </Field>
           <Field label="Observação">
             <Input value={gradNotes} onChange={(e) => setGradNotes(e.target.value)} />

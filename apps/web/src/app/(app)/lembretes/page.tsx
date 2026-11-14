@@ -3,7 +3,7 @@
 import {
   formatTime, keys, saveReminders, sendTestPush, toReminderPlan, WEEKDAYS_SHORT, type ClassSchedule, type ReminderPlan,
 } from '@kog/core'
-import { Badge, Button, Card, Chip, EmptyState, Field, Input } from '@kog/ui'
+import { Badge, Button, Card, Chip, EmptyState, Field, TimeInput } from '@kog/ui'
 import { BellOff, BellRing } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { Section } from '@/components/common'
@@ -148,7 +148,7 @@ export default function RemindersPage() {
 
         {mode === 'single' ? (
           <Field label="Horário do aviso" hint="Um aviso só, com todas as turmas do dia que estiverem sem chamada." className="mt-4">
-            <Input type="time" value={time} onChange={(e) => setTime(e.target.value)} />
+            <TimeInput value={time} onChange={(e) => setTime(e.target.value)} />
           </Field>
         ) : null}
 
@@ -209,8 +209,7 @@ function ScheduleRow({ schedule, gym, value, onChange }: { schedule: ClassSchedu
         </span>
       </label>
       {on ? (
-        <Input
-          type="time"
+        <TimeInput
           aria-label="Horário do aviso"
           value={value}
           // Esvaziar o campo desmarca a turma.

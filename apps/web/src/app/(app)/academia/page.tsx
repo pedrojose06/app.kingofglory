@@ -5,7 +5,7 @@ import {
   updateSchedule, WEEKDAYS,
   WEEKDAYS_SHORT, type ClassSchedule,
 } from '@kog/core'
-import { Button, Card, Chip, EmptyState, Field, Input, Sheet } from '@kog/ui'
+import { Button, Card, Chip, DateInput, EmptyState, Field, Input, Sheet, TimeInput } from '@kog/ui'
 import { Plus } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Section, useParam } from '@/components/common'
@@ -127,7 +127,7 @@ export default function GymPage() {
       <Sheet open={!!editing} onClose={() => setEditing(null)} title={editing ? `${WEEKDAYS[editing.weekday]} · ${formatTime(editing.start_time)}` : ''}>
         <div className="space-y-3">
           <div className="grid grid-cols-2 gap-2">
-            <Field label="Horário"><Input type="time" value={editTime} onChange={(e) => setEditTime(e.target.value)} /></Field>
+            <Field label="Horário"><TimeInput value={editTime} onChange={(e) => setEditTime(e.target.value)} /></Field>
             <Field label="Nome da aula"><Input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} /></Field>
           </div>
           <p className="text-xs text-dim">Vale para as próximas aulas. As aulas já dadas e as presenças continuam como estão.</p>
@@ -172,15 +172,15 @@ export default function GymPage() {
               <div className="grid grid-cols-2 gap-2">
                 {days.map((weekday) => (
                   <Field key={weekday} label={WEEKDAYS[weekday] ?? ""}>
-                    <Input type="time" value={times[weekday] ?? time} onChange={(e) => setTimes((t) => ({ ...t, [weekday]: e.target.value }))} />
+                    <TimeInput value={times[weekday] ?? time} onChange={(e) => setTimes((t) => ({ ...t, [weekday]: e.target.value }))} />
                   </Field>
                 ))}
               </div>
             )
           ) : null}
           <div className="grid grid-cols-2 gap-2">
-            {different ? null : <Field label="Horário"><Input type="time" value={time} onChange={(e) => setTime(e.target.value)} /></Field>}
-            <Field label="A partir de" className={different ? 'col-span-2' : undefined}><Input type="date" value={startsOn} onChange={(e) => setStartsOn(e.target.value || today)} /></Field>
+            {different ? null : <Field label="Horário"><TimeInput value={time} onChange={(e) => setTime(e.target.value)} /></Field>}
+            <Field label="A partir de" className={different ? 'col-span-2' : undefined}><DateInput value={startsOn} onChange={(e) => setStartsOn(e.target.value || today)} /></Field>
           </div>
           <Field label="Nome da aula"><Input value={title} onChange={(e) => setTitle(e.target.value)} /></Field>
           <p className="text-xs text-dim">Se a data de início for no passado, as aulas desde então entram em Pendências para você lançar a chamada.</p>

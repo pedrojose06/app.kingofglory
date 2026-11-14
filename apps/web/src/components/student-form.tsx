@@ -3,7 +3,7 @@
 import {
   addGraduation, createStudent, firstIssue, keys, studentInput, updateStudent, type Gym, type Rank, type Student,
 } from '@kog/core'
-import { Button, Field, Input, Select, Sheet, Textarea } from '@kog/ui'
+import { Button, DateInput, Field, Input, Select, Sheet, Textarea } from '@kog/ui'
 import { useEffect, useState } from 'react'
 import { useSave } from '@/lib/queries'
 import { db } from '@/lib/supabase'
@@ -92,11 +92,11 @@ export function StudentForm({ open, onClose, gyms, ranks, student, defaultGymId 
             <Input value={phone} onChange={(e) => setPhone(e.target.value)} type="tel" inputMode="tel" />
           </Field>
           <Field label="Nascimento">
-            <Input value={birth} onChange={(e) => setBirth(e.target.value)} type="date" />
+            <DateInput value={birth} onChange={(e) => setBirth(e.target.value)} />
           </Field>
         </div>
         <Field label="Início" hint="Base do intervalo mínimo enquanto o aluno não tem graduação. Vazio = hoje.">
-          <Input value={startedOn} onChange={(e) => setStartedOn(e.target.value)} type="date" />
+          <DateInput value={startedOn} onChange={(e) => setStartedOn(e.target.value)} />
         </Field>
         {student && (student.opening_present ?? 0) > 0 ? (
           <Field label="Treinos do saldo após a última graduação" hint={`O saldo importado (${student.opening_present} presenças) não tem datas. Informe quantas foram depois da última graduação, se ela caiu no período do saldo.`}>
@@ -112,7 +112,7 @@ export function StudentForm({ open, onClose, gyms, ranks, student, defaultGymId 
               </Select>
             </Field>
             <Field label="Graduou em">
-              <Input value={graduatedAt} onChange={(e) => setGraduatedAt(e.target.value)} type="date" disabled={!rankId} />
+              <DateInput value={graduatedAt} onChange={(e) => setGraduatedAt(e.target.value)} disabled={!rankId} />
             </Field>
           </div>
         ) : null}

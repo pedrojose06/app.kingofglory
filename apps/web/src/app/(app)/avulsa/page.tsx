@@ -1,7 +1,7 @@
 'use client'
 
 import { firstIssue, formatDateBR, normalizeName, walkInInput } from '@kog/core'
-import { Button, Chip, EmptyState, Field, Input } from '@kog/ui'
+import { Button, Chip, DateInput, EmptyState, Field, Input } from '@kog/ui'
 import { Search } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { CheckRow, GymChips } from '@/components/common'
@@ -55,7 +55,7 @@ export default function WalkInPage() {
           </datalist>
         </Field>
         <Field label="Data">
-          <Input type="date" value={date} max={today} onChange={(e) => setDate(e.target.value || today)} />
+          <DateInput value={date} max={today} onChange={(e) => setDate(e.target.value || today)} />
         </Field>
       </div>
       {suggestions.length > 0 ? (
