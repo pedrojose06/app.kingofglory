@@ -348,6 +348,7 @@ export type Database = {
           opening_until: string | null
           started_on: string
           opening_from: string | null
+          opening_after_grad: number | null
         }
         Insert: {
           id?: string
@@ -365,6 +366,7 @@ export type Database = {
           opening_until?: string | null
           started_on?: string
           opening_from?: string | null
+          opening_after_grad?: number | null
         }
         Update: {
           id?: string
@@ -382,6 +384,7 @@ export type Database = {
           opening_until?: string | null
           started_on?: string
           opening_from?: string | null
+          opening_after_grad?: number | null
         }
         Relationships: []
       }

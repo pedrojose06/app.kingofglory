@@ -21,6 +21,7 @@ export const studentInput = z.object({
   birth_date: isoDate.nullable().optional(),
   notes: optionalText,
   started_on: isoDate.optional(),
+  opening_after_grad: z.number().int().min(0).max(5000).nullable().optional(),
   active: z.boolean().optional(),
 })
 export type StudentInput = z.infer<typeof studentInput>

@@ -25,6 +25,7 @@ export function StudentForm({ open, onClose, gyms, ranks, student, defaultGymId 
   const [phone, setPhone] = useState('')
   const [birth, setBirth] = useState('')
   const [startedOn, setStartedOn] = useState('')
+  const [afterGrad, setAfterGrad] = useState('')
   const [notes, setNotes] = useState('')
   const [rankId, setRankId] = useState('')
   const [graduatedAt, setGraduatedAt] = useState('')
@@ -36,6 +37,7 @@ export function StudentForm({ open, onClose, gyms, ranks, student, defaultGymId 
     setPhone(student?.phone ?? '')
     setBirth(student?.birth_date ?? '')
     setStartedOn(student?.started_on ?? student?.created_at.slice(0, 10) ?? '')
+    setAfterGrad(student?.opening_after_grad?.toString() ?? '')
     setNotes(student?.notes ?? '')
     setRankId('')
     setGraduatedAt('')
@@ -43,7 +45,7 @@ export function StudentForm({ open, onClose, gyms, ranks, student, defaultGymId 
 
   const save = useSave(
     async (keepOpen: boolean) => {
-      const parsed = studentInput.safeParse({ gym_id: gymId, name, phone, birth_date: birth || null, notes, started_on: startedOn || undefined })
+      const parsed = studentInput.safeParse({ gym_id: gymId, name, phone, birth_date: birth || null, notes, started_on: startedOn || undefined, ...(student && (student.opening_present ?? 0) > 0 ? { opening_after_grad: afterGrad === '' ? null : Number(afterGrad) } : {}) })
       if (!parsed.success) throw new Error(firstIssue(parsed.error))
       if (rankId && !graduatedAt) throw new Error('Informe a data da última graduação')
       if (student) {
@@ -96,6 +98,11 @@ export function StudentForm({ open, onClose, gyms, ranks, student, defaultGymId 
         <Field label="Início" hint="Base do intervalo mínimo enquanto o aluno não tem graduação. Vazio = hoje.">
           <Input value={startedOn} onChange={(e) => setStartedOn(e.target.value)} type="date" />
         </Field>
+        {student && (student.opening_present ?? 0) > 0 ? (
+          <Field label="Treinos do saldo após a última graduação" hint={`O saldo importado (${student.opening_present} presenças) não tem datas. Informe quantas foram depois da última graduação, se ela caiu no período do saldo.`}>
+            <Input inputMode="numeric" value={afterGrad} onChange={(e) => setAfterGrad(e.target.value.replace(/\D/g, ''))} placeholder="—" />
+          </Field>
+        ) : null}
         {!student ? (
           <div className="grid grid-cols-2 gap-2">
             <Field label="Grau atual" hint="Vazio = sem graduação">

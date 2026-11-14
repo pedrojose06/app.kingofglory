@@ -124,7 +124,11 @@ export default function StudentPage() {
             ) : null}
             {status.rate != null ? <p className="mt-1 text-xs text-dim">Frequência no período: {status.rate}% ({status.count} de {status.classes} aulas)</p> : null}
             {openingExcluded ? (
-              <p className="mt-1 text-xs text-dim">O saldo importado não tem datas e a graduação foi dentro do período dele, então não entra nesta contagem (só no total).</p>
+              <p className="mt-1 text-xs text-dim">
+                {student.opening_after_grad != null
+                  ? `Inclui ${student.opening_after_grad} treinos do saldo importado informados como posteriores à graduação.`
+                  : 'O saldo importado não tem datas e a graduação foi dentro do período dele, então não entra nesta contagem (só no total). Informe em Editar aluno quantos treinos foram depois da graduação.'}
+              </p>
             ) : null}
             {status.configured && !status.eligible ? <p className="mt-1 text-sm font-medium text-text first-letter:uppercase">{missingLabel(status)}</p> : null}
             {!status.configured ? <p className="mt-1 text-xs text-dim">Defina os requisitos deste grau em Mais › Graus.</p> : null}
