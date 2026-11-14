@@ -132,9 +132,28 @@ export default function StudentPage() {
               </p>
             ) : null}
             {status.configured && !status.eligible ? <p className="mt-1 text-sm font-medium text-text first-letter:uppercase">{missingLabel(status)}</p> : null}
-            {status.skipTo ? (
-              <p className="mt-1 text-sm text-soft">Primeira graduação com {status.monthsElapsed} meses de treino: pode ir para {status.next?.name} ou pular direto para <strong className="text-text">{status.skipTo.name}</strong>, a critério do professor.</p>
-            ) : null}
+            {status.skipTo ? (() => {
+              const skip = status.skipTo
+              const skipNeeded = skip.required_classes == null ? null : Math.ceil((skip.required_classes * (skip.min_percent ?? 100)) / 100)
+              return (
+                <div className="mt-3 rounded-md border border-line p-3">
+                  <p className="text-sm font-bold text-text">Pular direto para {skip.name}</p>
+                  {skipNeeded != null ? (
+                    <p className="mt-1 text-sm text-soft">
+                      <strong className="text-text">{status.count}</strong> de {skipNeeded} treinos
+                      {status.count >= skipNeeded ? ' ✓' : ` · faltam ${skipNeeded - status.count}`}
+                    </p>
+                  ) : null}
+                  {skip.min_months != null ? (
+                    <p className="mt-1 text-sm text-soft">
+                      <strong className="text-text">{status.monthsElapsed}</strong> de {skip.min_months} meses
+                      {status.monthsElapsed >= skip.min_months ? ' ✓' : ` · faltam ${skip.min_months - status.monthsElapsed}`}
+                    </p>
+                  ) : null}
+                  <p className="mt-1 text-xs text-dim">Primeira graduação com {status.monthsElapsed} meses de treino: Branco ou direto {skip.name}, a critério do professor.</p>
+                </div>
+              )
+            })() : null}
             {!status.configured ? <p className="mt-1 text-xs text-dim">Defina os requisitos deste grau em Mais › Graus.</p> : null}
           </div>
         ) : null}
