@@ -100,7 +100,8 @@ pnpm db:types
   para pular graus). Cada grau exige uma quantidade de treinos desde a graduação anterior (ou desde o início
   do aluno) e um intervalo mínimo em meses; nos graus com * basta uma % da quantidade (Mais › Graus). O
   contador zera a cada graduação; o total do aluno nunca zera. Presença e atraso contam; falta não.
-  O saldo importado (sem datas) só conta para o próximo grau se a última graduação for anterior ao período dele.
+  Na primeira graduação, quem está apto ao Branco e tem 5+ meses pode pular direto para Vermelho e Branco
+  (decisão do professor; o app só sinaliza). O saldo importado (sem datas) só conta para o próximo grau se a última graduação for anterior ao período dele.
 
 ## Como funciona o offline
 

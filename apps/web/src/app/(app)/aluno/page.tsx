@@ -4,7 +4,7 @@ import {
   addGraduation, attendanceStats, deleteGraduation, firstIssue, formatDateBR, formatMonth, graduationInput, graduationStatus,
   keys, missingLabel, setImageConsent, updateStudent, type Graduation,
 } from '@kog/core'
-import { Badge, Button, Card, EmptyState, Field, Input, ProgressBar, RankBand, Select, Sheet } from '@kog/ui'
+import { Badge, Button, Card, Chip, EmptyState, Field, Input, ProgressBar, RankBand, Select, Sheet } from '@kog/ui'
 import { Pencil } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { Section, StatusBadge, studentSince, useParam } from '@/components/common'
@@ -103,6 +103,7 @@ export default function StudentPage() {
           <div className="mt-4 border-t border-line pt-4">
             <div className="mb-2 flex items-center justify-between gap-2">
               <p className="text-sm font-bold text-text">Próximo: {status.next.name}</p>
+              {status.skipTo ? <Badge tone="gold">Pode pular</Badge> : null}
               {status.eligible ? <Badge tone="success">Apto</Badge> : status.configured ? <Badge tone="gold">Em progresso</Badge> : <Badge>Sem requisito</Badge>}
             </div>
             {status.needed != null ? (
@@ -131,6 +132,9 @@ export default function StudentPage() {
               </p>
             ) : null}
             {status.configured && !status.eligible ? <p className="mt-1 text-sm font-medium text-text first-letter:uppercase">{missingLabel(status)}</p> : null}
+            {status.skipTo ? (
+              <p className="mt-1 text-sm text-soft">Primeira graduação com {status.monthsElapsed} meses de treino: pode ir para {status.next?.name} ou pular direto para <strong className="text-text">{status.skipTo.name}</strong>, a critério do professor.</p>
+            ) : null}
             {!status.configured ? <p className="mt-1 text-xs text-dim">Defina os requisitos deste grau em Mais › Graus.</p> : null}
           </div>
         ) : null}
@@ -250,13 +254,20 @@ export default function StudentPage() {
 
       <Sheet open={gradOpen} onClose={() => setGradOpen(false)} title="Registrar graduação">
         <div className="space-y-3">
-          <Field label="Grau" hint={status.next ? `Sugerido: ${status.next.name}. Dá para pular graus se for o caso.` : undefined}>
+          {!status.current && ranks.data && ranks.data.length > 1 ? (
+            <div className="flex gap-2">
+              {[...ranks.data].sort((a, b) => a.grade - b.grade).slice(0, 2).map((r) => (
+                <Chip key={r.id} active={gradRank === r.id} onPress={() => setGradRank(r.id)}>{r.name}</Chip>
+              ))}
+            </div>
+          ) : null}
+          <Field label="Grau" hint={status.skipTo ? `Apto para ${status.next?.name}; com ${status.monthsElapsed} meses, pode pular para ${status.skipTo.name}.` : status.next ? `Sugerido: ${status.next.name}. Dá para pular graus se for o caso.` : undefined}>
             <Select value={gradRank} onChange={(e) => setGradRank(e.target.value)}>
               <option value="">Escolha…</option>
               {(ranks.data ?? []).map((r) => <option key={r.id} value={r.id}>{r.grade}. {r.name}</option>)}
             </Select>
           </Field>
-          <Field label="Data da graduação" hint="A contagem de presenças para o próximo grau recomeça depois desta data.">
+          <Field label="Data da graduação" hint="A contagem de treinos para o próximo grau recomeça depois desta data.">
             <Input type="date" value={gradDate} max={today} onChange={(e) => setGradDate(e.target.value)} />
           </Field>
           <Field label="Observação">

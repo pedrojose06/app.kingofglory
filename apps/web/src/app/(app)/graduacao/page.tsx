@@ -47,6 +47,7 @@ export default function GraduationPage() {
                 <div className="flex items-center gap-2">
                   <span className="min-w-0 flex-1 truncate font-medium text-text">{student.name}</span>
                   {status.current ? <RankBand colors={status.current.colors} className="w-10" /> : null}
+                  {status.skipTo ? <Badge tone="gold">Pode pular</Badge> : null}
                   {status.eligible ? <Badge tone="success">Apto</Badge> : !status.next ? <Badge>Grau máximo</Badge> : !status.configured ? <Badge>Sem requisito</Badge> : null}
                 </div>
                 {status.next ? (
@@ -56,7 +57,7 @@ export default function GraduationPage() {
                       {status.needed != null ? `${status.count}/${status.needed} treinos` : `${status.count} treinos`}
                       {status.monthsNeeded != null ? ` · ${status.monthsElapsed}/${status.monthsNeeded} meses` : ''}
                       {status.configured && !status.eligible ? ` · ${missingLabel(status)}` : ''}
-                      {` → ${status.next.name}`}
+                      {` → ${status.next.name}${status.skipTo ? ` ou ${status.skipTo.name}` : ''}`}
                     </p>
                   </>
                 ) : null}

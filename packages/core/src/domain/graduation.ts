@@ -25,7 +25,12 @@ export interface GraduationStatus {
   /** O próximo grau tem algum requisito configurado? */
   configured: boolean
   eligible: boolean
+  /** Primeira graduação, apto ao primeiro grau e com tempo para pular direto ao segundo (decisão do professor). */
+  skipTo: Rank | null
 }
+
+/** Meses desde o início a partir dos quais a primeira graduação pode pular o primeiro grau. */
+export const SKIP_FIRST_RANK_MONTHS = 5
 
 export function graduationStatus(
   progress: Pick<StudentProgress, 'current_rank_id' | 'last_graduated_at' | 'attendance_since'> & Partial<Pick<StudentProgress, 'classes_since'>> | undefined,
@@ -50,6 +55,8 @@ export function graduationStatus(
   const missingClasses = needed == null ? 0 : Math.max(0, needed - count)
   const missingMonths = monthsNeeded == null ? 0 : Math.max(0, monthsNeeded - monthsElapsed)
   const configured = next != null && (needed != null || monthsNeeded != null)
+  const eligible = configured && missingClasses === 0 && missingMonths === 0
+  const skipTo = !current && eligible && monthsElapsed >= SKIP_FIRST_RANK_MONTHS ? (sorted[1] ?? null) : null
 
   return {
     current,
@@ -65,7 +72,8 @@ export function graduationStatus(
     missingClasses,
     missingMonths,
     configured,
-    eligible: configured && missingClasses === 0 && missingMonths === 0,
+    eligible,
+    skipTo,
   }
 }
 

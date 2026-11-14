@@ -48,6 +48,12 @@ describe('graduationStatus', () => {
     expect(s.missingMonths).toBe(1)
     expect(graduationStatus(prog(null, null, 24), ranks, '2026-01-01', '2026-04-01').eligible).toBe(true)
   })
+  it('primeira graduação com 5+ meses pode pular para o segundo grau', () => {
+    expect(graduationStatus(prog(null, null, 30), ranks, '2026-01-01', '2026-05-31').skipTo).toBeNull()
+    expect(graduationStatus(prog(null, null, 30), ranks, '2026-01-01', '2026-06-01').skipTo?.grade).toBe(2)
+    expect(graduationStatus(prog(null, null, 10), ranks, '2026-01-01', '2026-09-01').skipTo).toBeNull()
+    expect(graduationStatus(prog('r1', '2025-01-01', 99), ranks, '2024-01-01', '2026-09-01').skipTo).toBeNull()
+  })
   it('quantidade cheia sem *, e 80% da quantidade com *', () => {
     expect(graduationStatus(prog('r1', '2026-01-10', 35), ranks, '2025-01-01', '2026-08-01').missingClasses).toBe(1)
     const s = graduationStatus(prog('r2', '2026-01-10', 58), ranks, '2025-01-01', '2026-07-10')
