@@ -6,7 +6,8 @@
 //
 // Deploy sem verificação de JWT (a função valida por conta própria):
 //   supabase functions deploy push-reminders --no-verify-jwt
-// Segredos: VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, CRON_SECRET e, opcional, VAPID_SUBJECT.
+// Segredos: VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY e, opcional, VAPID_SUBJECT.
+// O segredo do cron fica só no Vault do banco (push_reminders_secret), conferido por cron_secret_matches().
 
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import webpush from 'npm:web-push@3.6.7'
@@ -37,11 +38,11 @@ const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE
   auth: { persistSession: false, autoRefreshToken: false },
 })
 
-webpush.setVapidDetails(
-  Deno.env.get('VAPID_SUBJECT') ?? 'https://app.kingofglory.com.br',
-  Deno.env.get('VAPID_PUBLIC_KEY')!,
-  Deno.env.get('VAPID_PRIVATE_KEY')!,
-)
+const vapidPublic = Deno.env.get('VAPID_PUBLIC_KEY')
+const vapidPrivate = Deno.env.get('VAPID_PRIVATE_KEY')
+if (vapidPublic && vapidPrivate) {
+  webpush.setVapidDetails(Deno.env.get('VAPID_SUBJECT') ?? 'https://app.kingofglory.com.br', vapidPublic, vapidPrivate)
+}
 
 /** Envia para vários aparelhos; inscrições que o navegador já cancelou (404/410) são apagadas. */
 async function sendAll(subscriptions: Subscription[], message: PushMessage) {
@@ -73,8 +74,13 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors })
   if (req.method !== 'POST') return json({ error: 'method not allowed' }, 405)
 
-  const cronSecret = Deno.env.get('CRON_SECRET')
-  if (cronSecret && req.headers.get('x-cron-secret') === cronSecret) {
+  if (!vapidPublic || !vapidPrivate) return json({ error: 'VAPID_PUBLIC_KEY/VAPID_PRIVATE_KEY não configuradas' }, 500)
+
+  const cronHeader = req.headers.get('x-cron-secret')
+  if (cronHeader) {
+    const { data: ok, error: checkError } = await admin.rpc('cron_secret_matches', { p_secret: cronHeader })
+    if (checkError) return json({ error: checkError.message }, 500)
+    if (!ok) return json({ error: 'unauthorized' }, 401)
     const { data, error } = await admin.rpc('claim_attendance_reminders')
     if (error) return json({ error: error.message }, 500)
     const claimed = (data ?? []) as Claimed[]

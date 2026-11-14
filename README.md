@@ -134,26 +134,27 @@ Configuração (uma vez por projeto):
    npx web-push generate-vapid-keys
    ```
 
-2. Segredos da Edge Function (`CRON_SECRET` é qualquer texto aleatório longo) e deploy:
+2. Segredos da Edge Function e deploy:
 
    ```bash
-   supabase secrets set VAPID_PUBLIC_KEY=... VAPID_PRIVATE_KEY=... CRON_SECRET=...
+   supabase secrets set VAPID_PUBLIC_KEY=... VAPID_PRIVATE_KEY=...
    ```
 
    ```bash
    supabase functions deploy push-reminders --no-verify-jwt
    ```
 
-3. No SQL Editor, guardar no Vault a URL da função e o mesmo `CRON_SECRET`:
+3. No SQL Editor, guardar no Vault a URL da função e um segredo aleatório para o cron (gerado no próprio banco;
+   a função o confere por `cron_secret_matches()`, então ele não precisa ser copiado para lugar nenhum):
 
    ```sql
    select vault.create_secret('https://evxxnnbkkewlaeisfuyp.supabase.co/functions/v1/push-reminders', 'push_reminders_url');
-   select vault.create_secret('<CRON_SECRET>', 'push_reminders_secret');
+   select vault.create_secret(replace(gen_random_uuid()::text || gen_random_uuid()::text, '-', ''), 'push_reminders_secret');
    ```
 
 4. Na Vercel, `NEXT_PUBLIC_VAPID_PUBLIC_KEY` com a chave pública (Production e Preview) e um novo deploy.
 
-A chave privada VAPID e o `CRON_SECRET` nunca entram no repositório nem no app.
+A chave privada VAPID nunca entra no repositório nem no app.
 
 ## Importação do InClass
 

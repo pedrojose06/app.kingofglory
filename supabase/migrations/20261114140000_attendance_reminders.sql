@@ -214,14 +214,28 @@ begin
   );
 end $$;
 
+-- A Edge Function confere o header do cron contra o segredo do Vault (o segredo não sai do banco).
+create or replace function public.cron_secret_matches(p_secret text)
+returns boolean
+language sql stable security definer
+set search_path = ''
+as $$
+  select exists (
+    select 1 from vault.decrypted_secrets
+    where name = 'push_reminders_secret' and length(coalesce(p_secret, '')) > 0 and decrypted_secret = p_secret
+  )
+$$;
+
 -- Só save_push_subscription faz parte da API do app.
 revoke execute on function public.attendance_reminder_rearm() from public, anon, authenticated;
 revoke execute on function public.attendance_reminder_is_due(time, date) from public, anon, authenticated;
 revoke execute on function public.claim_attendance_reminders() from public, anon, authenticated;
 revoke execute on function public.dispatch_attendance_reminders() from public, anon, authenticated;
+revoke execute on function public.cron_secret_matches(text) from public, anon, authenticated;
 revoke execute on function public.save_push_subscription(text, text, text, text) from public, anon;
 grant execute on function public.save_push_subscription(text, text, text, text) to authenticated;
 grant execute on function public.claim_attendance_reminders() to service_role;
+grant execute on function public.cron_secret_matches(text) to service_role;
 
 -- ── agendamento ────────────────────────────────────────────────────────────
 select cron.schedule('attendance-reminders', '* * * * *', $$select public.dispatch_attendance_reminders()$$);
