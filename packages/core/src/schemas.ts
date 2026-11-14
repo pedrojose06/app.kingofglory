@@ -35,6 +35,11 @@ export const scheduleInput = z.object({
 })
 export type ScheduleInput = z.infer<typeof scheduleInput>
 
+export const scheduleEditInput = z.object({
+  start_time: z.string().regex(/^\d{2}:\d{2}(:\d{2})?$/, 'Horário inválido'),
+  title: z.string().trim().min(1, 'Informe o nome da aula'),
+})
+
 export const walkInInput = z.object({
   student_ids: z.array(z.uuid()).min(1, 'Escolha ao menos um aluno'),
   date: isoDate,

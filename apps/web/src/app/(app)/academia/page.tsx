@@ -1,7 +1,8 @@
 'use client'
 
 import {
-  createSchedule, endSchedule, firstIssue, formatDateBR, formatTime, gymInput, keys, scheduleInput, updateGym, WEEKDAYS,
+  createSchedule, endSchedule, firstIssue, formatDateBR, formatTime, gymInput, keys, scheduleEditInput, scheduleInput, updateGym,
+  updateSchedule, WEEKDAYS,
   WEEKDAYS_SHORT, type ClassSchedule,
 } from '@kog/core'
 import { Button, Card, Chip, EmptyState, Field, Input, Sheet } from '@kog/ui'
@@ -28,6 +29,9 @@ export default function GymPage() {
   const [times, setTimes] = useState<Record<number, string>>({})
   const [title, setTitle] = useState('Muay Thai')
   const [startsOn, setStartsOn] = useState(today)
+  const [editing, setEditing] = useState<ClassSchedule | null>(null)
+  const [editTime, setEditTime] = useState('')
+  const [editTitle, setEditTitle] = useState('')
 
   useEffect(() => {
     setName(gym?.name ?? '')
@@ -60,6 +64,24 @@ export default function GymPage() {
     () => setOpen(false),
   )
   const remove = useSave((s: ClassSchedule) => endSchedule(db(), s.id, today), [keys.schedules])
+  const saveEdit = useSave(
+    async () => {
+      if (!editing) return
+      const parsed = scheduleEditInput.safeParse({ start_time: editTime, title: editTitle })
+      if (!parsed.success) throw new Error(firstIssue(parsed.error))
+      await updateSchedule(db(), editing.id, parsed.data, today)
+    },
+    [keys.schedules, ['classes']],
+    () => {
+      setEditing(null)
+      toast('Horário atualizado')
+    },
+  )
+  const openEdit = (s: ClassSchedule) => {
+    setEditing(s)
+    setEditTime(formatTime(s.start_time))
+    setEditTitle(s.title)
+  }
 
   if (gyms.isPending) return <Loading />
   if (!gym) {
@@ -93,14 +115,39 @@ export default function GymPage() {
                   <span className="block truncate text-sm text-text">{s.title}</span>
                   <span className="block text-xs text-dim">desde {formatDateBR(s.starts_on)}</span>
                 </span>
-                <button type="button" className="h-9 px-2 text-xs font-bold uppercase tracking-[0.1em] text-danger" onClick={() => window.confirm('Encerrar este horário? As aulas já geradas continuam no histórico.') && remove.mutate(s)}>
-                  Encerrar
+                <button type="button" className="h-9 px-2 text-xs font-bold uppercase tracking-[0.1em] text-accent" onClick={() => openEdit(s)}>
+                  Editar
                 </button>
               </div>
             ))}
           </Card>
         )}
       </Section>
+
+      <Sheet open={!!editing} onClose={() => setEditing(null)} title={editing ? `${WEEKDAYS[editing.weekday]} · ${formatTime(editing.start_time)}` : ''}>
+        <div className="space-y-3">
+          <div className="grid grid-cols-2 gap-2">
+            <Field label="Horário"><Input type="time" value={editTime} onChange={(e) => setEditTime(e.target.value)} /></Field>
+            <Field label="Nome da aula"><Input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} /></Field>
+          </div>
+          <p className="text-xs text-dim">Vale para as próximas aulas. As aulas já dadas e as presenças continuam como estão.</p>
+          <Button block loading={saveEdit.isPending} onPress={() => saveEdit.mutate()}>Salvar</Button>
+          <Button
+            block
+            variant="danger"
+            loading={remove.isPending}
+            onPress={() => {
+              if (editing && window.confirm('Encerrar este horário? Ele deixa de gerar aulas; as já dadas continuam no histórico.')) {
+                remove.mutate(editing)
+                setEditing(null)
+              }
+            }}
+          >
+            Encerrar horário
+          </Button>
+          <p className="text-center text-xs text-dim">Para só mudar o horário, não encerre: edite acima.</p>
+        </div>
+      </Sheet>
 
       <Sheet open={open} onClose={() => setOpen(false)} title="Novo horário">
         <div className="space-y-3">

@@ -32,6 +32,22 @@ export async function createSchedule(db: Db, input: ScheduleInput): Promise<Clas
   return unwrap(await db.from('class_schedules').insert(input).select().single())
 }
 
+/**
+ * Muda horário e nome de um horário da grade, mantendo o histórico ligado a ele.
+ * Aulas ainda não dadas (a partir de hoje) acompanham a mudança; as passadas guardam o horário em que aconteceram.
+ */
+export async function updateSchedule(
+  db: Db,
+  id: string,
+  input: { start_time: string; title: string },
+  today: string,
+): Promise<void> {
+  unwrap(await db.from('class_schedules').update(input).eq('id', id))
+  unwrap(
+    await db.from('classes').update(input).eq('schedule_id', id).eq('status', 'scheduled').gte('date', today),
+  )
+}
+
 /** Encerra o horário: as aulas já geradas (e suas presenças) continuam existindo. */
 export async function endSchedule(db: Db, id: string, today: string): Promise<void> {
   unwrap(await db.from('class_schedules').update({ active: false, ends_on: today }).eq('id', id))
