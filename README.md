@@ -97,9 +97,10 @@ pnpm db:types
 - **RLS**: o professor só enxerga academias em que está em `gym_instructors` e os dados ligados a elas.
   Presença avulsa é visível a quem marcou e ao aluno dono do registro.
 - **Graduação**: o aluno começa sem graduação; a primeira pode ser Branco ou direto Vermelho e Branco (dá
-  para pular graus). Cada grau pode exigir intervalo mínimo em meses, % mínima de presença e presenças mínimas
-  (Mais › Graus). A % é presenças ÷ aulas do período (presenças + faltas, inclusive o saldo importado) desde a
-  última graduação, ou desde o início do aluno. Presença e atraso contam; falta justificada fica fora da conta.
+  para pular graus). Cada grau exige uma quantidade de treinos desde a graduação anterior (ou desde o início
+  do aluno) e um intervalo mínimo em meses; nos graus com * basta uma % da quantidade (Mais › Graus). O
+  contador zera a cada graduação; o total do aluno nunca zera. Presença e atraso contam; falta não.
+  O saldo importado (sem datas) só conta para o próximo grau se a última graduação for anterior ao período dele.
 
 ## Como funciona o offline
 

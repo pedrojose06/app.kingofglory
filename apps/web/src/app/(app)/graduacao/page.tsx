@@ -51,10 +51,9 @@ export default function GraduationPage() {
                 </div>
                 {status.next ? (
                   <>
-                    {status.minPercent != null ? <ProgressBar value={Math.min(status.percent ?? 0, status.minPercent)} max={status.minPercent || 1} className="mt-2 h-1.5" /> : null}
+                    {status.needed != null ? <ProgressBar value={Math.min(status.count, status.needed)} max={status.needed || 1} className="mt-2 h-1.5" /> : null}
                     <p className="mt-1.5 text-xs text-dim">
-                      {`${status.count}/${status.classes} aulas`}
-                      {status.percent != null ? ` · ${status.percent}%${status.minPercent != null ? ` de ${status.minPercent}%` : ''}` : ''}
+                      {status.needed != null ? `${status.count}/${status.needed} treinos` : `${status.count} treinos`}
                       {status.monthsNeeded != null ? ` · ${status.monthsElapsed}/${status.monthsNeeded} meses` : ''}
                       {status.configured && !status.eligible ? ` · ${missingLabel(status)}` : ''}
                       {` → ${status.next.name}`}

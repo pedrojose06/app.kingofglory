@@ -29,46 +29,39 @@ describe('dates', () => {
 const rank = (grade: number, extra: Partial<Rank> = {}): Rank => ({
   id: `r${grade}`, grade, name: `G${grade}`, level: '', colors: [], min_months: null, required_classes: null, min_percent: null, ...extra,
 })
-const ranks = [rank(1, { min_percent: 50 }), rank(2, { min_months: 6, min_percent: 75 }), rank(3)]
+const ranks = [
+  rank(1, { required_classes: 24, min_months: 3 }),
+  rank(2, { required_classes: 36, min_months: 6 }),
+  rank(3, { required_classes: 72, min_months: 6, min_percent: 80 }),
+  rank(4),
+]
+const prog = (current_rank_id: string | null, last_graduated_at: string | null, attendance_since: number) =>
+  ({ current_rank_id, last_graduated_at, attendance_since, classes_since: attendance_since })
 
 describe('graduationStatus', () => {
   it('sem graduação: não tem grau, próximo é o primeiro e conta desde o início', () => {
-    const s = graduationStatus({ current_rank_id: null, last_graduated_at: null, attendance_since: 3, classes_since: 10 }, ranks, '2026-01-01', '2026-03-15')
+    const s = graduationStatus(prog(null, null, 20), ranks, '2026-01-01', '2026-03-15')
     expect(s.current).toBeNull()
     expect(s.next?.grade).toBe(1)
-    expect(s.percent).toBe(30)
-    // (3 + x) / (10 + x) >= 50%  →  x = 4
+    expect(s.needed).toBe(24)
     expect(s.missingClasses).toBe(4)
-    expect(s.monthsElapsed).toBe(2)
-    expect(s.eligible).toBe(false)
+    expect(s.missingMonths).toBe(1)
+    expect(graduationStatus(prog(null, null, 24), ranks, '2026-01-01', '2026-04-01').eligible).toBe(true)
   })
-  it('apto quando cumpre o % sobre as aulas do período e o intervalo', () => {
-    const p = { current_rank_id: 'r1', last_graduated_at: '2026-01-10', attendance_since: 36, classes_since: 48 }
-    expect(graduationStatus(p, ranks, '2025-01-01', '2026-07-09').eligible).toBe(false)
-    expect(graduationStatus(p, ranks, '2025-01-01', '2026-07-10').eligible).toBe(true)
-    const low = graduationStatus({ ...p, attendance_since: 35 }, ranks, '2025-01-01', '2026-08-01')
-    expect(low.eligible).toBe(false)
-    expect(low.missingClasses).toBe(4) // (35 + 4) / (48 + 4) = 75%
-  })
-  it('presenças mínimas somam ao %', () => {
-    const r = [rank(1), rank(2, { required_classes: 48, min_percent: 50 })]
-    const s = graduationStatus({ current_rank_id: 'r1', last_graduated_at: '2026-01-01', attendance_since: 13, classes_since: 20 }, r, '2025-01-01', '2026-03-01')
-    expect(s.missingClasses).toBe(35)
-    expect(s.eligible).toBe(false)
-  })
-  it('100% com alguma falta é inalcançável', () => {
-    const r = [rank(1), rank(2, { min_percent: 100 })]
-    const s = graduationStatus({ current_rank_id: 'r1', last_graduated_at: '2026-01-01', attendance_since: 9, classes_since: 10 }, r, '2025-01-01', '2026-03-01')
-    expect(s.percentUnreachable).toBe(true)
-    expect(s.eligible).toBe(false)
+  it('quantidade cheia sem *, e 80% da quantidade com *', () => {
+    expect(graduationStatus(prog('r1', '2026-01-10', 35), ranks, '2025-01-01', '2026-08-01').missingClasses).toBe(1)
+    const s = graduationStatus(prog('r2', '2026-01-10', 58), ranks, '2025-01-01', '2026-07-10')
+    expect(s.needed).toBe(58)
+    expect(s.eligible).toBe(true)
+    expect(graduationStatus(prog('r2', '2026-01-10', 58), ranks, '2025-01-01', '2026-07-09').eligible).toBe(false)
   })
   it('grau sem requisito configurado nunca aparece como apto', () => {
-    const s = graduationStatus({ current_rank_id: 'r2', last_graduated_at: '2020-01-01', attendance_since: 999, classes_since: 999 }, ranks, '2019-01-01', '2026-01-01')
+    const s = graduationStatus(prog('r3', '2020-01-01', 999), ranks, '2019-01-01', '2026-01-01')
     expect(s.configured).toBe(false)
     expect(s.eligible).toBe(false)
   })
   it('último grau não tem próximo', () => {
-    expect(graduationStatus({ current_rank_id: 'r3', last_graduated_at: null, attendance_since: 1, classes_since: 1 }, ranks, '2026-01-01', '2026-02-01').next).toBeNull()
+    expect(graduationStatus(prog('r4', null, 1), ranks, '2026-01-01', '2026-02-01').next).toBeNull()
   })
 })
 

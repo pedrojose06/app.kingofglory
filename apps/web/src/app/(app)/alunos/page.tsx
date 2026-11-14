@@ -72,7 +72,7 @@ export default function StudentsPage() {
                     <span className="block truncate font-medium text-text">{s.name}</span>
                     <span className="block truncate text-xs text-dim">
                       {rank ? `${rank.grade}º grau · ` : ''}
-                      {p?.attendance_since ?? 0} {p?.last_graduated_at ? 'presenças desde a graduação' : 'presenças'}
+                      {p?.last_graduated_at ? `${p.attendance_since} treinos desde a graduação · ${p.attendance_total} no total` : `${p?.attendance_total ?? 0} treinos`}
                     </span>
                   </span>
                   {rank ? <RankBand colors={rank.colors} /> : null}

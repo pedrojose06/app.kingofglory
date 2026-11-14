@@ -76,6 +76,9 @@ export default function StudentPage() {
   const openingPresent = student.opening_present ?? 0
   const openingAbsent = student.opening_absent ?? 0
   const shown = showAll ? rows : rows.slice(0, 12)
+  const lastGraduated = progress.data?.find((p) => p.student_id === id)?.last_graduated_at
+  const openingFrom = student.opening_from ?? student.opening_until
+  const openingExcluded = openingPresent > 0 && !!lastGraduated && !!openingFrom && lastGraduated >= openingFrom
 
   return (
     <Page
@@ -102,23 +105,26 @@ export default function StudentPage() {
               <p className="text-sm font-bold text-text">Próximo: {status.next.name}</p>
               {status.eligible ? <Badge tone="success">Apto</Badge> : status.configured ? <Badge tone="gold">Em progresso</Badge> : <Badge>Sem requisito</Badge>}
             </div>
-            {status.minPercent != null ? (
-              <ProgressBar value={Math.min(status.percent ?? 0, status.minPercent)} max={status.minPercent || 1} />
-            ) : null}
-            <p className="mt-1.5 text-sm text-soft">
-              <strong className="text-text">{status.count}</strong> presenças em {status.classes} aulas
-              {status.percent != null ? <> · <strong className="text-text">{status.percent}%</strong></> : null}
-              <span className="text-dim"> {status.current ? 'desde a última graduação' : 'desde o início'}</span>
-            </p>
-            {status.minPercent != null || status.minPresences != null ? (
-              <p className="mt-1 text-sm text-soft">
-                Exige {[status.minPercent != null ? `${status.minPercent}% de presença` : null, status.minPresences != null ? `${status.minPresences} presenças` : null].filter(Boolean).join(' e ')}
-              </p>
-            ) : null}
+            {status.needed != null ? (
+              <>
+                <ProgressBar value={Math.min(status.count, status.needed)} max={status.needed || 1} />
+                <p className="mt-1.5 text-sm text-soft">
+                  <strong className="text-text">{status.count}</strong> de {status.needed} treinos
+                  {status.minPercent != null ? <span className="text-dim"> ({status.minPercent}% de {status.requiredClasses})</span> : null}
+                  <span className="text-dim"> {status.current ? 'desde a última graduação' : 'desde o início'}</span>
+                </p>
+              </>
+            ) : (
+              <p className="text-sm text-soft"><strong className="text-text">{status.count}</strong> treinos {status.current ? 'desde a última graduação' : 'desde o início'}</p>
+            )}
             {status.monthsNeeded != null ? (
               <p className="mt-1 text-sm text-soft">
                 <strong className="text-text">{status.monthsElapsed}</strong> de {status.monthsNeeded} meses
               </p>
+            ) : null}
+            {status.rate != null ? <p className="mt-1 text-xs text-dim">Frequência no período: {status.rate}% ({status.count} de {status.classes} aulas)</p> : null}
+            {openingExcluded ? (
+              <p className="mt-1 text-xs text-dim">O saldo importado não tem datas e a graduação foi dentro do período dele, então não entra nesta contagem (só no total).</p>
             ) : null}
             {status.configured && !status.eligible ? <p className="mt-1 text-sm font-medium text-text first-letter:uppercase">{missingLabel(status)}</p> : null}
             {!status.configured ? <p className="mt-1 text-xs text-dim">Defina os requisitos deste grau em Mais › Graus.</p> : null}
@@ -136,7 +142,7 @@ export default function StudentPage() {
             <div className="grid grid-cols-2 gap-2">
               <Card className="p-3">
                 <p className="font-display text-3xl text-accent">{stats.total + openingPresent}</p>
-                <p className="text-xs text-dim">presenças no total</p>
+                <p className="text-xs text-dim">treinos no total</p>
               </Card>
               <Card className="p-3">
                 <p className="font-display text-3xl text-text">{stats.absences + openingAbsent}</p>
