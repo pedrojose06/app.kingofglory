@@ -3,6 +3,7 @@
 import { useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
 import { Suspense, useEffect, type ReactNode } from 'react'
+import { InstallPrompt } from '@/components/install-prompt'
 import { BottomNav, Loading } from '@/components/shell'
 import { useAuth } from '@/lib/auth'
 import { outbox } from '@/lib/outbox'
@@ -30,6 +31,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
       <main>
         <Suspense fallback={<Loading />}>{children}</Suspense>
       </main>
+      <InstallPrompt />
       <BottomNav />
     </>
   )
