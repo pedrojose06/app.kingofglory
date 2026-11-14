@@ -2,7 +2,7 @@
 
 import {
   countPresentByClass, ensureClasses, getClass, getLessonPlan, getProfile, keys, listClassAttendance, listClassesByDate,
-  listClassesRange, listClassPhotos, listGraduations, listGyms, listPendingClasses, listProgress, listRanks, listSchedules,
+  listClassesRange, listClassPhotos, listGraduations, listGyms, listPendingClasses, listProgress, listRanks, listReminders, listSchedules,
   listStudentAttendance, listStudents, listWalkInLocations, todayISO, type ClassRow,
 } from '@kog/core'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -32,6 +32,7 @@ export const useProfile = () => {
 }
 export const useGyms = () => useQuery({ queryKey: keys.gyms, queryFn: () => listGyms(db()) })
 export const useSchedules = () => useQuery({ queryKey: keys.schedules, queryFn: () => listSchedules(db()) })
+export const useReminders = () => useQuery({ queryKey: keys.reminders, queryFn: () => listReminders(db()) })
 export const useStudents = () => useQuery({ queryKey: keys.students, queryFn: () => listStudents(db()) })
 export const useRanks = () => useQuery({ queryKey: keys.ranks, queryFn: () => listRanks(db()), staleTime: 5 * 60_000 })
 export const useProgress = () => useQuery({ queryKey: keys.progress, queryFn: () => listProgress(db()) })

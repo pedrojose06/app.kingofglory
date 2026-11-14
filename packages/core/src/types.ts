@@ -19,6 +19,7 @@ export type ClassRow = Row<'classes'>
 export type LessonPlan = Row<'lesson_plans'>
 export type Attendance = Row<'attendance'>
 export type ClassPhoto = Row<'class_photos'>
+export type AttendanceReminder = Row<'attendance_reminders'>
 /** Linha de student_progress. O Postgres reporta colunas de view como anuláveis; aqui só as que de fato podem ser nulas. */
 export interface StudentProgress {
   student_id: string

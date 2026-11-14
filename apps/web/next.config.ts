@@ -6,7 +6,7 @@ import type { NextConfig } from 'next'
 // e o app abre offline mesmo em telas que nunca foram visitadas.
 const ROUTES = [
   '/', '/login-professor', '/aula', '/pendencias', '/avulsa', '/alunos', '/aluno', '/graduacao', '/historico',
-  '/mais', '/academias', '/academia', '/graus', '/importar', '/sync',
+  '/mais', '/academias', '/academia', '/graus', '/importar', '/sync', '/lembretes',
 ]
 const revision = process.env.VERCEL_GIT_COMMIT_SHA ?? randomUUID()
 

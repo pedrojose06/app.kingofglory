@@ -12,7 +12,7 @@ const TABS = [
   { href: '/', label: 'Hoje', icon: CalendarCheck, match: ['/', '/aula', '/avulsa'] },
   { href: '/pendencias', label: 'Pendências', icon: ListTodo, match: ['/pendencias'] },
   { href: '/alunos', label: 'Alunos', icon: Users, match: ['/alunos', '/aluno', '/graduacao'] },
-  { href: '/mais', label: 'Mais', icon: Menu, match: ['/mais', '/academias', '/academia', '/graus', '/importar', '/sync', '/historico'] },
+  { href: '/mais', label: 'Mais', icon: Menu, match: ['/mais', '/academias', '/academia', '/graus', '/importar', '/sync', '/historico', '/lembretes'] },
 ] as const
 
 export function BottomNav() {

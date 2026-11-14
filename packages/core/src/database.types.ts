@@ -10,6 +10,63 @@ export type Database = {
   }
   public: {
     Tables: {
+      attendance_reminders: {
+        Row: {
+          id: string
+          profile_id: string
+          schedule_id: string | null
+          remind_at: string
+          last_sent_on: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          profile_id?: string
+          schedule_id?: string | null
+          remind_at: string
+          last_sent_on?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          profile_id?: string
+          schedule_id?: string | null
+          remind_at?: string
+          last_sent_on?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
+      push_subscriptions: {
+        Row: {
+          id: string
+          profile_id: string
+          endpoint: string
+          p256dh: string
+          auth: string
+          user_agent: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          profile_id: string
+          endpoint: string
+          p256dh: string
+          auth: string
+          user_agent?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          profile_id?: string
+          endpoint?: string
+          p256dh?: string
+          auth?: string
+          user_agent?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
       attendance: {
         Row: {
           id: string
@@ -429,6 +486,10 @@ export type Database = {
       can_manage_student: { Args: { p_student_id: string }; Returns: boolean }
       storage_path_gym: { Args: { p_name: string }; Returns: string }
       can_manage_class: { Args: { p_class_id: string }; Returns: boolean }
+      save_push_subscription: {
+        Args: { p_endpoint: string; p_p256dh: string; p_auth: string; p_user_agent?: string }
+        Returns: undefined
+      }
     }
     Enums: {
       profile_role: "instructor" | "student"

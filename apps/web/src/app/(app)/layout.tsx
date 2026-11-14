@@ -7,6 +7,7 @@ import { InstallPrompt } from '@/components/install-prompt'
 import { BottomNav, Loading } from '@/components/shell'
 import { useAuth } from '@/lib/auth'
 import { outbox } from '@/lib/outbox'
+import { syncPushSubscription } from '@/lib/push'
 import { db } from '@/lib/supabase'
 
 export default function AppLayout({ children }: { children: ReactNode }) {
@@ -23,6 +24,10 @@ export default function AppLayout({ children }: { children: ReactNode }) {
     if (!userId) return
     return outbox.init(db(), queryClient)
   }, [userId, queryClient])
+
+  useEffect(() => {
+    if (userId) void syncPushSubscription().catch(() => {})
+  }, [userId])
 
   if (!ready || !session) return <Loading />
 

@@ -3,6 +3,7 @@ export const keys = {
   profile: ['profile'] as const,
   gyms: ['gyms'] as const,
   schedules: ['schedules'] as const,
+  reminders: ['reminders'] as const,
   students: ['students'] as const,
   ranks: ['ranks'] as const,
   progress: ['progress'] as const,

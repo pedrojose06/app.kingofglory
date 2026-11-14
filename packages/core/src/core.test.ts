@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import {
-  addDays, buildImportPlan, enqueue, formatDayLong, graduationStatus, monthsBetween, nextBatch, overlayAttendance,
-  overlayClassStatus, parseAttendanceExport, parseCsv, parseDateLoose, toCsv, todayISO, weekdayOf, attendanceStats,
-  type Attendance, type OutboxItem, type OutboxOp, type Rank,
+  addDays, buildImportPlan, diffReminders, enqueue, formatDayLong, graduationStatus, monthsBetween, nextBatch, overlayAttendance,
+  overlayClassStatus, parseAttendanceExport, parseCsv, parseDateLoose, toCsv, toReminderPlan, todayISO, weekdayOf, attendanceStats,
+  type Attendance, type AttendanceReminder, type OutboxItem, type OutboxOp, type Rank,
 } from './index'
 
 describe('dates', () => {
@@ -151,5 +151,39 @@ describe('attendanceStats', () => {
     expect(s.absences).toBe(2)
     expect(s.byMonth).toEqual([{ month: '2026-02', count: 1 }, { month: '2026-01', count: 2 }])
     expect(s.byLocation).toEqual([{ location: 'Centro', count: 2 }, { location: 'Matriz', count: 1 }])
+  })
+})
+
+describe('lembretes de chamada', () => {
+  const row = (id: string, schedule_id: string | null, remind_at: string): AttendanceReminder => ({
+    id, schedule_id, remind_at, profile_id: 'p', last_sent_on: null, created_at: '2026-11-14T00:00:00Z',
+  })
+
+  it('lê o que está salvo como plano (horário geral e por turma)', () => {
+    expect(toReminderPlan([row('1', null, '22:30:00'), row('2', 's1', '21:00:00')])).toEqual({
+      general: '22:30',
+      bySchedule: { s1: '21:00' },
+    })
+    expect(toReminderPlan([])).toEqual({ general: null, bySchedule: {} })
+  })
+
+  it('grava só o que mudou', () => {
+    const current = [row('1', null, '22:30:00'), row('2', 's1', '21:00:00'), row('3', 's2', '20:00:00')]
+    // mesmo horário geral, s1 muda, s2 sai, s3 entra
+    expect(diffReminders(current, { general: '22:30', bySchedule: { s1: '21:30', s3: '19:45' } })).toEqual({
+      remove: ['3'],
+      update: [{ id: '2', remind_at: '21:30' }],
+      insert: [{ schedule_id: 's3', remind_at: '19:45' }],
+    })
+  })
+
+  it('trocar de "por turma" para um horário só remove os horários das turmas', () => {
+    const current = [row('2', 's1', '21:00:00'), row('3', 's2', '20:00:00')]
+    expect(diffReminders(current, { general: '22:30', bySchedule: {} })).toEqual({
+      remove: ['2', '3'],
+      update: [],
+      insert: [{ schedule_id: null, remind_at: '22:30' }],
+    })
+    expect(diffReminders(current, { general: null, bySchedule: {} }).remove).toEqual(['2', '3'])
   })
 })

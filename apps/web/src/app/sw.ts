@@ -26,3 +26,41 @@ const serwist = new Serwist({
 })
 
 serwist.addEventListeners()
+
+// ── Lembretes por push ───────────────────────────────────────────────────────
+// O payload vem da Edge Function `push-reminders`: { title, body, url, tag }.
+self.addEventListener('push', (event) => {
+  let data: { title?: string; body?: string; url?: string; tag?: string } = {}
+  try {
+    data = event.data?.json() ?? {}
+  } catch {
+    data = { body: event.data?.text() }
+  }
+  event.waitUntil(
+    self.registration.showNotification(data.title ?? 'KOG Presença', {
+      body: data.body,
+      tag: data.tag,
+      icon: '/icons/icon-192.png',
+      badge: '/icons/icon-192.png',
+      data: { url: data.url ?? '/' },
+    }),
+  )
+})
+
+// Toque na notificação: traz o app aberto para a frente (ou abre) já na tela indicada.
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close()
+  const url = new URL((event.notification.data as { url?: string } | null)?.url ?? '/', self.location.origin).href
+  event.waitUntil(
+    (async () => {
+      const windows = await self.clients.matchAll({ type: 'window', includeUncontrolled: true })
+      const open = windows[0]
+      if (open) {
+        await open.focus().catch(() => {})
+        await open.navigate(url).catch(() => {})
+        return
+      }
+      await self.clients.openWindow(url)
+    })(),
+  )
+})

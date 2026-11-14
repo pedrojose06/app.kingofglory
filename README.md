@@ -51,6 +51,7 @@ Outros comandos: `pnpm typecheck`, `pnpm test` (Vitest no `core`).
 |---|---|
 | `NEXT_PUBLIC_SUPABASE_URL` | `https://evxxnnbkkewlaeisfuyp.supabase.co` |
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | chave *publishable* (`sb_publishable_…`) em Supabase › Project Settings › API Keys |
+| `NEXT_PUBLIC_VAPID_PUBLIC_KEY` | chave pública VAPID do Web Push (ver "Lembrete de chamada") |
 
 A chave publishable é pública por definição (a segurança vem da RLS). **Nunca** use a `service_role` no app.
 
@@ -66,6 +67,7 @@ As migrations em `supabase/migrations` já estão aplicadas no projeto remoto, c
 | `photos` | `class_photos` + bucket privado `class-photos` com policies por academia |
 | `harden_functions` | nenhuma função é chamável sem login |
 | `opening_balance` | saldo inicial por aluno (`opening_present`, `opening_absent`, `opening_until`), somado em `student_progress` |
+| `attendance_reminders` | lembrete de chamada por push: `attendance_reminders`, `push_subscriptions` e o job do `pg_cron` |
 | `…future_face_recognition.sql.disabled` | schema previsto da Fase 4 (pgvector), não aplicado |
 
 Para criar uma migration nova e aplicar (com a CLI do Supabase):
@@ -111,6 +113,47 @@ pnpm db:types
   de presença vence a marcação mais recente.
 - O selo no topo das telas mostra quantas alterações estão pendentes; Mais › Sincronização lista cada uma.
 - Cadastros (academias, alunos, graus) e importação exigem conexão.
+
+## Lembrete de chamada (push)
+
+Mais › Lembrete de chamada. O professor ativa as notificações no aparelho e escolhe **um horário para todas
+as turmas do dia** ou **um horário por turma**. No horário, se a chamada de uma aula de hoje ainda estiver em
+aberto, chega uma notificação; aula concluída ou cancelada não avisa. No iPhone o push só funciona com o app
+instalado na Tela de Início (iOS 16.4+).
+
+Como funciona: o `pg_cron` roda `dispatch_attendance_reminders()` a cada minuto; havendo lembrete vencido, ele
+chama a Edge Function `push-reminders` (via `pg_net`), que busca o que enviar em `claim_attendance_reminders()`
+e manda o Web Push. Cada lembrete dispara no máximo uma vez por dia, com até 2h de tolerância se o cron atrasar.
+Os horários são de São Paulo.
+
+Configuração (uma vez por projeto):
+
+1. Gerar o par de chaves VAPID:
+
+   ```bash
+   npx web-push generate-vapid-keys
+   ```
+
+2. Segredos da Edge Function (`CRON_SECRET` é qualquer texto aleatório longo) e deploy:
+
+   ```bash
+   supabase secrets set VAPID_PUBLIC_KEY=... VAPID_PRIVATE_KEY=... CRON_SECRET=...
+   ```
+
+   ```bash
+   supabase functions deploy push-reminders --no-verify-jwt
+   ```
+
+3. No SQL Editor, guardar no Vault a URL da função e o mesmo `CRON_SECRET`:
+
+   ```sql
+   select vault.create_secret('https://evxxnnbkkewlaeisfuyp.supabase.co/functions/v1/push-reminders', 'push_reminders_url');
+   select vault.create_secret('<CRON_SECRET>', 'push_reminders_secret');
+   ```
+
+4. Na Vercel, `NEXT_PUBLIC_VAPID_PUBLIC_KEY` com a chave pública (Production e Preview) e um novo deploy.
+
+A chave privada VAPID e o `CRON_SECRET` nunca entram no repositório nem no app.
 
 ## Importação do InClass
 

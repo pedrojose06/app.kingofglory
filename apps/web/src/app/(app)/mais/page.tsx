@@ -3,7 +3,7 @@
 import { exportAll } from '@kog/core'
 import { Button, Card, Chip } from '@kog/ui'
 import { useQueryClient } from '@tanstack/react-query'
-import { Award, Building2, ChevronRight, Download, FileUp, History, RefreshCw } from 'lucide-react'
+import { Award, BellRing, Building2, ChevronRight, Download, FileUp, History, RefreshCw } from 'lucide-react'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { Section } from '@/components/common'
@@ -11,12 +11,14 @@ import { Page } from '@/components/shell'
 import { useAuth } from '@/lib/auth'
 import { useOutbox } from '@/lib/outbox'
 import { useProfile } from '@/lib/queries'
+import { disablePush } from '@/lib/push'
 import { db } from '@/lib/supabase'
 import { toast, toastError } from '@/lib/toast'
 
 const LINKS = [
   { href: '/academias', label: 'Academias e grade semanal', icon: Building2 },
   { href: '/graus', label: 'Graus e requisitos de graduação', icon: Award },
+  { href: '/lembretes', label: 'Lembrete de chamada', icon: BellRing },
   { href: '/historico', label: 'Histórico de aulas', icon: History },
   { href: '/importar', label: 'Importar presenças (InClass)', icon: FileUp },
   { href: '/sync', label: 'Sincronização', icon: RefreshCw },
@@ -69,6 +71,8 @@ export default function MorePage() {
 
   async function signOut() {
     if (pending > 0 && !window.confirm(`Há ${pending} alterações ainda não sincronizadas. Sair mesmo assim? Elas ficam guardadas neste aparelho.`)) return
+    // Quem sai deixa de receber lembretes neste aparelho.
+    await disablePush().catch(() => {})
     await db().auth.signOut()
     queryClient.clear()
   }
