@@ -40,8 +40,9 @@ self.addEventListener('push', (event) => {
     self.registration.showNotification(data.title ?? 'KOG Presença', {
       body: data.body,
       tag: data.tag,
-      icon: '/icons/icon-192.png',
-      badge: '/icons/icon-192.png',
+      icon: '/icons/notification-icon.png',
+      // Ícone da barra de status no Android: só a silhueta (canal alfa) é usada; imagem opaca vira um quadrado branco.
+      badge: '/icons/notification-badge.png',
       data: { url: data.url ?? '/' },
     }),
   )
