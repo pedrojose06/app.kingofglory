@@ -129,6 +129,13 @@ pnpm db:types
   grade) e academias com menos de 12 aulas concluídas ficam de fora. A lógica está em
   `packages/core/src/domain/insights.ts`.
 
+## Plano de aula antecipado
+
+A tela Hoje lista as **próximas aulas** (7 dias, a partir de amanhã) com o selo "Plano feito" ou "Sem plano".
+Tocar abre a aba Plano; se a aula da grade ainda não foi gerada, ela é criada naquele momento (exige conexão) e,
+no dia, `ensure_classes` encontra a aula já criada. A chamada de uma aula futura só abre no dia. Encerrar um
+horário da grade cancela as aulas futuras dele que já tinham sido criadas.
+
 ## Lembretes de chamada e plano de aula (push)
 
 Mais › Lembretes de chamada e plano de aula. O professor ativa as notificações no aparelho e escolhe **um horário para todas

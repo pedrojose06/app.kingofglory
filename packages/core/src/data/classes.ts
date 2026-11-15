@@ -1,5 +1,6 @@
 import type { Json } from '../database.types'
-import type { ClassRow, ClassStatus, Db, LessonPlan } from '../types'
+import { planHasContent } from '../domain/upcoming'
+import type { ClassRow, ClassSchedule, ClassStatus, Db, LessonPlan } from '../types'
 import { chunk, fetchAll, unwrap } from './util'
 
 /** Gera as aulas da grade até hoje (idempotente). Falha de rede é tolerada por quem chama. */
@@ -24,6 +25,37 @@ export async function listClassesRange(db: Db, gymId: string | null, from: strin
     if (gymId) q = q.eq('gym_id', gymId)
     return q.order('date', { ascending: false }).order('start_time', { ascending: false }).range(a, b)
   })
+}
+
+/**
+ * Gera (se ainda não existe) a aula da grade numa data, inclusive futura, para escrever o plano antes.
+ * No dia, ensure_classes encontra a aula já criada e não duplica.
+ */
+export async function ensureScheduledClass(db: Db, schedule: ClassSchedule, date: string): Promise<ClassRow> {
+  unwrap(
+    await db.from('classes').upsert(
+      {
+        gym_id: schedule.gym_id,
+        instructor_id: schedule.instructor_id,
+        schedule_id: schedule.id,
+        date,
+        start_time: schedule.start_time,
+        title: schedule.title,
+      },
+      { onConflict: 'schedule_id,date', ignoreDuplicates: true },
+    ),
+  )
+  return unwrap(await db.from('classes').select('*').eq('schedule_id', schedule.id).eq('date', date).single())
+}
+
+/** Das aulas informadas, as que já têm plano com texto. */
+export async function listPlannedClassIds(db: Db, classIds: readonly string[]): Promise<string[]> {
+  const planned: string[] = []
+  for (const ids of chunk(classIds, 100)) {
+    const rows = unwrap(await db.from('lesson_plans').select('class_id, content').in('class_id', ids))
+    for (const r of rows) if (planHasContent(r.content)) planned.push(r.class_id)
+  }
+  return planned
 }
 
 export async function getClass(db: Db, id: string): Promise<ClassRow | null> {

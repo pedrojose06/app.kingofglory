@@ -1,14 +1,18 @@
 'use client'
 
-import { createClass, formatDayLong, keys } from '@kog/core'
-import { Button, Card, EmptyState, Sheet } from '@kog/ui'
+import { addDays, createClass, ensureScheduledClass, formatDayLong, formatDayShort, formatTime, upcomingClasses, type UpcomingClass } from '@kog/core'
+import { Badge, Button, Card, EmptyState, Sheet } from '@kog/ui'
 import { ChevronRight, MapPinPlus, Plus } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { ClassCard, Section } from '@/components/common'
 import { Loading, Page } from '@/components/shell'
-import { useClassCounts, useClassesByDate, useGyms, usePendingClasses, useSave, useToday } from '@/lib/queries'
+import { useClassCounts, useClassesByDate, useClassesRange, useGyms, usePendingClasses, usePlannedClasses, useSave, useSchedules, useToday } from '@/lib/queries'
+import { toastError } from '@/lib/toast'
+
+/** Quantos dias à frente aparecem em "Próximas aulas" (para adiantar o plano). */
+const UPCOMING_DAYS = 7
 import { db } from '@/lib/supabase'
 
 export default function TodayPage() {
@@ -61,6 +65,8 @@ export default function TodayPage() {
             ) : null}
           </div>
 
+          <UpcomingSection today={today} gymName={gymName} />
+
           <Section title="Atalhos">
             <div className="grid grid-cols-2 gap-2">
               <Link href="/avulsa">
@@ -82,5 +88,59 @@ export default function TodayPage() {
         </div>
       </Sheet>
     </Page>
+  )
+}
+
+/** Próximas aulas (a partir de amanhã): toque abre o plano, gerando a aula da grade se ainda não existe. */
+function UpcomingSection({ today, gymName }: { today: string; gymName: (id: string) => string }) {
+  const router = useRouter()
+  const schedules = useSchedules()
+  const from = addDays(today, 1)
+  const to = addDays(today, UPCOMING_DAYS)
+  const existing = useClassesRange(null, from, to)
+  const items = useMemo(
+    () => (schedules.data && existing.data ? upcomingClasses(schedules.data, existing.data, from, UPCOMING_DAYS) : []),
+    [schedules.data, existing.data, from],
+  )
+  const planned = usePlannedClasses(items.flatMap((u) => (u.klass ? [u.klass.id] : [])))
+  const [opening, setOpening] = useState<string | null>(null)
+
+  async function open(u: UpcomingClass) {
+    if (u.klass) return router.push(`/aula?id=${u.klass.id}&aba=plano`)
+    if (!u.schedule) return
+    setOpening(u.key)
+    try {
+      const klass = await ensureScheduledClass(db(), u.schedule, u.date)
+      router.push(`/aula?id=${klass.id}&aba=plano`)
+    } catch (error) {
+      toastError(error)
+    } finally {
+      setOpening(null)
+    }
+  }
+
+  if (items.length === 0) return null
+  return (
+    <Section title="Próximas aulas">
+      <div className="space-y-2">
+        {items.map((u) => {
+          const done = !!u.klass && (planned.data ?? []).includes(u.klass.id)
+          return (
+            <button key={u.key} type="button" disabled={opening !== null} onClick={() => open(u)} className="block w-full text-left disabled:opacity-60">
+              <Card className="flex items-center gap-3 p-4 active:bg-tint">
+                <div className="w-14 shrink-0 text-center font-display text-xl text-accent">{formatTime(u.start_time) || '—'}</div>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate font-bold text-text">{gymName(u.gym_id)}</p>
+                  <p className="truncate text-sm text-dim">{formatDayShort(u.date)} · {u.title}</p>
+                </div>
+                {opening === u.key ? <Badge>Abrindo…</Badge> : done ? <Badge tone="success">Plano feito</Badge> : <Badge tone="gold">Sem plano</Badge>}
+                <ChevronRight className="size-4 shrink-0 text-faint" />
+              </Card>
+            </button>
+          )
+        })}
+      </div>
+      <p className="mt-2 text-xs text-dim">Toque numa aula para adiantar o plano.</p>
+    </Section>
   )
 }

@@ -48,7 +48,9 @@ export async function updateSchedule(
   )
 }
 
-/** Encerra o horário: as aulas já geradas (e suas presenças) continuam existindo. */
+/** Encerra o horário: as aulas já dadas (e suas presenças) continuam existindo. */
 export async function endSchedule(db: Db, id: string, today: string): Promise<void> {
   unwrap(await db.from('class_schedules').update({ active: false, ends_on: today }).eq('id', id))
+  // Aulas futuras já criadas antes (para adiantar o plano) deixam de acontecer.
+  unwrap(await db.from('classes').update({ status: 'cancelled' }).eq('schedule_id', id).eq('status', 'scheduled').gt('date', today))
 }

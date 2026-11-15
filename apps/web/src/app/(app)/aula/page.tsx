@@ -10,7 +10,7 @@ import { useParam } from '@/components/common'
 import { RollCall } from '@/components/roll-call'
 import { Loading, Page } from '@/components/shell'
 import { outbox, useOutbox } from '@/lib/outbox'
-import { useClass, useGyms, usePendingClasses } from '@/lib/queries'
+import { useClass, useGyms, usePendingClasses, useToday } from '@/lib/queries'
 
 // O editor (Tiptap/ProseMirror) só é baixado quando a aba Plano é aberta.
 const PlanEditor = dynamic(() => import('@/components/plan-editor').then((m) => m.PlanEditor), { ssr: false, loading: () => <Loading /> })
@@ -30,6 +30,7 @@ export default function ClassPage() {
   const gyms = useGyms()
   const pending = usePendingClasses()
   const items = useOutbox()
+  const today = useToday()
   // ?aba=plano abre direto no plano (toque no lembrete do plano de aula).
   const [tab, setTab] = useState<Tab>(useParam('aba') === 'plano' ? 'plano' : 'chamada')
 
@@ -86,7 +87,15 @@ export default function ClassPage() {
 
       {tab === 'chamada' ? (
         <>
-          {status === 'cancelled' ? (
+          {c.date > today && status === 'scheduled' ? (
+            <EmptyState
+              title="A chamada abre no dia da aula"
+              action={<Button variant="ghost" onPress={() => setTab('plano')}>Escrever o plano</Button>}
+            >
+              Até lá, você já pode adiantar o plano. Se não for haver aula,{' '}
+              <button type="button" className="font-bold text-accent underline" onClick={cancel}>marque que não vai ter</button>.
+            </EmptyState>
+          ) : status === 'cancelled' ? (
             <EmptyState title="Não houve aula neste dia" action={<Button variant="ghost" onPress={reopen}>Reabrir aula</Button>} />
           ) : (
             <>

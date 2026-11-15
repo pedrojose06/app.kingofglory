@@ -59,6 +59,7 @@ function invalidate(queryClient: QueryClient, op: OutboxOp) {
       break
     case 'plan.save':
       inv(keys.lessonPlan(op.classId))
+      inv(['lesson-plan', 'planned'])
       break
     case 'photo.upload':
       inv(keys.classPhotos(op.meta.class_id))

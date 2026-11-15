@@ -3,7 +3,7 @@
 import {
   countPresentByClass, ensureClasses, listAbsenceStreaks, listClassTurnout, getClass, getLessonPlan, getLessonPlanReminder, getProfile, keys, listClassAttendance, listClassesByDate,
   listClassesRange, listClassPhotos, listGraduations, listGyms, listPendingClasses, listProgress, listRanks, listReminders, listSchedules,
-  listStudentAttendance, listStudents, listWalkInLocations, todayISO, type ClassRow,
+  listPlannedClassIds, listStudentAttendance, listStudents, listWalkInLocations, todayISO, type ClassRow,
 } from '@kog/core'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
@@ -63,6 +63,10 @@ export const useClassCounts = (classes: readonly ClassRow[] | undefined) => {
   const ids = (classes ?? []).map((c) => c.id)
   return useQuery({ queryKey: keys.classCounts(ids), queryFn: () => countPresentByClass(db(), ids), enabled: ids.length > 0 })
 }
+
+/** Ids das aulas que já têm plano com texto. */
+export const usePlannedClasses = (classIds: readonly string[]) =>
+  useQuery({ queryKey: keys.plannedClasses(classIds), queryFn: () => listPlannedClassIds(db(), classIds), enabled: classIds.length > 0 })
 
 /** Aula por id; aproveita o que já está em cache nas listas para abrir instantaneamente (e offline). */
 export const useClass = (id: string) => {

@@ -20,5 +20,6 @@ export const keys = {
   studentAttendance: (studentId: string) => ['attendance', 'student', studentId] as const,
   walkInLocations: ['attendance', 'locations'] as const,
   lessonPlan: (classId: string) => ['lesson-plan', classId] as const,
+  plannedClasses: (ids: readonly string[]) => ['lesson-plan', 'planned', [...ids].sort().join(',')] as const,
   classPhotos: (classId: string) => ['photos', classId] as const,
 }

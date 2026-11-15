@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import {
   absenceAlerts, addDays, analyzeTurnout, buildImportPlan, diffReminders, enqueue, formatDayLong, graduationStatus, missingLabel, monthsBetween, nextBatch, overlayAttendance,
-  overlayClassStatus, parseAttendanceExport, parseCsv, parseDateLoose, toCsv, toReminderPlan, todayISO, weekdayOf, welchT, attendanceStats,
-  type AbsenceStreak, type Attendance, type AttendanceReminder, type ClassTurnout, type OutboxItem, type OutboxOp, type Rank,
+  overlayClassStatus, parseAttendanceExport, planHasContent, upcomingClasses, parseCsv, parseDateLoose, toCsv, toReminderPlan, todayISO, weekdayOf, welchT, attendanceStats,
+  type AbsenceStreak, type Attendance, type ClassRow, type ClassSchedule, type AttendanceReminder, type ClassTurnout, type OutboxItem, type OutboxOp, type Rank,
 } from './index'
 
 describe('dates', () => {
@@ -287,5 +287,44 @@ describe('padrões de frequência', () => {
   it('welchT cresce com a diferença e com o número de aulas', () => {
     expect(welchT([5, 5, 5], [5, 5, 5])).toBe(0)
     expect(welchT([4, 6, 4, 6], [5, 7, 5, 7])).toBeLessThan(welchT([4, 6, 4, 6, 4, 6, 4, 6], [5, 7, 5, 7, 5, 7, 5, 7]))
+  })
+})
+
+describe('próximas aulas e plano antecipado', () => {
+  // 2026-11-16 é segunda (1); 2026-11-18 é quarta (3).
+  const sched = (id: string, weekday: number, extra: Partial<ClassSchedule> = {}): ClassSchedule => ({
+    id, gym_id: 'g', instructor_id: 'p', weekday, start_time: '19:00:00', title: 'Muay Thai', starts_on: '2026-01-01',
+    ends_on: null, active: true, created_at: '2026-01-01T00:00:00Z', ...extra,
+  })
+  const klass = (id: string, date: string, extra: Partial<ClassRow> = {}): ClassRow => ({
+    id, gym_id: 'g', instructor_id: 'p', schedule_id: null, date, start_time: '20:00:00', title: 'Extra', status: 'scheduled',
+    created_at: '2026-01-01T00:00:00Z', ...extra,
+  })
+
+  it('junta a grade (gerada ou não) com as extras e pula as canceladas', () => {
+    const schedules = [sched('seg', 1), sched('qua', 3), sched('fim', 3, { ends_on: '2026-11-17' })]
+    const existing = [
+      klass('c-seg', '2026-11-16', { schedule_id: 'seg', start_time: '19:30:00', title: 'Muay Thai' }),
+      klass('x', '2026-11-17'),
+      klass('c-qua', '2026-11-18', { schedule_id: 'qua', status: 'cancelled' }),
+      klass('fora', '2026-11-30'),
+    ]
+    const list = upcomingClasses(schedules, existing, '2026-11-16', 7)
+    expect(list.map((u) => [u.date, u.klass?.id ?? null, u.schedule?.id ?? null, u.start_time])).toEqual([
+      ['2026-11-16', 'c-seg', 'seg', '19:30:00'],
+      ['2026-11-17', 'x', null, '20:00:00'],
+    ])
+    // Semana seguinte da quarta (não gerada) entra só pela grade.
+    expect(upcomingClasses(schedules, [], '2026-11-19', 7).map((u) => [u.date, u.key])).toEqual([
+      ['2026-11-23', 'seg|2026-11-23'],
+      ['2026-11-25', 'qua|2026-11-25'],
+    ])
+  })
+
+  it('plano só conta com texto', () => {
+    expect(planHasContent(null)).toBe(false)
+    expect(planHasContent({ type: 'doc', content: [{ type: 'paragraph' }] })).toBe(false)
+    expect(planHasContent({ type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text: '  ' }] }] })).toBe(false)
+    expect(planHasContent({ type: 'doc', content: [{ type: 'bulletList', content: [{ type: 'listItem', content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Jab' }] }] }] }] })).toBe(true)
   })
 })
