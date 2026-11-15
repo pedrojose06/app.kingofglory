@@ -71,6 +71,7 @@ As migrations em `supabase/migrations` já estão aplicadas no projeto remoto, c
 | `attendance_insights` | limite de faltas seguidas por professor (`profiles.absence_alert_threshold`) e as views `student_absence_streaks` e `class_turnout` usadas em Pendências |
 | `kids_ranks` | graduação infantil: `ranks.track` e `students.track` (adulto/infantil) e os graus Branco, Amarelo, Laranja e Verde |
 | `kids_rank_age` | `ranks.min_age`: graduação infantil por idade que o aluno completa no ano (11 Branco, 12 Amarelo, 13 Laranja, 14 Verde) |
+| `lesson_plan_reminders` | lembrete do plano de aula por push: `lesson_plan_reminders` (um horário por professor, padrão 13:30) e `claim_lesson_plan_reminders()`; o job do cron passa a acordar a Edge Function também para ele |
 | `…future_face_recognition.sql.disabled` | schema previsto da Fase 4 (pgvector), não aplicado |
 
 Para criar uma migration nova e aplicar (com a CLI do Supabase):
@@ -128,15 +129,21 @@ pnpm db:types
   grade) e academias com menos de 12 aulas concluídas ficam de fora. A lógica está em
   `packages/core/src/domain/insights.ts`.
 
-## Lembrete de chamada (push)
+## Lembretes de chamada e plano de aula (push)
 
-Mais › Lembrete de chamada. O professor ativa as notificações no aparelho e escolhe **um horário para todas
+Mais › Lembretes de chamada e plano de aula. O professor ativa as notificações no aparelho e escolhe **um horário para todas
 as turmas do dia** ou **um horário por turma**. No horário, se a chamada de uma aula de hoje ainda estiver em
 aberto, chega uma notificação; aula concluída ou cancelada não avisa. No iPhone o push só funciona com o app
 instalado na Tela de Início (iOS 16.4+).
 
+**Plano de aula**: na mesma tela, o professor liga o lembrete do plano e escolhe até que horário o plano deve
+estar feito e enviado (padrão **13:30**). Nesse horário, se alguma aula de hoje dele (da grade ou extra, não
+cancelada) ainda não tiver plano com texto salvo no servidor, chega uma notificação; tocar nela abre a aba Plano da
+aula. Plano escrito offline e ainda na fila de sincronização conta como não enviado.
+
 Como funciona: o `pg_cron` roda `dispatch_attendance_reminders()` a cada minuto; havendo lembrete vencido, ele
-chama a Edge Function `push-reminders` (via `pg_net`), que busca o que enviar em `claim_attendance_reminders()`
+chama a Edge Function `push-reminders` (via `pg_net`), que busca o que enviar em `claim_attendance_reminders()` e
+`claim_lesson_plan_reminders()`
 e manda o Web Push. Cada lembrete dispara no máximo uma vez por dia, com até 2h de tolerância se o cron atrasar.
 Os horários são de São Paulo.
 

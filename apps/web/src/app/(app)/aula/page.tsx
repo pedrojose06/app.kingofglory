@@ -30,7 +30,8 @@ export default function ClassPage() {
   const gyms = useGyms()
   const pending = usePendingClasses()
   const items = useOutbox()
-  const [tab, setTab] = useState<Tab>('chamada')
+  // ?aba=plano abre direto no plano (toque no lembrete do plano de aula).
+  const [tab, setTab] = useState<Tab>(useParam('aba') === 'plano' ? 'plano' : 'chamada')
 
   if (klass.isPending && klass.fetchStatus !== 'paused') return <Loading />
   const c = klass.data

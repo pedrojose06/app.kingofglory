@@ -1,7 +1,8 @@
 'use client'
 
 import {
-  formatTime, keys, saveReminders, sendTestPush, toReminderPlan, WEEKDAYS_SHORT, type ClassSchedule, type ReminderPlan,
+  DEFAULT_PLAN_REMINDER, formatTime, keys, saveLessonPlanReminder, saveReminders, sendTestPush, toReminderPlan, WEEKDAYS_SHORT,
+  type ClassSchedule, type ReminderPlan,
 } from '@kog/core'
 import { Badge, Button, Card, Chip, EmptyState, Field, TimeInput } from '@kog/ui'
 import { BellOff, BellRing } from 'lucide-react'
@@ -10,7 +11,7 @@ import { Section } from '@/components/common'
 import { Loading, Page } from '@/components/shell'
 import { useUserId } from '@/lib/auth'
 import { disablePush, enablePush, getPushState, type PushState } from '@/lib/push'
-import { useGyms, useReminders, useSave, useSchedules } from '@/lib/queries'
+import { useGyms, usePlanReminder, useReminders, useSave, useSchedules } from '@/lib/queries'
 import { db } from '@/lib/supabase'
 import { toast, toastError } from '@/lib/toast'
 
@@ -32,6 +33,7 @@ export default function RemindersPage() {
   const gyms = useGyms()
   const schedules = useSchedules()
   const reminders = useReminders()
+  const planReminder = usePlanReminder()
 
   const [push, setPush] = useState<PushState | null>(null)
   const [busy, setBusy] = useState(false)
@@ -105,15 +107,15 @@ export default function RemindersPage() {
     }
   }
 
-  if (reminders.isPending || schedules.isPending || push === null) return <Loading />
+  if (reminders.isPending || planReminder.isPending || schedules.isPending || push === null) return <Loading />
 
   const help = PUSH_HELP[push]
 
   return (
-    <Page title="Lembrete de chamada" kicker="Notificações" back="/mais">
+    <Page title="Lembretes" kicker="Notificações" back="/mais">
       <p className="text-sm text-dim">
-        Nos dias em que você tem aula, o app avisa no horário escolhido se a chamada ainda estiver em aberto. Chamada
-        concluída ou aula cancelada não gera aviso.
+        Nos dias em que você tem aula, o app avisa no horário escolhido se a chamada ainda estiver em aberto ou se o plano
+        de aula ainda não foi feito. Aula cancelada não gera aviso.
       </p>
 
       <Section title="Neste aparelho">
@@ -139,7 +141,7 @@ export default function RemindersPage() {
         <p className="mt-2 text-xs text-dim">Ative em cada aparelho em que quiser receber o aviso. Os horários abaixo valem para todos.</p>
       </Section>
 
-      <Section title="Quando avisar">
+      <Section title="Chamada">
         <div className="flex gap-2">
           <Chip active={mode === 'off'} onPress={() => setMode('off')} className="flex-1">Desligado</Chip>
           <Chip active={mode === 'single'} onPress={() => setMode('single')} className="flex-1">Um horário</Chip>
@@ -189,7 +191,54 @@ export default function RemindersPage() {
           <p className="mt-3 text-xs text-warning">O lembrete está salvo, mas este aparelho não está com as notificações ativadas.</p>
         ) : null}
       </Section>
+
+      <PlanReminderSection saved={planReminder.data ? planReminder.data.remind_at.slice(0, 5) : null} pushOn={push === 'on'} />
     </Page>
+  )
+}
+
+/** Lembrete do plano de aula: um horário só (padrão 13:30) para as aulas do dia ainda sem plano. */
+function PlanReminderSection({ saved, pushOn }: { saved: string | null; pushOn: boolean }) {
+  const [on, setOn] = useState(saved !== null)
+  const [time, setTime] = useState(saved ?? DEFAULT_PLAN_REMINDER)
+  useEffect(() => {
+    setOn(saved !== null)
+    setTime(saved ?? DEFAULT_PLAN_REMINDER)
+  }, [saved])
+
+  const wanted = on ? time : null
+  const dirty = wanted !== saved
+  const save = useSave(
+    async () => {
+      if (wanted !== null && !TIME_RE.test(wanted)) throw new Error('Informe um horário válido')
+      await saveLessonPlanReminder(db(), wanted)
+    },
+    [keys.planReminder],
+    () => toast(wanted === null ? 'Lembrete do plano desligado' : 'Lembrete do plano salvo'),
+  )
+
+  return (
+    <Section title="Plano de aula">
+      <div className="flex gap-2">
+        <Chip active={!on} onPress={() => setOn(false)} className="flex-1">Desligado</Chip>
+        <Chip active={on} onPress={() => setOn(true)} className="flex-1">Ligado</Chip>
+      </div>
+      {on ? (
+        <Field
+          label="Fazer e enviar o plano até"
+          hint="Nesse horário, se alguma aula de hoje ainda estiver sem plano, chega um aviso. Tocar abre o plano da aula."
+          className="mt-4"
+        >
+          <TimeInput value={time} onChange={(e) => setTime(e.target.value)} />
+        </Field>
+      ) : null}
+      {dirty ? (
+        <Button block className="mt-4" loading={save.isPending} onPress={() => save.mutate()}>Salvar</Button>
+      ) : null}
+      {on && !dirty && !pushOn ? (
+        <p className="mt-3 text-xs text-warning">O lembrete está salvo, mas este aparelho não está com as notificações ativadas.</p>
+      ) : null}
+    </Section>
   )
 }
 

@@ -1,7 +1,8 @@
-// Envia os lembretes de chamada por Web Push.
+// Envia os lembretes de chamada e do plano de aula por Web Push.
 //
 // Dois jeitos de chamar:
-//  - pg_cron (header x-cron-secret): envia os lembretes vencidos, via claim_attendance_reminders().
+//  - pg_cron (header x-cron-secret): envia os lembretes vencidos, via claim_attendance_reminders() e
+//    claim_lesson_plan_reminders().
 //  - app (Authorization: Bearer <sessão>): envia uma notificação de teste aos aparelhos do próprio usuário.
 //
 // Deploy sem verificação de JWT (a função valida por conta própria):
@@ -11,7 +12,7 @@
 
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import webpush from 'npm:web-push@3.6.7'
-import { reminderMessage, type OpenClass, type PushMessage } from './message.ts'
+import { lessonPlanMessage, reminderMessage, type OpenClass, type PlanClass, type PushMessage } from './message.ts'
 
 interface Subscription {
   id: string
@@ -23,6 +24,12 @@ interface Subscription {
 interface Claimed {
   reminder_id: string
   classes: OpenClass[]
+  subscriptions: Subscription[]
+}
+
+interface ClaimedPlan {
+  profile_id: string
+  classes: PlanClass[]
   subscriptions: Subscription[]
 }
 
@@ -81,16 +88,23 @@ Deno.serve(async (req) => {
     const { data: ok, error: checkError } = await admin.rpc('cron_secret_matches', { p_secret: cronHeader })
     if (checkError) return json({ error: checkError.message }, 500)
     if (!ok) return json({ error: 'unauthorized' }, 401)
-    const { data, error } = await admin.rpc('claim_attendance_reminders')
-    if (error) return json({ error: error.message }, 500)
-    const claimed = (data ?? []) as Claimed[]
-    const totals = { reminders: claimed.length, sent: 0, failed: 0 }
-    for (const item of claimed) {
-      const result = await sendAll(item.subscriptions, reminderMessage(item.reminder_id, item.classes))
+    const [attendance, plans] = await Promise.all([
+      admin.rpc('claim_attendance_reminders'),
+      admin.rpc('claim_lesson_plan_reminders'),
+    ])
+    // Um claim que falhou não impede o envio do outro (o que já foi marcado como enviado não se perde).
+    const error = attendance.error ?? plans.error
+    const messages = [
+      ...((attendance.data ?? []) as Claimed[]).map((c) => ({ to: c.subscriptions, msg: reminderMessage(c.reminder_id, c.classes) })),
+      ...((plans.data ?? []) as ClaimedPlan[]).map((c) => ({ to: c.subscriptions, msg: lessonPlanMessage(c.profile_id, c.classes) })),
+    ]
+    const totals = { reminders: messages.length, sent: 0, failed: 0 }
+    for (const { to, msg } of messages) {
+      const result = await sendAll(to, msg)
       totals.sent += result.sent
       totals.failed += result.failed
     }
-    return json(totals)
+    return error ? json({ ...totals, error: error.message }, 500) : json(totals)
   }
 
   // Teste pedido pelo app: só para os aparelhos de quem está logado.
@@ -106,7 +120,7 @@ Deno.serve(async (req) => {
 
   const result = await sendAll((subscriptions ?? []) as Subscription[], {
     title: 'Notificações ativadas',
-    body: 'É assim que o lembrete da chamada vai chegar neste aparelho.',
+    body: 'É assim que os lembretes da chamada e do plano de aula vão chegar neste aparelho.',
     url: '/lembretes',
     tag: 'kog-test',
   })

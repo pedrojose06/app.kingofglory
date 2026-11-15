@@ -6,6 +6,11 @@ export interface OpenClass {
   gym: string
 }
 
+export interface PlanClass extends OpenClass {
+  /** Nulo quando a aula da grade ainda não foi gerada (o app não foi aberto hoje). */
+  class_id: string | null
+}
+
 export interface PushMessage {
   title: string
   body: string
@@ -30,5 +35,19 @@ export function reminderMessage(reminderId: string, classes: OpenClass[]): PushM
       : `Aulas de hoje sem chamada: ${joinList(classes.map(label))}.`,
     url: '/',
     tag: `kog-reminder-${reminderId}`,
+  }
+}
+
+/** Lembrete do plano de aula: um aviso por professor por dia; tocar abre o plano (uma aula) ou a tela Hoje. */
+export function lessonPlanMessage(profileId: string, classes: PlanClass[]): PushMessage {
+  const one = classes.length === 1
+  const only = one ? classes[0]! : null
+  return {
+    title: one ? 'Falta o plano de aula' : `Faltam ${classes.length} planos de aula`,
+    body: only
+      ? `Faça e envie o plano da aula de hoje (${label(only)}).`
+      : `Aulas de hoje sem plano: ${joinList(classes.map(label))}.`,
+    url: only?.class_id ? `/aula?id=${only.class_id}&aba=plano` : '/',
+    tag: `kog-plan-${profileId}`,
   }
 }

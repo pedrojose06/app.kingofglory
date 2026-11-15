@@ -4,6 +4,7 @@ export const keys = {
   gyms: ['gyms'] as const,
   schedules: ['schedules'] as const,
   reminders: ['reminders'] as const,
+  planReminder: ['reminders', 'plan'] as const,
   students: ['students'] as const,
   ranks: ['ranks'] as const,
   progress: ['progress'] as const,

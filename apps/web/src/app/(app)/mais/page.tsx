@@ -18,7 +18,7 @@ import { toast, toastError } from '@/lib/toast'
 const LINKS = [
   { href: '/academias', label: 'Academias e grade semanal', icon: Building2 },
   { href: '/graus', label: 'Graus e requisitos de graduação', icon: Award },
-  { href: '/lembretes', label: 'Lembrete de chamada', icon: BellRing },
+  { href: '/lembretes', label: 'Lembretes de chamada e plano de aula', icon: BellRing },
   { href: '/historico', label: 'Histórico de aulas', icon: History },
   { href: '/importar', label: 'Importar presenças (InClass)', icon: FileUp },
   { href: '/sync', label: 'Sincronização', icon: RefreshCw },

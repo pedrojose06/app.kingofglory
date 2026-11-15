@@ -1,4 +1,4 @@
-import type { AttendanceReminder, Db } from '../types'
+import type { AttendanceReminder, Db, LessonPlanReminder } from '../types'
 import { unwrap } from './util'
 
 /**
@@ -48,6 +48,25 @@ export async function saveReminders(db: Db, plan: ReminderPlan): Promise<void> {
     unwrap(await db.from('attendance_reminders').update({ remind_at }).eq('id', id))
   }
   if (insert.length > 0) unwrap(await db.from('attendance_reminders').insert(insert))
+}
+
+/** Horário padrão do lembrete do plano de aula (São Paulo). */
+export const DEFAULT_PLAN_REMINDER = '13:30'
+
+/** Lembrete do plano de aula do professor logado; nulo = desligado. */
+export async function getLessonPlanReminder(db: Db): Promise<LessonPlanReminder | null> {
+  return unwrap(await db.from('lesson_plan_reminders').select('*').maybeSingle())
+}
+
+/** Liga (com o horário 'HH:MM') ou desliga (nulo) o lembrete do plano de aula. */
+export async function saveLessonPlanReminder(db: Db, remindAt: string | null): Promise<void> {
+  if (remindAt === null) {
+    const { data } = await db.auth.getSession()
+    const userId = data.session?.user.id
+    if (userId) unwrap(await db.from('lesson_plan_reminders').delete().eq('profile_id', userId))
+    return
+  }
+  unwrap(await db.from('lesson_plan_reminders').upsert({ remind_at: remindAt }, { onConflict: 'profile_id' }))
 }
 
 /** Chaves de uma PushSubscription do navegador (`subscription.toJSON()`). */

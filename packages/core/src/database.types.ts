@@ -37,6 +37,27 @@ export type Database = {
         }
         Relationships: []
       }
+      lesson_plan_reminders: {
+        Row: {
+          profile_id: string
+          remind_at: string
+          last_sent_on: string | null
+          created_at: string
+        }
+        Insert: {
+          profile_id?: string
+          remind_at?: string
+          last_sent_on?: string | null
+          created_at?: string
+        }
+        Update: {
+          profile_id?: string
+          remind_at?: string
+          last_sent_on?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
       push_subscriptions: {
         Row: {
           id: string
