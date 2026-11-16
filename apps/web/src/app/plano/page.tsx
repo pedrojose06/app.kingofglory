@@ -3,7 +3,7 @@
 import {
   editedAfterReview, formatDayLong, formatStamp, formatTime, getSharedPlan, keys, PLAN_REVIEW_LABEL, planHasContent, reviewSharedPlan, type PlanReviewStatus, type SharedPlan,
 } from '@kog/core'
-import { Button, cn, EmptyState, Field, Input, Kicker, Textarea, Title } from '@kog/ui'
+import { Button, cn, EmptyState, Kicker, Sheet, Textarea, Title } from '@kog/ui'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { EditorContent, useEditor } from '@tiptap/react'
 import { CheckCircle2, MessageSquareWarning } from 'lucide-react'
@@ -12,22 +12,6 @@ import { planExtensions } from '@/components/plan-extensions'
 import { Loading } from '@/components/shell'
 import { db, isConfigured } from '@/lib/supabase'
 import { toast, toastError } from '@/lib/toast'
-
-const NAME_KEY = 'kog-reviewer-name'
-const readName = () => {
-  try {
-    return window.localStorage.getItem(NAME_KEY) ?? ''
-  } catch {
-    return ''
-  }
-}
-const storeName = (name: string) => {
-  try {
-    window.localStorage.setItem(NAME_KEY, name)
-  } catch {
-    // Sem storage: só não lembra o nome.
-  }
-}
 
 /** Plano de aula compartilhado: abre pelo link que o professor envia (/plano#token). Não exige login. */
 export default function SharedPlanPage() {
@@ -119,26 +103,24 @@ function ReviewSection({ token, data }: { token: string; data: SharedPlan }) {
   const queryClient = useQueryClient()
   const review = data.review
   const [editing, setEditing] = useState(!review)
-  const [name, setName] = useState('')
+  const [adjustOpen, setAdjustOpen] = useState(false)
   const [note, setNote] = useState('')
 
-  useEffect(() => setName(readName()), [])
-
   const submit = useMutation({
-    mutationFn: (status: PlanReviewStatus) => reviewSharedPlan(db(), token, { status, note, reviewerName: name }),
+    mutationFn: (status: PlanReviewStatus) => reviewSharedPlan(db(), token, { status, note: status === 'approved' ? '' : note }),
     onSuccess: async (ok, status) => {
       if (!ok) return toast('Este link foi desativado pelo professor', 'error')
-      if (name.trim()) storeName(name.trim())
-      toast(status === 'approved' ? 'Plano aprovado' : 'Pedido de ajustes enviado')
+      toast(status === 'approved' ? 'Plano aprovado' : 'Pedido de ajuste enviado')
+      setAdjustOpen(false)
       setEditing(false)
       await queryClient.invalidateQueries({ queryKey: keys.sharedPlan(token) })
     },
     onError: toastError,
   })
 
-  const send = (status: PlanReviewStatus) => {
-    if (status === 'changes_requested' && !note.trim()) return toast('Escreva o que precisa ser ajustado', 'error')
-    submit.mutate(status)
+  const sendAdjust = () => {
+    if (!note.trim()) return toast('Escreva o que precisa ser ajustado', 'error')
+    submit.mutate('changes_requested')
   }
 
   return (
@@ -151,38 +133,30 @@ function ReviewSection({ token, data }: { token: string; data: SharedPlan }) {
             {review.status === 'approved' ? <CheckCircle2 className="size-5" /> : <MessageSquareWarning className="size-5" />}
             {PLAN_REVIEW_LABEL[review.status]}
           </p>
-          <p className="mt-0.5 text-xs text-dim">
-            {review.reviewer_name ? `${review.reviewer_name} · ` : ''}{formatStamp(review.reviewed_at)}
-          </p>
+          <p className="mt-0.5 text-xs text-dim">{formatStamp(review.reviewed_at)}</p>
           {review.note ? <p className="mt-2 whitespace-pre-wrap text-sm text-soft">{review.note}</p> : null}
           {editedAfterReview(data.updated_at, review.reviewed_at) ? (
             <p className="mt-2 text-sm font-medium text-warning">O professor alterou o plano depois desta revisão.</p>
           ) : null}
-          <Button
-            variant="ghost"
-            size="sm"
-            className="mt-3"
-            onPress={() => {
-              setNote(review.note ?? '')
-              setEditing(true)
-            }}
-          >
+          <Button variant="ghost" size="sm" className="mt-3" onPress={() => setEditing(true)}>
             Revisar de novo
           </Button>
         </div>
       ) : (
-        <div className="space-y-3">
-          <Field label="Seu nome">
-            <Input value={name} onChange={(e) => setName(e.target.value)} maxLength={80} autoCapitalize="words" placeholder="Ex.: Mestre João" />
-          </Field>
-          <Field label="Comentário" hint="Obrigatório para pedir ajustes">
-            <Textarea value={note} onChange={(e) => setNote(e.target.value)} maxLength={2000} placeholder="O que manter, trocar ou acrescentar" />
-          </Field>
+        <div className="space-y-2">
           <div className="grid grid-cols-2 gap-2">
-            <Button variant="ghost" loading={submit.isPending && submit.variables === 'changes_requested'} disabled={submit.isPending} onPress={() => send('changes_requested')}>
-              Pedir ajustes
+            <Button
+              variant="ghost"
+              className="px-2 whitespace-nowrap tracking-[0.02em]"
+              disabled={submit.isPending}
+              onPress={() => {
+                setNote(review?.status === 'changes_requested' ? (review.note ?? '') : '')
+                setAdjustOpen(true)
+              }}
+            >
+              Solicitar ajuste
             </Button>
-            <Button loading={submit.isPending && submit.variables === 'approved'} disabled={submit.isPending} onPress={() => send('approved')}>
+            <Button className="px-2 tracking-[0.02em]" loading={submit.isPending && submit.variables === 'approved'} disabled={submit.isPending} onPress={() => submit.mutate('approved')}>
               Aprovar
             </Button>
           </div>
@@ -191,6 +165,23 @@ function ReviewSection({ token, data }: { token: string; data: SharedPlan }) {
           ) : null}
         </div>
       )}
+
+      <Sheet open={adjustOpen} onClose={() => !submit.isPending && setAdjustOpen(false)} title="Solicitar ajuste">
+        <div className="space-y-3">
+          <Textarea
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            maxLength={2000}
+            rows={5}
+            autoFocus
+            placeholder="O que o professor precisa ajustar no plano?"
+            aria-label="O que ajustar"
+          />
+          <Button block loading={submit.isPending} disabled={!note.trim()} onPress={sendAdjust}>
+            Enviar ajuste
+          </Button>
+        </div>
+      </Sheet>
     </section>
   )
 }

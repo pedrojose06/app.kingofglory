@@ -156,7 +156,8 @@ valendo até lá. Mudar o modelo não altera planos já escritos.
 Na aba **Plano** da aula, o botão **Compartilhar** (como no Notion) gera um link secreto daquela aula
 (`/plano#token`). O professor envia pelo menu de compartilhar do celular (ou WhatsApp) ou copia o link. Quem abre
 o link não precisa de login: vê academia, data, horário e o plano sempre na versão mais recente salva no servidor
-(nada de alunos ou presenças) e pode **Aprovar** ou **Pedir ajustes** (com comentário obrigatório e nome).
+(nada de alunos ou presenças) e tem só dois botões: **Aprovar** (envia na hora) ou **Solicitar ajuste**, que abre
+uma janela para escrever o que ajustar.
 A revisão aparece no topo do plano para o professor, com aviso se o plano foi editado depois dela.
 **Gerar novo link** invalida o anterior e zera a revisão; **Desativar** corta o acesso. Exige conexão.
 
