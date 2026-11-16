@@ -113,3 +113,6 @@ end $$;
 
 revoke execute on function public.student_portal(text) from public;
 grant execute on function public.student_portal(text) to anon, authenticated;
+
+revoke execute on function public.rotate_student_access(uuid) from public, anon;
+grant execute on function public.rotate_student_access(uuid) to authenticated;
