@@ -39,6 +39,10 @@ export interface GraduationStatus {
   eligible: boolean
   /** Primeira graduação, apto ao primeiro grau e com tempo para pular direto ao segundo (decisão do professor). */
   skipTo: Rank | null
+  /** skipTo com os requisitos do segundo grau cumpridos (treinos e meses): pode graduar direto nele. */
+  skipReady: boolean
+  /** Data da próxima graduação usada no cálculo (meses e idade contam até ela); null = calculado para hoje. */
+  on: string | null
   /** Graduação infantil: requisito é a idade que o aluno completa no ano. */
   byAge: boolean
   /** Idade que o aluno completa no ano de hoje; null sem data de nascimento. */
@@ -66,11 +70,18 @@ export function graduationStatus(
     track?: RankTrack
     /** Data de nascimento (requisito da graduação infantil). */
     birthDate?: string | null
+    /**
+     * Data marcada da próxima graduação. Se for futura, meses e idade são contados até ela
+     * (ex.: 5 meses hoje, 6 no dia da graduação). Treinos são os registrados até hoje.
+     */
+    graduationOn?: string | null
   } = {},
 ): GraduationStatus {
   const track = opts.track ?? 'adulto'
   const sorted = ranksOfTrack(ranks, track)
-  if (track === 'infantil') return kidsStatus(progress, ranks, sorted, studentSince, today, opts.birthDate ?? null)
+  const on = opts.graduationOn && opts.graduationOn > today ? opts.graduationOn : null
+  const ref = on ?? today
+  if (track === 'infantil') return { ...kidsStatus(progress, ranks, sorted, studentSince, ref, opts.birthDate ?? null), on }
   const current = ranks.find((r) => r.id === progress?.current_rank_id) ?? null
   // Grau atual de outra trilha (ex.: criança que passou para o adulto): próximo é o primeiro da trilha.
   const next = current && trackOf(current) === track
@@ -85,13 +96,15 @@ export function graduationStatus(
   const needed = requiredClasses == null ? null : Math.ceil((requiredClasses * (minPercent ?? 100)) / 100)
 
   const monthsNeeded = next?.min_months ?? null
-  const monthsElapsed = monthsBetween(progress?.last_graduated_at ?? studentSince, today)
+  const monthsElapsed = monthsBetween(progress?.last_graduated_at ?? studentSince, ref)
 
   const missingClasses = needed == null ? 0 : Math.max(0, needed - count)
   const missingMonths = monthsNeeded == null ? 0 : Math.max(0, monthsNeeded - monthsElapsed)
   const configured = next != null && (needed != null || monthsNeeded != null)
   const eligible = configured && missingClasses === 0 && missingMonths === 0
   const skipTo = !current && eligible && monthsElapsed >= SKIP_FIRST_RANK_MONTHS ? (sorted[1] ?? null) : null
+  const skipNeeded = skipTo?.required_classes == null ? null : Math.ceil((skipTo.required_classes * (skipTo.min_percent ?? 100)) / 100)
+  const skipReady = !!skipTo && (skipNeeded == null || count >= skipNeeded) && (skipTo.min_months == null || monthsElapsed >= skipTo.min_months)
 
   return {
     current,
@@ -109,6 +122,8 @@ export function graduationStatus(
     configured,
     eligible,
     skipTo,
+    skipReady,
+    on,
     byAge: false,
     ageThisYear: null,
     ageNeeded: null,
@@ -166,6 +181,8 @@ function kidsStatus(
     configured,
     eligible,
     skipTo: null,
+    skipReady: false,
+    on: null,
     byAge: true,
     ageThisYear,
     ageNeeded,

@@ -257,6 +257,7 @@ export type Database = {
           address: string | null
           created_by: string
           created_at: string
+          next_graduation_on: string | null
         }
         Insert: {
           id?: string
@@ -264,6 +265,7 @@ export type Database = {
           address?: string | null
           created_by?: string
           created_at?: string
+          next_graduation_on?: string | null
         }
         Update: {
           id?: string
@@ -271,6 +273,7 @@ export type Database = {
           address?: string | null
           created_by?: string
           created_at?: string
+          next_graduation_on?: string | null
         }
         Relationships: []
       }

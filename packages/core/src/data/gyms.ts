@@ -22,6 +22,11 @@ export async function updateGym(db: Db, id: string, input: GymInput): Promise<vo
   unwrap(await db.from('gyms').update({ name: input.name, address: input.address ?? null }).eq('id', id))
 }
 
+/** Data marcada da próxima graduação da academia (null = sem data). */
+export async function setNextGraduation(db: Db, id: string, date: string | null): Promise<void> {
+  unwrap(await db.from('gyms').update({ next_graduation_on: date }).eq('id', id))
+}
+
 export async function listSchedules(db: Db): Promise<ClassSchedule[]> {
   return unwrap(
     await db.from('class_schedules').select('*').eq('active', true).order('weekday').order('start_time'),

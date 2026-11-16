@@ -90,7 +90,7 @@ function PortalView({ data, updatedAt, offline }: { data: StudentPortal; updated
   const { student } = data
 
   const status = useMemo(
-    () => graduationStatus(data.progress ?? undefined, data.ranks, studentSince(student), today, { track: trackOf(student), birthDate: student.birth_date }),
+    () => graduationStatus(data.progress ?? undefined, data.ranks, studentSince(student), today, { track: trackOf(student), birthDate: student.birth_date, graduationOn: data.next_graduation_on }),
     [data, student, today],
   )
   const stats = useMemo(() => attendanceStats(data.attendance, data.gym_name), [data])
@@ -162,7 +162,7 @@ function PortalView({ data, updatedAt, offline }: { data: StudentPortal; updated
                   )}
                   {status.monthsNeeded != null ? (
                     <p className="mt-1 text-sm text-soft">
-                      <strong className="text-text">{status.monthsElapsed}</strong> de {status.monthsNeeded} meses
+                      <strong className="text-text">{status.monthsElapsed}</strong> de {status.monthsNeeded} meses{status.on ? ` em ${formatDateBR(status.on)}` : ''}
                     </p>
                   ) : null}
                   {status.configured && !status.eligible && missingLabel(status) ? (
@@ -170,7 +170,10 @@ function PortalView({ data, updatedAt, offline }: { data: StudentPortal; updated
                   ) : null}
                 </>
               )}
-              <p className="mt-2 text-xs text-dim">A data da graduação é definida pelo professor.</p>
+              <p className="mt-2 text-xs text-dim">
+                {status.on ? `Próxima graduação: ${formatDateBR(status.on)}. Meses contados até essa data. ` : ''}
+                Quem decide a graduação é o professor.
+              </p>
             </div>
           ) : null}
         </Card>

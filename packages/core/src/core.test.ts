@@ -54,6 +54,17 @@ describe('graduationStatus', () => {
     expect(graduationStatus(prog(null, null, 10), ranks, '2026-01-01', '2026-09-01').skipTo).toBeNull()
     expect(graduationStatus(prog('r1', '2025-01-01', 99), ranks, '2024-01-01', '2026-09-01').skipTo).toBeNull()
   })
+  it('data da próxima graduação: meses contam até ela (caso real: 5 meses hoje, 6 na graduação)', () => {
+    // Começou em 26/05 com 36 treinos; hoje 16/11 (5 meses), graduação em 13/12 (6 meses).
+    const hoje = graduationStatus(prog(null, null, 36), ranks, '2026-05-26', '2026-11-16')
+    expect([hoje.skipTo?.grade, hoje.skipReady, hoje.on]).toEqual([2, false, null])
+    const naGraduacao = graduationStatus(prog(null, null, 36), ranks, '2026-05-26', '2026-11-16', { graduationOn: '2026-12-13' })
+    expect([naGraduacao.monthsElapsed, naGraduacao.skipTo?.grade, naGraduacao.skipReady, naGraduacao.on]).toEqual([6, 2, true, '2026-12-13'])
+    // Poucos treinos para o segundo grau: pode pular pelo tempo, mas não está pronto.
+    expect(graduationStatus(prog(null, null, 30), ranks, '2026-05-26', '2026-11-16', { graduationOn: '2026-12-13' }).skipReady).toBe(false)
+    // Data passada é ignorada: vale hoje.
+    expect(graduationStatus(prog(null, null, 36), ranks, '2026-05-26', '2026-11-16', { graduationOn: '2026-11-01' }).on).toBeNull()
+  })
   it('quantidade cheia sem *, e 80% da quantidade com *', () => {
     expect(graduationStatus(prog('r1', '2026-01-10', 35), ranks, '2025-01-01', '2026-08-01').missingClasses).toBe(1)
     const s = graduationStatus(prog('r2', '2026-01-10', 58), ranks, '2025-01-01', '2026-07-10')

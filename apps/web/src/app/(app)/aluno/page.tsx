@@ -32,10 +32,11 @@ export default function StudentPage() {
   const [showAll, setShowAll] = useState(false)
 
   const student = students.data?.find((s) => s.id === id)
-  const gymName = gyms.data?.find((g) => g.id === student?.gym_id)?.name ?? 'Academia'
+  const gym = gyms.data?.find((g) => g.id === student?.gym_id)
+  const gymName = gym?.name ?? 'Academia'
   const status = useMemo(
-    () => graduationStatus(progress.data?.find((p) => p.student_id === id), ranks.data ?? [], student ? studentSince(student) : today, today, { track: trackOf(student), birthDate: student?.birth_date }),
-    [progress.data, ranks.data, student, id, today],
+    () => graduationStatus(progress.data?.find((p) => p.student_id === id), ranks.data ?? [], student ? studentSince(student) : today, today, { track: trackOf(student), birthDate: student?.birth_date, graduationOn: gym?.next_graduation_on }),
+    [progress.data, ranks.data, student, id, today, gym?.next_graduation_on],
   )
   const stats = useMemo(() => attendanceStats(attendance.data ?? [], gymName), [attendance.data, gymName])
   const rankOf = (rankId: string) => ranks.data?.find((r) => r.id === rankId)
@@ -70,7 +71,7 @@ export default function StudentPage() {
   }
 
   const openGraduate = () => {
-    setGradRank(status.next?.id ?? '')
+    setGradRank((status.skipReady ? status.skipTo?.id : status.next?.id) ?? '')
     setGradDate(today)
     setGradNotes('')
     setGradOpen(true)
@@ -105,9 +106,12 @@ export default function StudentPage() {
 
         {status.next ? (
           <div className="mt-4 border-t border-line pt-4">
+            {status.on ? (
+              <p className="mb-2 text-xs font-medium text-accent">Calculado para a graduação de {formatDateBR(status.on)} (meses até a data; treinos até hoje)</p>
+            ) : null}
             <div className="mb-2 flex items-center justify-between gap-2">
               <p className="text-sm font-bold text-text">Próximo: {status.next.name}</p>
-              {status.skipTo ? <Badge tone="gold">Pode pular</Badge> : null}
+              {status.skipTo ? <Badge tone="gold">{status.skipReady ? 'Pode ir direto' : 'Pode pular'}</Badge> : null}
               {status.eligible ? <Badge tone="success">Apto</Badge> : status.configured ? <Badge tone="gold">Em progresso</Badge> : <Badge>Sem requisito</Badge>}
             </div>
             {status.byAge ? (
@@ -134,7 +138,7 @@ export default function StudentPage() {
             )}
             {!status.byAge && status.monthsNeeded != null ? (
               <p className="mt-1 text-sm text-soft">
-                <strong className="text-text">{status.monthsElapsed}</strong> de {status.monthsNeeded} meses
+                <strong className="text-text">{status.monthsElapsed}</strong> de {status.monthsNeeded} meses{status.on ? ` em ${formatDateBR(status.on)}` : ''}
               </p>
             ) : null}
             {!status.byAge && status.rate != null ? <p className="mt-1 text-xs text-dim">Frequência no período: {status.rate}% ({status.count} de {status.classes} aulas)</p> : null}
@@ -151,7 +155,7 @@ export default function StudentPage() {
               const skipNeeded = skip.required_classes == null ? null : Math.ceil((skip.required_classes * (skip.min_percent ?? 100)) / 100)
               return (
                 <div className="mt-3 rounded-md border border-line p-3">
-                  <p className="text-sm font-bold text-text">Pular direto para {skip.name}</p>
+                  <p className="text-sm font-bold text-text">{status.skipReady ? `Pode graduar direto para ${skip.name}` : `Pular direto para ${skip.name}`}</p>
                   {skipNeeded != null ? (
                     <p className="mt-1 text-sm text-soft">
                       <strong className="text-text">{status.count}</strong> de {skipNeeded} treinos
@@ -160,11 +164,11 @@ export default function StudentPage() {
                   ) : null}
                   {skip.min_months != null ? (
                     <p className="mt-1 text-sm text-soft">
-                      <strong className="text-text">{status.monthsElapsed}</strong> de {skip.min_months} meses
+                      <strong className="text-text">{status.monthsElapsed}</strong> de {skip.min_months} meses{status.on ? ` em ${formatDateBR(status.on)}` : ''}
                       {status.monthsElapsed >= skip.min_months ? ' ✓' : ` · faltam ${skip.min_months - status.monthsElapsed}`}
                     </p>
                   ) : null}
-                  <p className="mt-1 text-xs text-dim">Primeira graduação com {status.monthsElapsed} meses de treino: Branco ou direto {skip.name}, a critério do professor.</p>
+                  <p className="mt-1 text-xs text-dim">Primeira graduação com {status.monthsElapsed} meses de treino{status.on ? ' na data marcada' : ''}: Branco ou direto {skip.name}, a critério do professor.</p>
                 </div>
               )
             })() : null}
@@ -299,7 +303,7 @@ export default function StudentPage() {
               ))}
             </div>
           ) : null}
-          <Field label="Grau" hint={status.skipTo ? `Apto para ${status.next?.name}; com ${status.monthsElapsed} meses, pode pular para ${status.skipTo.name}.` : status.next ? `Sugerido: ${status.next.name}.${status.byAge && !status.current ? '' : ' Dá para pular graus se for o caso.'}` : undefined}>
+          <Field label="Grau" hint={status.skipReady && status.skipTo ? `Cumpre os requisitos de ${status.skipTo.name}: pode graduar direto nele ou fazer ${status.next?.name}.` : status.skipTo ? `Apto para ${status.next?.name}; com ${status.monthsElapsed} meses, pode pular para ${status.skipTo.name}.` : status.next ? `Sugerido: ${status.next.name}.${status.byAge && !status.current ? '' : ' Dá para pular graus se for o caso.'}` : undefined}>
             <Select value={gradRank} onChange={(e) => setGradRank(e.target.value)}>
               <option value="">Escolha…</option>
               {gradOptions.map((r) => <option key={r.id} value={r.id}>{r.grade}. {r.name}</option>)}

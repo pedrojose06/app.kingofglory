@@ -29,6 +29,8 @@ export interface PortalAttendance {
 export interface StudentPortal {
   student: PortalStudent
   gym_name: string
+  /** Data marcada da próxima graduação da academia. Ausente em dados antigos do cache. */
+  next_graduation_on?: string | null
   progress: StudentProgress | null
   graduations: { rank_id: string; graduated_at: string }[]
   /** Graus da trilha do aluno. */
