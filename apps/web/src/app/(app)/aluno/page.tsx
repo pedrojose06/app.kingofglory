@@ -9,6 +9,7 @@ import { Pencil } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { Section, StatusBadge, studentSince, useParam } from '@/components/common'
 import { Loading, Page } from '@/components/shell'
+import { StudentAccessSection } from '@/components/student-access'
 import { StudentForm } from '@/components/student-form'
 import { useGraduations, useGyms, useProgress, useRanks, useSave, useStudentAttendance, useStudents, useToday } from '@/lib/queries'
 import { db } from '@/lib/supabase'
@@ -264,6 +265,8 @@ export default function StudentPage() {
           </Card>
         )}
       </Section>
+
+      <StudentAccessSection student={student} />
 
       <Section title="Cadastro">
         <Card className="divide-y divide-line text-sm">

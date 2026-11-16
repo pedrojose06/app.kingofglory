@@ -72,6 +72,7 @@ As migrations em `supabase/migrations` já estão aplicadas no projeto remoto, c
 | `kids_ranks` | graduação infantil: `ranks.track` e `students.track` (adulto/infantil) e os graus Branco, Amarelo, Laranja e Verde |
 | `kids_rank_age` | `ranks.min_age`: graduação infantil por idade que o aluno completa no ano (11 Branco, 12 Amarelo, 13 Laranja, 14 Verde) |
 | `lesson_plan_reminders` | lembrete do plano de aula por push: `lesson_plan_reminders` (um horário por professor, padrão 13:30) e `claim_lesson_plan_reminders()`; o job do cron passa a acordar a Edge Function também para ele |
+| `student_portal` | área do aluno: `student_access` (link secreto por aluno), `rotate_student_access()` e `student_portal(token)`, chamável sem login |
 | `…future_face_recognition.sql.disabled` | schema previsto da Fase 4 (pgvector), não aplicado |
 
 Para criar uma migration nova e aplicar (com a CLI do Supabase):
@@ -183,6 +184,18 @@ Configuração (uma vez por projeto):
 4. Na Vercel, `NEXT_PUBLIC_VAPID_PUBLIC_KEY` com a chave pública (Production e Preview) e um novo deploy.
 
 A chave privada VAPID nunca entra no repositório nem no app.
+
+## Área do aluno
+
+Na tela do aluno, card **Área do aluno** › Gerar link. O professor envia pelo WhatsApp (ou copia) um link
+`/minhas-presencas#<token>`; o aluno abre no celular, sem conta nem senha, e vê: treinos no total e no mês,
+frequência, faltas, grau atual e progresso para o próximo, graduações, treinos por mês e o histórico.
+Telefone e observações do professor não aparecem.
+
+- O token (122 bits aleatórios) vai no `#`, que não chega ao servidor nem aos logs. Quem tem o link vê os dados.
+- **Gerar novo link** invalida o anterior; **Desativar** apaga o acesso. O card mostra quando o aluno abriu pela última vez.
+- O aparelho guarda o link: com o app instalado na Tela de Início, ele abre direto nas presenças do aluno.
+  Os dados ficam em cache e abrem offline.
 
 ## Importação do InClass
 

@@ -8,7 +8,10 @@ export interface AttendanceStats {
 }
 
 /** Totais de presença de um aluno. `gymName` rotula as presenças em aula normal. */
-export function attendanceStats(rows: readonly Attendance[], gymName: string): AttendanceStats {
+export function attendanceStats(
+  rows: readonly Pick<Attendance, 'status' | 'date' | 'class_id' | 'location_label'>[],
+  gymName: string,
+): AttendanceStats {
   const months = new Map<string, number>()
   const locations = new Map<string, number>()
   let total = 0

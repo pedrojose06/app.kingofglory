@@ -10,7 +10,7 @@ import type { ReactNode } from 'react'
 export const useParam = (name: string) => useSearchParams().get(name) ?? ''
 
 /** Início do aluno; o cache offline pode ter alunos salvos antes de started_on existir. */
-export const studentSince = (s: Student) => s.started_on ?? s.created_at.slice(0, 10)
+export const studentSince = (s: Pick<Student, 'started_on' | 'created_at'>) => s.started_on ?? s.created_at.slice(0, 10)
 
 /** Filtro de academia em chips; `null` = todas. Some quando há só uma academia. */
 export function GymChips({ gyms, value, onChange, all = true }: { gyms: readonly Gym[]; value: string | null; onChange: (id: string | null) => void; all?: boolean }) {

@@ -418,6 +418,30 @@ export type Database = {
         }
         Relationships: []
       }
+      student_access: {
+        Row: {
+          student_id: string
+          token: string
+          created_by: string
+          created_at: string
+          last_seen_at: string | null
+        }
+        Insert: {
+          student_id: string
+          token?: string
+          created_by?: string
+          created_at?: string
+          last_seen_at?: string | null
+        }
+        Update: {
+          student_id?: string
+          token?: string
+          created_by?: string
+          created_at?: string
+          last_seen_at?: string | null
+        }
+        Relationships: []
+      }
       students: {
         Row: {
           id: string
@@ -538,6 +562,8 @@ export type Database = {
       can_manage_student: { Args: { p_student_id: string }; Returns: boolean }
       storage_path_gym: { Args: { p_name: string }; Returns: string }
       can_manage_class: { Args: { p_class_id: string }; Returns: boolean }
+      rotate_student_access: { Args: { p_student_id: string }; Returns: string }
+      student_portal: { Args: { p_token: string }; Returns: Json }
       save_push_subscription: {
         Args: { p_endpoint: string; p_p256dh: string; p_auth: string; p_user_agent?: string }
         Returns: undefined
