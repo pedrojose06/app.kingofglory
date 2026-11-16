@@ -13,7 +13,7 @@ create or replace function public.register_walk_ins(
   p_student_ids uuid[],
   p_date date,
   p_location text,
-  p_credits smallint default 1,
+  p_credits integer default 1,
   p_source public.attendance_source default 'walk_in'
 )
 returns integer
@@ -36,8 +36,8 @@ begin
   get diagnostics v_count = row_count;
   return v_count;
 end $$;
-revoke execute on function public.register_walk_ins(uuid[], date, text, smallint, public.attendance_source) from public, anon;
-grant execute on function public.register_walk_ins(uuid[], date, text, smallint, public.attendance_source) to authenticated;
+revoke execute on function public.register_walk_ins(uuid[], date, text, integer, public.attendance_source) from public, anon;
+grant execute on function public.register_walk_ins(uuid[], date, text, integer, public.attendance_source) to authenticated;
 
 -- Progresso: presenças somam `credits`; no período, falta conta 1 aula.
 create or replace view public.student_progress
