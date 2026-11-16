@@ -7,9 +7,9 @@ export interface AttendanceStats {
   byLocation: { location: string; count: number }[]
 }
 
-/** Totais de presença de um aluno. `gymName` rotula as presenças em aula normal. */
+/** Totais de presença de um aluno (presenças somam `credits`). `gymName` rotula as presenças em aula normal. */
 export function attendanceStats(
-  rows: readonly Pick<Attendance, 'status' | 'date' | 'class_id' | 'location_label'>[],
+  rows: readonly (Pick<Attendance, 'status' | 'date' | 'class_id' | 'location_label'> & { credits?: number | null })[],
   gymName: string,
 ): AttendanceStats {
   const months = new Map<string, number>()
@@ -21,11 +21,13 @@ export function attendanceStats(
       absences += 1
       continue
     }
-    total += 1
+    // Presença que vale mais de uma (ex.: aulão = 2) soma o valor inteiro.
+    const credits = r.credits ?? 1
+    total += credits
     const month = r.date.slice(0, 7)
-    months.set(month, (months.get(month) ?? 0) + 1)
+    months.set(month, (months.get(month) ?? 0) + credits)
     const location = r.class_id ? gymName : (r.location_label ?? 'Outro local')
-    locations.set(location, (locations.get(location) ?? 0) + 1)
+    locations.set(location, (locations.get(location) ?? 0) + credits)
   }
   return {
     total,

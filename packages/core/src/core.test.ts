@@ -185,6 +185,15 @@ describe('attendanceStats', () => {
     expect(s.byMonth).toEqual([{ month: '2026-02', count: 1 }, { month: '2026-01', count: 2 }])
     expect(s.byLocation).toEqual([{ location: 'Centro', count: 2 }, { location: 'Matriz', count: 1 }])
   })
+  it('presença que vale mais de uma (aulão) soma o valor', () => {
+    const s = attendanceStats([
+      { date: '2026-11-14', status: 'present', class_id: null, location_label: 'Aulão', credits: 2 },
+      { date: '2026-11-12', status: 'present', class_id: 'c', location_label: null },
+    ], 'Centro')
+    expect(s.total).toBe(3)
+    expect(s.byMonth).toEqual([{ month: '2026-11', count: 3 }])
+    expect(s.byLocation).toEqual([{ location: 'Aulão', count: 2 }, { location: 'Centro', count: 1 }])
+  })
 })
 
 describe('lembretes de chamada', () => {

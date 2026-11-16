@@ -28,7 +28,7 @@ export async function markAttendanceBatch(db: Db, marks: readonly AttendanceMark
 
 export async function addWalkIns(
   db: Db,
-  input: { student_ids: string[]; date: string; location: string; source?: AttendanceSource },
+  input: { student_ids: string[]; date: string; location: string; source?: AttendanceSource; credits?: number },
 ): Promise<number> {
   return unwrap(
     await db.rpc('add_walk_ins', {
@@ -36,6 +36,7 @@ export async function addWalkIns(
       p_date: input.date,
       p_location: input.location,
       ...(input.source ? { p_source: input.source } : {}),
+      ...(input.credits && input.credits !== 1 ? { p_credits: input.credits } : {}),
     }),
   )
 }

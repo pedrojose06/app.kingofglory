@@ -45,6 +45,8 @@ export const walkInInput = z.object({
   student_ids: z.array(z.uuid()).min(1, 'Escolha ao menos um aluno'),
   date: isoDate,
   location: z.string().trim().min(1, 'Informe o local'),
+  /** Quantas presenças vale (ex.: aulão = 2). */
+  credits: z.number().int().min(1).max(10).default(1),
 })
 export type WalkInInput = z.infer<typeof walkInInput>
 

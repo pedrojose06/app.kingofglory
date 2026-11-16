@@ -20,6 +20,7 @@ export default function WalkInPage() {
   const [gymId, setGymId] = useState<string | null>(null)
   const [search, setSearch] = useState('')
   const [selected, setSelected] = useState<Set<string>>(new Set())
+  const [credits, setCredits] = useState(1)
 
   const visible = useMemo(() => {
     const q = normalizeName(search)
@@ -34,10 +35,11 @@ export default function WalkInPage() {
     })
 
   function submit() {
-    const parsed = walkInInput.safeParse({ student_ids: [...selected], date, location })
+    const parsed = walkInInput.safeParse({ student_ids: [...selected], date, location, credits })
     if (!parsed.success) return toast(firstIssue(parsed.error), 'error')
     outbox.add({ type: 'walkin.add', ...parsed.data })
-    toast(`${selected.size} ${selected.size === 1 ? 'presença registrada' : 'presenças registradas'} em ${parsed.data.location}, ${formatDateBR(date)}`)
+    const worth = credits > 1 ? ` (vale ${credits})` : ''
+    toast(`${selected.size} ${selected.size === 1 ? 'presença registrada' : 'presenças registradas'}${worth} em ${parsed.data.location}, ${formatDateBR(date)}`)
     setSelected(new Set())
     setSearch('')
   }
@@ -64,6 +66,17 @@ export default function WalkInPage() {
         </div>
       ) : null}
 
+      {/* div e não Field: um <label> repassaria o toque ao primeiro chip. */}
+      <div className="mt-4" role="group" aria-labelledby="walkin-credits">
+        <p id="walkin-credits" className="mb-1.5 text-xs font-bold uppercase tracking-[0.12em] text-dim">Vale</p>
+        <div className="flex gap-2">
+          {[1, 2, 3].map((n) => (
+            <Chip key={n} active={credits === n} onPress={() => setCredits(n)}>{n === 1 ? '1 presença' : `${n} presenças`}</Chip>
+          ))}
+        </div>
+        <p className="mt-1 text-xs text-dim">Ex.: aulão vale 2 presenças para a graduação. Registrar de novo o mesmo aluno, dia e local corrige o valor.</p>
+      </div>
+
       <div className="mt-5">
         <GymChips gyms={gyms.data ?? []} value={gymId} onChange={setGymId} />
         <div className="relative mb-3">
@@ -88,7 +101,7 @@ export default function WalkInPage() {
       <div className="fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-30 border-t border-line bg-bg/95 px-4 py-2.5 backdrop-blur">
         <div className="mx-auto max-w-xl">
           <Button block onPress={submit} disabled={selected.size === 0}>
-            {selected.size === 0 ? 'Escolha os alunos' : `Registrar ${selected.size} ${selected.size === 1 ? 'presença' : 'presenças'}`}
+            {selected.size === 0 ? 'Escolha os alunos' : `Registrar ${selected.size} ${selected.size === 1 ? 'aluno' : 'alunos'}${credits > 1 ? ` · vale ${credits}` : ''}`}
           </Button>
         </div>
       </div>

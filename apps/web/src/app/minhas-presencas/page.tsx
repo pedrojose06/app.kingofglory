@@ -216,6 +216,7 @@ function PortalView({ data, updatedAt, offline }: { data: StudentPortal; updated
                   <span className="min-w-0 flex-1 truncate text-sm text-dim">
                     {a.class_id ? [formatTime(a.start_time), a.title].filter(Boolean).join(' · ') : a.location_label}
                   </span>
+                  {(a.credits ?? 1) > 1 ? <Badge tone="gold">Vale {a.credits}</Badge> : null}
                   <StatusBadge status={a.status} />
                 </div>
               ))}

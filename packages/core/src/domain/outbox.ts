@@ -12,7 +12,7 @@ export type OutboxOp =
   | { type: 'attendance.mark'; mark: AttendanceMark & { marked_at: string } }
   | { type: 'class.conclude'; classId: string }
   | { type: 'class.status'; classId: string; status: ClassStatus }
-  | { type: 'walkin.add'; student_ids: string[]; date: string; location: string }
+  | { type: 'walkin.add'; student_ids: string[]; date: string; location: string; credits?: number }
   | { type: 'plan.save'; classId: string; content: Json; updatedAt: string }
   | { type: 'photo.upload'; meta: PhotoUpload; blobKey: string }
 
@@ -124,7 +124,7 @@ export function describeOp(op: OutboxOp): string {
     case 'class.status':
       return 'Alteração de aula'
     case 'walkin.add':
-      return `Presença avulsa (${op.student_ids.length}) — ${op.location}`
+      return `Presença avulsa (${op.student_ids.length}) — ${op.location}${op.credits && op.credits > 1 ? ` · vale ${op.credits}` : ''}`
     case 'plan.save':
       return 'Plano de aula'
     case 'photo.upload':

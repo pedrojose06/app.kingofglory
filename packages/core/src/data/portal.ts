@@ -22,6 +22,8 @@ export interface PortalAttendance {
   start_time: string | null
   /** Local da presença avulsa. */
   location_label: string | null
+  /** Quantas presenças vale (ex.: aulão = 2). Ausente em dados antigos do cache. */
+  credits?: number
 }
 
 export interface StudentPortal {
