@@ -1,7 +1,7 @@
 'use client'
 
 import {
-  attendanceStats, formatDateBR, formatDayShort, formatMonth, formatTime, getStudentPortal, graduationStatus, isCounted,
+  attendanceStats, formatDateBR, monthsBetween, formatDayShort, formatMonth, formatTime, getStudentPortal, graduationStatus, isCounted,
   keys, missingLabel, trackOf, type StudentPortal,
 } from '@kog/core'
 import { Badge, Button, Card, EmptyState, Kicker, ProgressBar, RankBand, Title } from '@kog/ui'
@@ -113,6 +113,15 @@ function PortalView({ data, updatedAt, offline }: { data: StudentPortal; updated
     ? (status.skipTo.required_classes == null ? null : Math.ceil((status.skipTo.required_classes * (status.skipTo.min_percent ?? 100)) / 100))
     : status.needed
   const targetMonths = status.skipTo ? status.skipTo.min_months : status.monthsNeeded
+  // Já cumpre hoje (sem depender da data da graduação): não mostra aviso.
+  const monthsToday = monthsBetween(data.progress?.last_graduated_at ?? studentSince(student), today)
+  const skipNotice = !status.skipTo
+    ? null
+    : !status.skipReady
+      ? `Você pode ir direto para ${status.skipTo.name} se completar os critérios abaixo.`
+      : targetMonths != null && monthsToday < targetMonths
+        ? `Você está perto de cumprir os critérios para ir direto para ${status.skipTo.name}.`
+        : null
 
   return (
     <>
@@ -150,13 +159,7 @@ function PortalView({ data, updatedAt, offline }: { data: StudentPortal; updated
                 <p className="min-w-0 flex-1 text-sm font-bold text-text">Próximo: {target.name}</p>
                 <RankBand colors={target.colors} />
               </div>
-              {status.skipTo ? (
-                <p className="mb-2 text-sm font-medium text-accent">
-                  {status.skipReady
-                    ? `Você está perto de cumprir os critérios para ir direto para ${status.skipTo.name}.`
-                    : `Você pode ir direto para ${status.skipTo.name} se completar os critérios abaixo.`}
-                </p>
-              ) : null}
+              {skipNotice ? <p className="mb-2 text-sm font-medium text-accent">{skipNotice}</p> : null}
               {status.byAge ? (
                 <p className="text-sm text-soft">
                   {status.ageNeeded != null ? `A partir de ${status.ageNeeded} anos (idade que você completa no ano).` : 'Graduação infantil por idade.'}
