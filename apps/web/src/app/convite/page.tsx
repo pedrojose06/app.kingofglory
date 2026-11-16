@@ -41,8 +41,10 @@ export default function InvitePage() {
 
   useEffect(() => {
     const fromHash = window.location.hash.replace(/^#/, '').trim()
-    // Retorno da confirmação de e-mail traz tokens de login no fragmento (com "="): não é o convite.
-    const t = fromHash && !fromHash.includes('=') ? fromHash : readStored()
+    // Retorno da confirmação de e-mail: tokens de login no fragmento (com "=") e o convite em ?c=, para funcionar
+    // mesmo se o e-mail for aberto em outro navegador (ex.: o navegador do app do Gmail).
+    const fromQuery = new URLSearchParams(window.location.search).get('c')?.trim()
+    const t = (fromHash && !fromHash.includes('=') ? fromHash : null) ?? fromQuery ?? readStored()
     if (t) store(t)
     setToken(t)
   }, [])
@@ -98,7 +100,13 @@ export default function InvitePage() {
               <Button variant="ghost" block className="mt-4" onPress={() => void signOut()}><LogOut className="size-4" /> Entrar com outra conta</Button>
             ) : null}
           </>
-        ) : !token || !valid ? (
+        ) : !token ? (
+          <EmptyState title={session ? 'Falta abrir o convite' : 'Abra o link do convite'}>
+            {session
+              ? 'Sua conta está pronta. Para virar professor, abra de novo neste navegador o link do convite que você recebeu.'
+              : 'Use o link de convite que você recebeu de um professor da equipe.'}
+          </EmptyState>
+        ) : !valid ? (
           <EmptyState title="Convite vencido ou já usado">
             Cada convite vale para uma pessoa e por 7 dias. Peça um novo a quem te convidou.
           </EmptyState>
@@ -109,7 +117,7 @@ export default function InvitePage() {
               chamada, plano de aula, graduação e área do aluno. Depois de entrar, cadastre a sua academia.
             </p>
             <Card className="p-4">
-              <StudentAuthForm initialMode="signup" canSignUp redirectPath="/convite" linkName="convite" />
+              <StudentAuthForm initialMode="signup" canSignUp redirectPath={`/convite?c=${token}`} linkName="convite" />
             </Card>
             <p className="mt-3 text-center text-xs text-dim">Convite válido até {formatDateTimeBR(info.data!.expires_at)}.</p>
           </>
