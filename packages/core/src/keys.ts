@@ -11,6 +11,7 @@ export const keys = {
   progress: ['progress'] as const,
   absenceStreaks: ['attendance', 'streaks'] as const,
   classTurnout: ['attendance', 'turnout'] as const,
+  report: (from: string, to: string) => ['attendance', 'report', from, to] as const,
   graduations: (studentId: string) => ['graduations', studentId] as const,
   classesByDate: (date: string) => ['classes', 'date', date] as const,
   classesPending: ['classes', 'pending'] as const,
