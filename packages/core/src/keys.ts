@@ -27,4 +27,5 @@ export const keys = {
   studentPortal: (token: string) => ['student-portal', token] as const,
   planShare: (classId: string) => ['plan-share', classId] as const,
   sharedPlan: (token: string) => ['shared-plan', token] as const,
+  planTemplate: ['plan-template'] as const,
 }

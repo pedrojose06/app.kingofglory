@@ -1,7 +1,7 @@
 'use client'
 
 import {
-  countPresentByClass, ensureClasses, getGraduationSchedule, listAbsenceStreaks, listClassTurnout, getClass, getLessonPlan, getLessonPlanReminder, getProfile, keys, listClassAttendance, listClassesByDate,
+  countPresentByClass, ensureClasses, getPlanTemplate, getGraduationSchedule, listAbsenceStreaks, listClassTurnout, getClass, getLessonPlan, getLessonPlanReminder, getProfile, keys, listClassAttendance, listClassesByDate,
   listClassesRange, listClassPhotos, listGraduations, listGyms, listPendingClasses, listProgress, listRanks, listReminders, listSchedules,
   listPlannedClassIds, listStudentAttendance, listStudents, listWalkInLocations, todayISO, type ClassRow,
 } from '@kog/core'
@@ -92,6 +92,8 @@ export const useStudentAttendance = (studentId: string) =>
   useQuery({ queryKey: keys.studentAttendance(studentId), queryFn: () => listStudentAttendance(db(), studentId), enabled: !!studentId })
 export const useWalkInLocations = () =>
   useQuery({ queryKey: keys.walkInLocations, queryFn: () => listWalkInLocations(db()) })
+/** Modelo do plano do professor (null = padrão da equipe). Fica em cache para abrir planos offline. */
+export const usePlanTemplate = () => useQuery({ queryKey: keys.planTemplate, queryFn: () => getPlanTemplate(db()), staleTime: 5 * 60_000 })
 export const useLessonPlan = (classId: string) =>
   useQuery({ queryKey: keys.lessonPlan(classId), queryFn: () => getLessonPlan(db(), classId), enabled: !!classId })
 export const useClassPhotos = (classId: string) =>

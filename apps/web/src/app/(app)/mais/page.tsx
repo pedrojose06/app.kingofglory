@@ -3,7 +3,7 @@
 import { exportAll } from '@kog/core'
 import { Button, Card, Chip } from '@kog/ui'
 import { useQueryClient } from '@tanstack/react-query'
-import { Award, BellRing, Building2, ChevronRight, Download, FileUp, History, RefreshCw } from 'lucide-react'
+import { Award, BellRing, Building2, ChevronRight, Download, FilePen, FileUp, History, RefreshCw } from 'lucide-react'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { Section } from '@/components/common'
@@ -18,6 +18,7 @@ import { toast, toastError } from '@/lib/toast'
 const LINKS = [
   { href: '/academias', label: 'Academias e grade semanal', icon: Building2 },
   { href: '/graus', label: 'Graus e requisitos de graduação', icon: Award },
+  { href: '/modelo-plano', label: 'Modelo do plano de aula', icon: FilePen },
   { href: '/lembretes', label: 'Lembretes de chamada e plano de aula', icon: BellRing },
   { href: '/historico', label: 'Histórico de aulas', icon: History },
   { href: '/importar', label: 'Importar presenças (InClass)', icon: FileUp },

@@ -142,6 +142,15 @@ Tocar abre a aba Plano; se a aula da grade ainda não foi gerada, ela é criada 
 no dia, `ensure_classes` encontra a aula já criada. A chamada de uma aula futura só abre no dia. Encerrar um
 horário da grade cancela as aulas futuras dele que já tinham sido criadas.
 
+## Modelo do plano de aula
+
+Todo plano ainda sem texto abre com um **esqueleto** pronto para preencher (títulos das seções com "Escreva aqui…"
+embaixo). Sem modelo próprio vale o padrão da equipe (`DEFAULT_PLAN_TEMPLATE` em `packages/core/src/data/templates.ts`:
+Objetivo, Aquecimento, Técnica, Combinações/drills, Condicionamento/sparring, Alongamento, Observações). Cada
+professor pode montar o seu em **Mais › Modelo do plano de aula** (tabela `lesson_templates`, um por professor) ou
+voltar ao padrão. O esqueleto só é salvo no plano quando o professor escreve algo, então o lembrete do plano continua
+valendo até lá. Mudar o modelo não altera planos já escritos.
+
 ## Compartilhar o plano de aula (aprovação do mestre)
 
 Na aba **Plano** da aula, o botão **Compartilhar** (como no Notion) gera um link secreto daquela aula

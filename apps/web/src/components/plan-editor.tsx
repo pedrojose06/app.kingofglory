@@ -1,18 +1,18 @@
 'use client'
 
-import type { Json } from '@kog/core'
+import { DEFAULT_PLAN_TEMPLATE, planHasContent, type Json } from '@kog/core'
 import { cn, Sheet } from '@kog/ui'
 import { Placeholder } from '@tiptap/extensions'
 import { Extension, type Editor, type Range } from '@tiptap/core'
 import { EditorContent, useEditor } from '@tiptap/react'
 import Suggestion, { type SuggestionKeyDownProps, type SuggestionProps } from '@tiptap/suggestion'
 import { Plus } from 'lucide-react'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { PlanReviewBanner, PlanShareButton } from '@/components/plan-share'
 import { planExtensions } from '@/components/plan-extensions'
 import { Loading } from '@/components/shell'
 import { outbox, useOnline, useOutbox } from '@/lib/outbox'
-import { useLessonPlan } from '@/lib/queries'
+import { useLessonPlan, usePlanTemplate } from '@/lib/queries'
 
 interface BlockItem {
   title: string
@@ -79,8 +79,11 @@ function slashExtension(handlers: { set: (s: SlashState | null) => void; key: (e
 
 const isEmptyDoc = (content: unknown) => !content || typeof content !== 'object' || !('type' in (content as object))
 
+const BLOCK_BUTTON = 'flex h-9 items-center gap-1 rounded border border-line px-2.5 text-xs font-bold uppercase tracking-[0.1em] text-accent'
+
 export function PlanEditor({ classId }: { classId: string }) {
   const plan = useLessonPlan(classId)
+  const template = usePlanTemplate()
   const items = useOutbox()
   const pendingItem = items.find((i) => i.op.type === 'plan.save' && i.op.classId === classId)
 
@@ -92,12 +95,18 @@ export function PlanEditor({ classId }: { classId: string }) {
     return <Loading />
   }
 
-  const initial = pendingItem?.op.type === 'plan.save' ? pendingItem.op.content : (plan.data?.content ?? null)
+  const saved = pendingItem?.op.type === 'plan.save' ? pendingItem.op.content : (plan.data?.content ?? null)
+  // Plano ainda sem texto: abre com o esqueleto do modelo. Só é salvo quando o professor escreve algo,
+  // então o lembrete do plano continua valendo até lá.
+  const blank = !planHasContent(saved)
+  if (blank && template.isPending && template.fetchStatus === 'fetching') return <Loading />
+  const initial = blank ? (template.data?.content ?? DEFAULT_PLAN_TEMPLATE) : saved
   return (
     <EditorInner
       key={classId}
       classId={classId}
       initial={initial}
+      blank={blank}
       pending={!!pendingItem}
       failed={!!pendingItem?.error}
       planUpdatedAt={plan.data?.updated_at ?? null}
@@ -105,13 +114,9 @@ export function PlanEditor({ classId }: { classId: string }) {
   )
 }
 
-function EditorInner({ classId, initial, pending, failed, planUpdatedAt }: { classId: string; initial: Json | null; pending: boolean; failed: boolean; planUpdatedAt: string | null }) {
+function EditorInner({ classId, initial, blank, pending, failed, planUpdatedAt }: { classId: string; initial: Json | null; blank: boolean; pending: boolean; failed: boolean; planUpdatedAt: string | null }) {
   const online = useOnline()
-  const [slash, setSlash] = useState<SlashState | null>(null)
-  const [insertOpen, setInsertOpen] = useState(false)
   const [dirty, setDirty] = useState(false)
-  const slashRef = useRef<SlashState | null>(null)
-  slashRef.current = slash
   const timer = useRef<number | undefined>(undefined)
   const latest = useRef<Json | null>(null)
 
@@ -126,12 +131,62 @@ function EditorInner({ classId, initial, pending, failed, planUpdatedAt }: { cla
   const saveRef = useRef(save)
   saveRef.current = save
 
+  // Sai da tela ou o app vai para segundo plano com edição pendente: salva na hora.
+  useEffect(() => {
+    const flush = () => saveRef.current()
+    const onHide = () => document.visibilityState === 'hidden' && flush()
+    document.addEventListener('visibilitychange', onHide)
+    window.addEventListener('pagehide', flush)
+    return () => {
+      document.removeEventListener('visibilitychange', onHide)
+      window.removeEventListener('pagehide', flush)
+      flush()
+    }
+  }, [])
+
+  const status = failed ? 'Erro ao salvar — veja Sincronização' : dirty ? 'Editando…' : pending ? (online ? 'Salvando…' : 'Salvo neste aparelho (offline)') : blank ? 'Novo plano' : 'Salvo'
+
+  return (
+    <DocEditor
+      initial={initial}
+      onChange={(content) => {
+        latest.current = content
+        setDirty(true)
+        window.clearTimeout(timer.current)
+        timer.current = window.setTimeout(() => saveRef.current(), 1200)
+      }}
+      status={<p className={cn('text-xs', failed ? 'text-danger' : 'text-dim')} aria-live="polite">{status}</p>}
+      actions={<PlanShareButton classId={classId} unsynced={pending || dirty} planUpdatedAt={planUpdatedAt} />}
+      banner={<PlanReviewBanner classId={classId} planUpdatedAt={planUpdatedAt} />}
+    />
+  )
+}
+
+/** Editor de documento no estilo Notion (blocos, menu "/"), usado no plano da aula e no modelo do plano. */
+export function DocEditor({
+  initial, onChange, status, actions, banner,
+}: { initial: Json | null; onChange: (content: Json) => void; status?: ReactNode; actions?: ReactNode; banner?: ReactNode }) {
+  const [slash, setSlash] = useState<SlashState | null>(null)
+  const [insertOpen, setInsertOpen] = useState(false)
+  const slashRef = useRef<SlashState | null>(null)
+  slashRef.current = slash
+  const onChangeRef = useRef(onChange)
+  onChangeRef.current = onChange
+
   const extensions = useMemo(
     () => [
       ...planExtensions(),
       Placeholder.configure({
         includeChildren: true,
-        placeholder: ({ node }) => (node.type.name === 'detailsSummary' ? 'Título do toggle' : node.type.name === 'heading' ? 'Título' : 'Escreva, ou digite / para blocos'),
+        // Todas as linhas vazias recebem dica: a seção do esqueleto mostra "Escreva aqui…" mesmo sem o cursor nela.
+        showOnlyCurrent: false,
+        placeholder: ({ editor, node, pos, hasAnchor }) => {
+          if (node.type.name === 'detailsSummary') return 'Título do toggle'
+          if (node.type.name === 'heading') return hasAnchor ? 'Título' : ''
+          const before = pos > 0 ? editor.state.doc.resolve(pos).nodeBefore : null
+          if (before?.type.name === 'heading') return 'Escreva aqui…'
+          return hasAnchor || editor.isEmpty ? 'Escreva, ou digite / para blocos' : ''
+        },
       }),
       slashExtension({
         set: setSlash,
@@ -159,46 +214,26 @@ function EditorInner({ classId, initial, pending, failed, planUpdatedAt }: { cla
     extensions,
     content: isEmptyDoc(initial) ? '' : (initial as object),
     immediatelyRender: false,
-    onUpdate: ({ editor }) => {
-      latest.current = editor.getJSON() as Json
-      setDirty(true)
-      window.clearTimeout(timer.current)
-      timer.current = window.setTimeout(() => saveRef.current(), 1200)
-    },
+    onUpdate: ({ editor }) => onChangeRef.current(editor.getJSON() as Json),
   })
 
-  // Sai da tela ou o app vai para segundo plano com edição pendente: salva na hora.
-  useEffect(() => {
-    const flush = () => saveRef.current()
-    const onHide = () => document.visibilityState === 'hidden' && flush()
-    document.addEventListener('visibilitychange', onHide)
-    window.addEventListener('pagehide', flush)
-    return () => {
-      document.removeEventListener('visibilitychange', onHide)
-      window.removeEventListener('pagehide', flush)
-      flush()
-    }
-  }, [])
-
-  const status = failed ? 'Erro ao salvar — veja Sincronização' : dirty ? 'Editando…' : pending ? (online ? 'Salvando…' : 'Salvo neste aparelho (offline)') : 'Salvo'
   const viewport = typeof window === 'undefined' ? 0 : window.innerHeight
 
   return (
     <div className="plan-editor">
-      <div className="mb-2 flex items-center justify-between">
-        <p className={cn('text-xs', failed ? 'text-danger' : 'text-dim')} aria-live="polite">{status}</p>
+      <div className="mb-2 flex items-center justify-between gap-2">
+        <div className="min-w-0">{status}</div>
         <div className="flex gap-2">
-          <PlanShareButton classId={classId} unsynced={pending || dirty} planUpdatedAt={planUpdatedAt} />
-          <button type="button" onClick={() => setInsertOpen(true)} className="flex h-9 items-center gap-1 rounded border border-line px-2.5 text-xs font-bold uppercase tracking-[0.1em] text-accent">
+          {actions}
+          <button type="button" onClick={() => setInsertOpen(true)} className={BLOCK_BUTTON}>
             <Plus className="size-4" /> Bloco
           </button>
         </div>
       </div>
 
-      <PlanReviewBanner classId={classId} planUpdatedAt={planUpdatedAt} />
+      {banner}
 
       <EditorContent editor={editor} />
-
       {slash ? (
         <div
           className="fixed z-50 max-h-64 w-64 overflow-y-auto rounded-lg border border-line-strong bg-surface p-1 shadow-xl"
