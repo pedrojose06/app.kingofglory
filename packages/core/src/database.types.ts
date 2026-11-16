@@ -673,6 +673,12 @@ export type Database = {
       create_instructor_invite: { Args: never; Returns: string }
       instructor_invite_info: { Args: { p_token: string }; Returns: Json }
       accept_instructor_invite: { Args: { p_token: string }; Returns: undefined }
+      signup_directory: { Args: never; Returns: Json }
+      request_student_access: { Args: { p_gym_id: string; p_name: string; p_phone?: string }; Returns: undefined }
+      my_signup_request: { Args: never; Returns: Json }
+      list_student_requests: { Args: never; Returns: Json }
+      approve_student_request: { Args: { p_request_id: string; p_student_id?: string }; Returns: string }
+      reject_student_request: { Args: { p_request_id: string }; Returns: undefined }
       student_portal: { Args: { p_token: string }; Returns: Json }
       rotate_lesson_plan_share: { Args: { p_class_id: string }; Returns: string }
       shared_lesson_plan: { Args: { p_token: string }; Returns: Json }

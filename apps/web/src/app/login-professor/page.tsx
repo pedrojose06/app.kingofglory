@@ -125,6 +125,12 @@ export default function LoginPage() {
           ) : null}
         </form>
       )}
+      <p className="mt-8 text-center text-sm text-dim">
+        É aluno?{' '}
+        <a href="/cadastro-aluno" className="font-medium text-accent underline underline-offset-2">Criar conta de aluno</a>
+        {' · '}
+        <a href="/minhas-presencas" className="font-medium text-accent underline underline-offset-2">Entrar</a>
+      </p>
     </main>
   )
 }

@@ -1,7 +1,7 @@
 'use client'
 
 import {
-  acceptImageConsent, attendanceStats, claimStudentAccount, formatDateBR, getMyStudentAccount, getMyStudentPortal, hasAccountConsent,
+  STUDENT_SIGNUP_PATH, acceptImageConsent, attendanceStats, getMySignupRequest, claimStudentAccount, formatDateBR, getMyStudentAccount, getMyStudentPortal, hasAccountConsent,
   monthsBetween, formatDayShort, formatMonth, formatTime, getStudentPortal, graduationStatus, isCounted,
   keys, missingLabel, trackOf, type StudentPortal,
 } from '@kog/core'
@@ -93,10 +93,20 @@ function LinkMode({ token, notice }: { token: string | null; notice: string | nu
       <Shell>
         <Brand />
         {noticeCard}
-        <EmptyState title="Link expirado ou inválido">
-          O link do professor vale por tempo limitado. Peça um novo link ou entre na sua conta.
-        </EmptyState>
+        {token ? (
+          <EmptyState title="Link expirado ou inválido">
+            O link do professor vale por tempo limitado. Peça um novo link ou entre na sua conta.
+          </EmptyState>
+        ) : (
+          <Title>Área do aluno</Title>
+        )}
         <Card className="mt-4 p-4"><StudentAuthForm canSignUp={false} /></Card>
+        <Card className="mt-3 p-4">
+          <p className="text-sm text-soft">Ainda não tem conta? Escolha seu professor e a academia e crie a sua. O professor aprova o acesso.</p>
+          <Link href={STUDENT_SIGNUP_PATH} className="mt-3 block">
+            <Button variant="ghost" block><UserPlus className="size-4" /> Criar conta de aluno</Button>
+          </Link>
+        </Card>
       </Shell>
     )
   }
@@ -196,16 +206,7 @@ function AccountMode({ token, onLeave }: { token: string | null; onLeave: (notic
   }
 
   if (!account.data) {
-    return (
-      <Shell>
-        <Brand />
-        <EmptyState title="Conta ainda não ligada">
-          {claimError ??
-            'Esta conta ainda não tem acesso. Se você é aluno, abra neste celular o link que o professor enviou. Se é professor, abra o convite que recebeu.'}
-        </EmptyState>
-        <Button variant="ghost" block className="mt-4" onPress={() => void signOut()}><LogOut className="size-4" /> Sair</Button>
-      </Shell>
-    )
+    return <PendingAccount claimError={claimError} onSignOut={() => void signOut()} />
   }
 
   if (!consented) {
@@ -248,6 +249,43 @@ function AccountMode({ token, onLeave }: { token: string | null; onLeave: (notic
           <Button variant="ghost" block className="mt-8" onPress={() => void signOut()}><LogOut className="size-4" /> Sair da conta</Button>
         }
       />
+    </Shell>
+  )
+}
+
+/** Conta sem aluno ligado: mostra o pedido ao professor (aguardando/recusado) ou como pedir acesso. */
+function PendingAccount({ claimError, onSignOut }: { claimError: string | null; onSignOut: () => void }) {
+  const queryClient = useQueryClient()
+  const request = useQuery({ queryKey: keys.mySignupRequest, queryFn: () => getMySignupRequest(db()), networkMode: 'online', refetchInterval: 60_000 })
+  // Aprovado: a conta já está ligada; recarrega para seguir ao aceite LGPD.
+  useEffect(() => {
+    if (request.data?.status === 'approved') void queryClient.invalidateQueries({ queryKey: keys.myStudentAccount })
+  }, [request.data?.status, queryClient])
+  if (request.isPending) return <Shell><Loading /></Shell>
+  const r = request.data
+  return (
+    <Shell>
+      <Brand />
+      {claimError ? <Card className="mb-4 border-warning p-3 text-sm text-text">{claimError}</Card> : null}
+      {r?.status === 'pending' ? (
+        <EmptyState title="Aguardando o professor">
+          {`Seu pedido para ${r.gym_name} foi enviado em ${formatDateBR(r.created_at.slice(0, 10))}. Assim que o professor aprovar, você acessa suas presenças aqui.`}
+        </EmptyState>
+      ) : r?.status === 'rejected' ? (
+        <EmptyState title="Pedido não aprovado">
+          {`O professor não aprovou seu pedido para ${r.gym_name}. Confira se escolheu o professor e a academia certos, ou fale com ele.`}
+        </EmptyState>
+      ) : (
+        <EmptyState title="Conta sem acesso ainda">
+          Peça acesso escolhendo seu professor e a academia, ou abra neste celular o link que o professor enviou.
+        </EmptyState>
+      )}
+      <Link href={STUDENT_SIGNUP_PATH} className="mt-4 block">
+        <Button variant={r?.status === 'pending' ? 'ghost' : 'gold'} block>
+          {r ? 'Trocar professor ou academia' : 'Pedir acesso ao professor'}
+        </Button>
+      </Link>
+      <Button variant="plain" block className="mt-2" onPress={onSignOut}><LogOut className="size-4" /> Sair</Button>
     </Shell>
   )
 }

@@ -32,5 +32,8 @@ export const keys = {
   sharedPlan: (token: string) => ['shared-plan', token] as const,
   planTemplate: ['plan-template'] as const,
   instructorInvites: ['instructor-invites'] as const,
+  signupDirectory: ['signup-directory'] as const,
+  mySignupRequest: ['student-portal', 'me', 'request'] as const,
+  studentRequests: ['student-requests'] as const,
   inviteInfo: (token: string) => ['invite-info', token] as const,
 }

@@ -73,6 +73,7 @@ As migrations em `supabase/migrations` já estão aplicadas no projeto remoto, c
 | `kids_rank_age` | `ranks.min_age`: graduação infantil por idade que o aluno completa no ano (11 Branco, 12 Amarelo, 13 Laranja, 14 Verde) |
 | `lesson_plan_reminders` | lembrete do plano de aula por push: `lesson_plan_reminders` (um horário por professor, padrão 13:30) e `claim_lesson_plan_reminders()`; o job do cron passa a acordar a Edge Function também para ele |
 | `student_portal` | área do aluno: `student_access` (link secreto por aluno), `rotate_student_access()` e `student_portal(token)`, chamável sem login |
+| `student_signup_requests` | cadastro do aluno sem link: `signup_directory()` (sem login), pedido criado no cadastro (`handle_new_user` lê `student_gym_id`) ou por `request_student_access`, e `list_student_requests`/`approve_student_request`/`reject_student_request` para o professor |
 | `instructor_invites` | convite de professor: conta nova começa sem acesso (`profiles.role` padrão `student`); `create_instructor_invite`, `instructor_invite_info(token)` (sem login) e `accept_instructor_invite(token)` |
 | `student_accounts` | link com validade (`student_access.expires_at`, padrão 24 h), conta do aluno (`claim_student_account`, `my_student_account`, `my_student_portal`) e aceite LGPD do aluno (`students.account_consent_at`, `accept_image_consent`) |
 | `attendance_credits` | `attendance.credits`: quanto a presença vale (aulão = 2), somado em `student_progress`; `register_walk_ins()` registra avulsa com valor |
@@ -260,6 +261,18 @@ Pelo link, o aluno pode **criar a conta** (nome, e-mail, senha). A conta é liga
   não pode ser ligada a um aluno.
 - Para o aluno criar conta, "Allow new users to sign up" precisa estar ligado no Supabase. Se a confirmação de
   e-mail estiver ligada, o aluno confirma no mesmo celular enquanto o link ainda vale; ao abrir, a conta é ligada.
+
+### Cadastro do aluno sem link
+
+Em `/cadastro-aluno` (link "É aluno? Criar conta de aluno" no login) o aluno escolhe o **professor**, a **academia**
+em que treina e cria a conta (nome, WhatsApp opcional, e-mail e senha). A conta fica **aguardando**.
+
+- O professor vê os pedidos em **Alunos** (aviso no topo) ou **Mais › Pedidos de acesso de alunos** e, para cada um,
+  diz **qual aluno da lista é esse login** (nomes parecidos primeiro), **cadastra como aluno novo** ou **recusa**.
+  Qualquer professor que dá aula na academia escolhida pode decidir.
+- Aprovado, no primeiro acesso o aluno passa pelo aceite LGPD, como no fluxo do link.
+- Enquanto espera, o aluno vê "Aguardando o professor"; recusado, pode escolher outro professor ou academia.
+- O pedido é gravado já no cadastro (metadado do signUp), então funciona mesmo confirmando o e-mail em outro navegador.
 
 ## Convite de professor
 
