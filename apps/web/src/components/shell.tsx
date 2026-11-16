@@ -82,18 +82,21 @@ export function Page({ title, kicker, back, actions, children }: PageProps) {
   return (
     <div className="mx-auto max-w-xl px-4 pt-[calc(env(safe-area-inset-top)+1rem)] pb-28">
       <header className="mb-5 flex items-end justify-between gap-3">
-        <div className="min-w-0">
+        <div className="flex min-w-0 items-end gap-1">
           {back ? (
             <button
               type="button"
+              aria-label="Voltar"
               onClick={() => (typeof back === 'string' ? router.push(back) : router.back())}
-              className="-ml-1.5 mb-1 flex h-8 items-center gap-0.5 pr-2 text-xs font-bold uppercase tracking-[0.1em] text-dim"
+              className="-mb-1.5 -ml-2.5 flex size-10 shrink-0 items-center justify-center rounded-full text-text transition-colors active:bg-surface-2"
             >
-              <ChevronLeft className="size-4" /> Voltar
+              <ChevronLeft className="size-7" strokeWidth={2.2} />
             </button>
           ) : null}
-          {kicker ? <Kicker className="mb-1.5">{kicker}</Kicker> : null}
-          <Title className="truncate">{title}</Title>
+          <div className="min-w-0">
+            {kicker ? <Kicker className="mb-1.5">{kicker}</Kicker> : null}
+            <Title className="truncate">{title}</Title>
+          </div>
         </div>
         <div className="flex shrink-0 items-center gap-2">
           {actions}
