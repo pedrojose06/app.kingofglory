@@ -6,11 +6,27 @@ import type { ReactNode } from 'react'
 import { Providers } from '@/lib/providers'
 import { Toaster } from '@/components/toaster'
 
+// [largura CSS, altura CSS, pixel ratio] dos iPhones/iPads suportados. Imagens geradas em public/splash/.
+const SPLASH_SCREENS: [number, number, number][] = [
+  [320, 568, 2], [375, 667, 2], [414, 736, 3], [375, 812, 3], [414, 896, 2], [414, 896, 3], [360, 780, 3],
+  [390, 844, 3], [428, 926, 3], [393, 852, 3], [430, 932, 3], [402, 874, 3], [440, 956, 3],
+  [768, 1024, 2], [810, 1080, 2], [834, 1112, 2], [820, 1180, 2], [834, 1194, 2], [744, 1133, 2], [1024, 1366, 2],
+]
+
 export const metadata: Metadata = {
   title: 'King of Glory — Presença',
   description: 'Chamada, plano de aula e fotos do treino da equipe King of Glory.',
   applicationName: 'KOG Presença',
-  appleWebApp: { capable: true, title: 'KOG Presença', statusBarStyle: 'black-translucent' },
+  appleWebApp: {
+    capable: true,
+    title: 'KOG Presença',
+    statusBarStyle: 'black-translucent',
+    // iOS não gera splash a partir do manifest: precisa de uma imagem por tamanho de tela.
+    startupImage: SPLASH_SCREENS.map(([w, h, dpr]) => ({
+      url: `/splash/splash-${w * dpr}x${h * dpr}.png`,
+      media: `(device-width: ${w}px) and (device-height: ${h}px) and (-webkit-device-pixel-ratio: ${dpr}) and (orientation: portrait)`,
+    })),
+  },
   icons: { icon: '/icons/icon-192.png', apple: '/icons/apple-touch-icon.png' },
   robots: { index: false, follow: false },
 }
