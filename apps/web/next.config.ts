@@ -7,7 +7,7 @@ import type { NextConfig } from 'next'
 const ROUTES = [
   '/', '/login-professor', '/aula', '/pendencias', '/avulsa', '/alunos', '/aluno', '/graduacao', '/historico',
   '/mais', '/academias', '/academia', '/graus', '/importar', '/sync', '/lembretes', '/modelo-plano',
-  '/minhas-presencas', '/plano', '/relatorios', '/professores', '/convite', '/solicitacoes', '/cadastro-aluno',
+  '/minhas-presencas', '/plano', '/relatorios', '/professores', '/convite', '/cadastro-aluno',
 ]
 const revision = process.env.VERCEL_GIT_COMMIT_SHA ?? randomUUID()
 

@@ -8,6 +8,7 @@ import { ChevronRight, TrendingDown, TrendingUp, UserX } from 'lucide-react'
 import Link from 'next/link'
 import { useMemo, useState } from 'react'
 import { ClassCard, Section } from '@/components/common'
+import { StudentRequestsSection } from '@/components/student-requests'
 import { Loading, Page } from '@/components/shell'
 import { useUserId } from '@/lib/auth'
 import {
@@ -25,7 +26,8 @@ export default function PendingPage() {
   const gymName = (id: string) => gyms.data?.find((g) => g.id === id)?.name ?? 'Academia'
 
   return (
-    <Page title="Pendências" kicker="Chamadas, faltas e padrões">
+    <Page title="Pendências" kicker="Chamadas, alunos, faltas e padrões">
+      <div className="[&>section]:mt-0 [&>section]:mb-6"><StudentRequestsSection /></div>
       {pending.isPending ? (
         <Loading />
       ) : list.length === 0 ? (

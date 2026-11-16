@@ -39,6 +39,8 @@ export default function StudentSignupPage() {
   const [phone, setPhone] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [password2, setPassword2] = useState('')
+  const [existing, setExisting] = useState(false)
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState<{ text: string; error: boolean } | null>(null)
 
@@ -56,8 +58,10 @@ export default function StudentSignupPage() {
   async function submit(e: FormEvent) {
     e.preventDefault()
     if (!gymId) return setMessage({ text: 'Escolha a academia.', error: true })
+    if (!session && password !== password2) return setMessage({ text: 'As senhas não são iguais.', error: true })
     setBusy(true)
     setMessage(null)
+    setExisting(false)
     try {
       if (session) {
         await requestStudentAccess(db(), { gymId, name, phone })
@@ -71,11 +75,17 @@ export default function StudentSignupPage() {
         options: { data: studentSignupMetadata({ name, gymId, phone }), emailRedirectTo: `${window.location.origin}${STUDENT_PORTAL_PATH}` },
       })
       if (error) throw error
+      // E-mail já cadastrado: o Supabase responde "ok" sem criar nada nem mandar e-mail (identities vazio).
+      if (data.user && (data.user.identities?.length ?? 0) === 0) {
+        setExisting(true)
+        return
+      }
       if (data.session) router.replace(STUDENT_PORTAL_PATH)
-      else setMessage({ text: 'Conta criada! Confirme pelo link que enviamos ao seu e-mail. Depois é só aguardar o professor aprovar.', error: false })
+      else setMessage({ text: `Conta criada! Confirme pelo link que enviamos para ${email}. Depois é só aguardar o professor aprovar.`, error: false })
     } catch (error) {
       const text = errorMessage(error)
-      setMessage({ text: /already registered/i.test(text) ? 'Este e-mail já tem conta. Entre com ele na área do aluno.' : text, error: true })
+      if (/already registered/i.test(text)) setExisting(true)
+      else setMessage({ text, error: true })
     } finally {
       setBusy(false)
     }
@@ -159,13 +169,24 @@ export default function StudentSignupPage() {
               </Field>
               {!session ? (
                 <>
-                  <Field label="E-mail">
-                    <Input type="email" inputMode="email" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" required />
+                  <Field label="E-mail (será seu login)" hint="É com este e-mail e a senha abaixo que você vai entrar no app.">
+                    <Input type="email" inputMode="email" value={email} onChange={(e) => { setEmail(e.target.value); setExisting(false) }} autoComplete="email" required />
                   </Field>
                   <Field label="Senha" hint="Mínimo de 8 caracteres.">
                     <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="new-password" minLength={8} required />
                   </Field>
+                  <Field label="Confirme a senha">
+                    <Input type="password" value={password2} onChange={(e) => setPassword2(e.target.value)} autoComplete="new-password" minLength={8} required />
+                  </Field>
+                  {password2 && password !== password2 ? <p className="text-sm text-danger">As senhas não são iguais.</p> : null}
                 </>
+              ) : null}
+              {existing ? (
+                <Card className="border-warning p-3 text-sm text-text">
+                  O e-mail {email} já tem conta no app. Entre com ele (e a senha dele) e, se ainda não tiver acesso, toque em
+                  “Pedir acesso ao professor”.
+                  <Link href={STUDENT_PORTAL_PATH} className="mt-2 block font-bold text-accent underline underline-offset-2">Entrar com {email}</Link>
+                </Card>
               ) : null}
               {message ? <p className={cn('text-sm', message.error ? 'text-danger' : 'text-success')}>{message.text}</p> : null}
               <Button type="submit" size="lg" block loading={busy}>{session ? 'Enviar pedido' : 'Criar conta'}</Button>

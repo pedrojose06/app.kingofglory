@@ -2,21 +2,19 @@
 
 import { normalizeName, ranksOfTrack, trackOf } from '@kog/core'
 import { Button, Card, Chip, EmptyState, Input, RankBand } from '@kog/ui'
-import { Award, ChevronRight, Plus, Search, UserCheck } from 'lucide-react'
+import { Award, ChevronRight, Plus, Search } from 'lucide-react'
 import Link from 'next/link'
 import { useMemo, useState } from 'react'
 import { GymChips } from '@/components/common'
 import { Loading, Page } from '@/components/shell'
 import { StudentForm } from '@/components/student-form'
-import { useGyms, useProgress, useRanks, useStudentRequests, useStudents } from '@/lib/queries'
+import { useGyms, useProgress, useRanks, useStudents } from '@/lib/queries'
 
 export default function StudentsPage() {
   const gyms = useGyms()
   const students = useStudents()
   const ranks = useRanks()
   const progress = useProgress()
-  const requests = useStudentRequests()
-  const pendingRequests = requests.data?.length ?? 0
   const [gymId, setGymId] = useState<string | null>(null)
   const [search, setSearch] = useState('')
   const [showInactive, setShowInactive] = useState(false)
@@ -42,17 +40,6 @@ export default function StudentsPage() {
       kicker={`${visible.length} ${showInactive ? 'inativos' : 'ativos'}`}
       actions={!noGyms ? <Button size="sm" onPress={() => setFormOpen(true)}><Plus className="size-4" /> Novo</Button> : null}
     >
-      {pendingRequests > 0 ? (
-        <Link href="/solicitacoes" className="mb-2 block">
-          <Card className="flex items-center gap-3 border-accent p-3.5 active:bg-tint">
-            <UserCheck className="size-5 text-accent" />
-            <span className="flex-1 text-sm font-bold text-text">
-              {pendingRequests === 1 ? '1 pedido de acesso de aluno' : `${pendingRequests} pedidos de acesso de alunos`}
-            </span>
-            <ChevronRight className="size-4 text-faint" />
-          </Card>
-        </Link>
-      ) : null}
       <Link href="/graduacao" className="mb-4 block">
         <Card className="flex items-center gap-3 p-3.5 active:bg-tint">
           <Award className="size-5 text-accent" />

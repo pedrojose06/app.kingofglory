@@ -3,7 +3,7 @@
 import { exportAll } from '@kog/core'
 import { Button, Card, Chip } from '@kog/ui'
 import { useQueryClient } from '@tanstack/react-query'
-import { Award, BarChart3, UserCheck, UserPlus, BellRing, Building2, ChevronRight, Download, FilePen, FileUp, History, RefreshCw } from 'lucide-react'
+import { Award, BarChart3, UserPlus, BellRing, Building2, ChevronRight, Download, FilePen, FileUp, History, RefreshCw } from 'lucide-react'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { Section } from '@/components/common'
@@ -21,7 +21,6 @@ const LINKS = [
   { href: '/modelo-plano', label: 'Modelo do plano de aula', icon: FilePen },
   { href: '/lembretes', label: 'Lembretes de chamada e plano de aula', icon: BellRing },
   { href: '/relatorios', label: 'Relatórios de frequência', icon: BarChart3 },
-  { href: '/solicitacoes', label: 'Pedidos de acesso de alunos', icon: UserCheck },
   { href: '/professores', label: 'Convidar professor', icon: UserPlus },
   { href: '/historico', label: 'Histórico de aulas', icon: History },
   { href: '/importar', label: 'Importar presenças (InClass)', icon: FileUp },

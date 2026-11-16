@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import type { ReactNode } from 'react'
 import { useOnline, useOutbox, useOutboxSyncing } from '@/lib/outbox'
-import { usePendingClasses } from '@/lib/queries'
+import { usePendingClasses, useStudentRequests } from '@/lib/queries'
 
 const TABS = [
   { href: '/', label: 'Hoje', icon: CalendarCheck, match: ['/', '/aula', '/avulsa'] },
@@ -17,7 +17,8 @@ const TABS = [
 
 export function BottomNav() {
   const pathname = usePathname()
-  const pending = usePendingClasses().data?.length ?? 0
+  // Chamadas acumuladas + pedidos de acesso de alunos.
+  const pending = (usePendingClasses().data?.length ?? 0) + (useStudentRequests().data?.length ?? 0)
   return (
     <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-bg/95 pb-[env(safe-area-inset-bottom)] backdrop-blur">
       <ul className="mx-auto flex max-w-xl">

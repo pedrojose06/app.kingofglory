@@ -1,62 +1,60 @@
 'use client'
 
 import { approveStudentRequest, formatDateBR, keys, rejectStudentRequest, type StudentRequest } from '@kog/core'
-import { Button, Card, EmptyState, Input, Sheet, cn } from '@kog/ui'
+import { Button, Card, Input, Sheet, cn } from '@kog/ui'
 import { Check, Mail, Phone, Search, UserPlus } from 'lucide-react'
 import { useMemo, useState } from 'react'
-import { Loading, Page } from '@/components/shell'
+import { Section } from '@/components/common'
+import { Loading } from '@/components/shell'
 import { useGyms, useSave, useStudentRequests, useStudents } from '@/lib/queries'
 import { db } from '@/lib/supabase'
 import { toast } from '@/lib/toast'
 
-const norm = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim()
+const norm = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim()
 
-export default function StudentRequestsPage() {
+/**
+ * Pedidos de acesso de alunos que criaram conta sem link (escolheram o professor e a academia).
+ * Fica em Pendências; some quando não há pedido.
+ */
+export function StudentRequestsSection() {
   const requests = useStudentRequests()
   const gyms = useGyms()
   const [approving, setApproving] = useState<StudentRequest | null>(null)
   const reject = useSave((id: string) => rejectStudentRequest(db(), id), [keys.studentRequests], () => toast('Pedido recusado'))
   const gymName = (id: string) => gyms.data?.find((g) => g.id === id)?.name ?? 'Academia'
   const list = requests.data ?? []
+  if (list.length === 0) return null
 
   return (
-    <Page title="Pedidos de acesso" kicker="Alunos que criaram conta" back="/alunos">
-      <p className="mb-4 text-sm text-dim">
-        O aluno escolheu você e a academia ao criar a conta. Diga qual aluno da sua lista é esse login, cadastre como aluno novo ou
-        recuse. Depois de aprovado, ele aceita o uso de imagem (LGPD) e passa a ver as presenças.
+    <Section title={list.length === 1 ? '1 pedido de acesso de aluno' : `${list.length} pedidos de acesso de alunos`}>
+      <div className="space-y-2">
+        {list.map((r) => (
+          <Card key={r.id} className="p-3">
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0">
+                <p className="truncate font-bold text-text">{r.name}</p>
+                <p className="text-xs font-bold uppercase tracking-[0.08em] text-accent">{gymName(r.gym_id)}</p>
+              </div>
+              <span className="shrink-0 text-xs text-dim">{formatDateBR(r.created_at.slice(0, 10))}</span>
+            </div>
+            <p className="mt-1.5 flex items-center gap-1.5 truncate text-sm text-soft"><Mail className="size-3.5 shrink-0" /> {r.email}</p>
+            {r.phone ? <p className="mt-0.5 flex items-center gap-1.5 text-sm text-soft"><Phone className="size-3.5 shrink-0" /> {r.phone}</p> : null}
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              <Button variant="ghost" className="text-danger" loading={reject.isPending && reject.variables === r.id}
+                onPress={() => window.confirm(`Recusar o pedido de ${r.name}?`) && reject.mutate(r.id)}>
+                Recusar
+              </Button>
+              <Button onPress={() => setApproving(r)}><Check className="size-4" /> Aprovar</Button>
+            </div>
+          </Card>
+        ))}
+      </div>
+      <p className="mt-2 text-xs text-dim">
+        O aluno escolheu você e a academia ao criar a conta. Diga qual aluno da sua lista é esse login, cadastre como novo ou recuse.
+        Aprovado, ele aceita o uso de imagem (LGPD) e passa a ver as presenças.
       </p>
-      {requests.isPending ? (
-        <Loading />
-      ) : requests.isError ? (
-        <EmptyState title="Sem conexão">Os pedidos precisam de internet.</EmptyState>
-      ) : list.length === 0 ? (
-        <EmptyState title="Nenhum pedido pendente" />
-      ) : (
-        <div className="space-y-2">
-          {list.map((r) => (
-            <Card key={r.id} className="p-3">
-              <div className="flex items-start justify-between gap-2">
-                <div className="min-w-0">
-                  <p className="truncate font-bold text-text">{r.name}</p>
-                  <p className="text-xs font-bold uppercase tracking-[0.08em] text-accent">{gymName(r.gym_id)}</p>
-                </div>
-                <span className="shrink-0 text-xs text-dim">{formatDateBR(r.created_at.slice(0, 10))}</span>
-              </div>
-              <p className="mt-1.5 flex items-center gap-1.5 truncate text-sm text-soft"><Mail className="size-3.5 shrink-0" /> {r.email}</p>
-              {r.phone ? <p className="mt-0.5 flex items-center gap-1.5 text-sm text-soft"><Phone className="size-3.5 shrink-0" /> {r.phone}</p> : null}
-              <div className="mt-3 grid grid-cols-2 gap-2">
-                <Button variant="ghost" className="text-danger" loading={reject.isPending && reject.variables === r.id}
-                  onPress={() => window.confirm(`Recusar o pedido de ${r.name}?`) && reject.mutate(r.id)}>
-                  Recusar
-                </Button>
-                <Button onPress={() => setApproving(r)}><Check className="size-4" /> Aprovar</Button>
-              </div>
-            </Card>
-          ))}
-        </div>
-      )}
       {approving ? <ApproveSheet request={approving} gymName={gymName(approving.gym_id)} onClose={() => setApproving(null)} /> : null}
-    </Page>
+    </Section>
   )
 }
 

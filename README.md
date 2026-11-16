@@ -267,12 +267,14 @@ Pelo link, o aluno pode **criar a conta** (nome, e-mail, senha). A conta é liga
 Em `/cadastro-aluno` (link "É aluno? Criar conta de aluno" no login) o aluno escolhe o **professor**, a **academia**
 em que treina e cria a conta (nome, WhatsApp opcional, e-mail e senha). A conta fica **aguardando**.
 
-- O professor vê os pedidos em **Alunos** (aviso no topo) ou **Mais › Pedidos de acesso de alunos** e, para cada um,
+- O professor vê os pedidos em **Pendências** (somam no número da aba) e, para cada um,
   diz **qual aluno da lista é esse login** (nomes parecidos primeiro), **cadastra como aluno novo** ou **recusa**.
   Qualquer professor que dá aula na academia escolhida pode decidir.
 - Aprovado, no primeiro acesso o aluno passa pelo aceite LGPD, como no fluxo do link.
 - Enquanto espera, o aluno vê "Aguardando o professor"; recusado, pode escolher outro professor ou academia.
 - O pedido é gravado já no cadastro (metadado do signUp), então funciona mesmo confirmando o e-mail em outro navegador.
+- O cadastro deixa claro que o e-mail é o login e pede a senha duas vezes. E-mail que já tem conta: o Supabase não
+  avisa nem manda e-mail; o app detecta e pede para entrar com ele e usar "Pedir acesso ao professor".
 
 ## Convite de professor
 
