@@ -68,10 +68,13 @@ export default function WalkInPage() {
 
       {/* div e não Field: um <label> repassaria o toque ao primeiro chip. */}
       <div className="mt-4" role="group" aria-labelledby="walkin-credits">
-        <p id="walkin-credits" className="mb-1.5 text-xs font-bold uppercase tracking-[0.12em] text-dim">Vale</p>
-        <div className="flex gap-2">
+        <p id="walkin-credits" className="mb-1.5 text-xs font-bold uppercase tracking-[0.12em] text-dim">Vale quantas presenças</p>
+        {/* Grade de 3 colunas: os botões dividem a largura e nunca passam da tela. */}
+        <div className="grid grid-cols-3 gap-2">
           {[1, 2, 3].map((n) => (
-            <Chip key={n} active={credits === n} onPress={() => setCredits(n)}>{n === 1 ? '1 presença' : `${n} presenças`}</Chip>
+            <Chip key={n} active={credits === n} onPress={() => setCredits(n)} className="w-full">
+              <span aria-label={n === 1 ? '1 presença' : `${n} presenças`}>{n}×</span>
+            </Chip>
           ))}
         </div>
         <p className="mt-1 text-xs text-dim">Ex.: aulão vale 2 presenças para a graduação. Registrar de novo o mesmo aluno, dia e local corrige o valor.</p>
