@@ -107,6 +107,12 @@ function PortalView({ data, updatedAt, offline }: { data: StudentPortal; updated
   const rankById = new Map(data.ranks.map((r) => [r.id, r]))
   const rows = showAll ? data.attendance : data.attendance.slice(0, 15)
   const since = status.current ? 'desde a última graduação' : 'desde o início'
+  // Primeira graduação com tempo para pular o primeiro grau: o alvo mostrado ao aluno é o segundo grau.
+  const target = status.skipTo ?? status.next
+  const targetNeeded = status.skipTo
+    ? (status.skipTo.required_classes == null ? null : Math.ceil((status.skipTo.required_classes * (status.skipTo.min_percent ?? 100)) / 100))
+    : status.needed
+  const targetMonths = status.skipTo ? status.skipTo.min_months : status.monthsNeeded
 
   return (
     <>
@@ -138,34 +144,43 @@ function PortalView({ data, updatedAt, offline }: { data: StudentPortal; updated
             {status.current ? <RankBand colors={status.current.colors} className="h-3.5 w-20" /> : null}
           </div>
 
-          {status.next ? (
+          {status.next && target ? (
             <div className="mt-4 border-t border-line pt-4">
               <div className="mb-2 flex items-center gap-2">
-                <p className="min-w-0 flex-1 text-sm font-bold text-text">Próximo: {status.next.name}</p>
-                <RankBand colors={status.next.colors} />
+                <p className="min-w-0 flex-1 text-sm font-bold text-text">Próximo: {target.name}</p>
+                <RankBand colors={target.colors} />
               </div>
+              {status.skipTo ? (
+                <p className="mb-2 text-sm font-medium text-accent">
+                  {status.skipReady
+                    ? `Você está perto de cumprir os critérios para ir direto para ${status.skipTo.name}.`
+                    : `Você pode ir direto para ${status.skipTo.name} se completar os critérios abaixo.`}
+                </p>
+              ) : null}
               {status.byAge ? (
                 <p className="text-sm text-soft">
                   {status.ageNeeded != null ? `A partir de ${status.ageNeeded} anos (idade que você completa no ano).` : 'Graduação infantil por idade.'}
                 </p>
               ) : (
                 <>
-                  {status.needed != null ? (
+                  {targetNeeded != null ? (
                     <>
-                      <ProgressBar value={Math.min(status.count, status.needed)} max={status.needed || 1} />
+                      <ProgressBar value={Math.min(status.count, targetNeeded)} max={targetNeeded || 1} />
                       <p className="mt-1.5 text-sm text-soft">
-                        <strong className="text-text">{status.count}</strong> de {status.needed} treinos <span className="text-dim">{since}</span>
+                        <strong className="text-text">{status.count}</strong> de {targetNeeded} treinos <span className="text-dim">{since}</span>
+                        {status.skipTo && status.count >= targetNeeded ? ' ✓' : ''}
                       </p>
                     </>
                   ) : (
                     <p className="text-sm text-soft"><strong className="text-text">{status.count}</strong> treinos {since}</p>
                   )}
-                  {status.monthsNeeded != null ? (
+                  {targetMonths != null ? (
                     <p className="mt-1 text-sm text-soft">
-                      <strong className="text-text">{status.monthsElapsed}</strong> de {status.monthsNeeded} meses{status.on ? ` em ${formatDateBR(status.on)}` : ''}
+                      <strong className="text-text">{status.monthsElapsed}</strong> de {targetMonths} meses{status.on ? ` em ${formatDateBR(status.on)}` : ''}
+                      {status.skipTo && status.monthsElapsed >= targetMonths ? ' ✓' : ''}
                     </p>
                   ) : null}
-                  {status.configured && !status.eligible && missingLabel(status) ? (
+                  {!status.skipTo && status.configured && !status.eligible && missingLabel(status) ? (
                     <p className="mt-1 text-sm font-medium text-text first-letter:uppercase">{missingLabel(status)}</p>
                   ) : null}
                 </>
