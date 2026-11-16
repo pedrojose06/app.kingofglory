@@ -36,12 +36,32 @@ export interface StudentPortal {
   /** Graus da trilha do aluno. */
   ranks: Rank[]
   attendance: PortalAttendance[]
+  /** Só pelo link: validade do link e se o aluno já criou conta. */
+  access?: { expires_at: string; has_account: boolean }
 }
+
+/** Conta logada de aluno: aluno ligado e aceites. */
+export interface MyStudentAccount {
+  student_id: string
+  name: string
+  gym_name: string
+  account_consent_at: string | null
+  image_consent_at: string | null
+}
+
+/** A conta só acessa a área do aluno com o aceite do próprio aluno e o consentimento de imagem em vigor. */
+export const hasAccountConsent = (a: Pick<MyStudentAccount, 'account_consent_at' | 'image_consent_at'>) =>
+  !!a.account_consent_at && !!a.image_consent_at
+
+/** Validades oferecidas ao gerar o link do aluno (horas). 24 h é o padrão. */
+export const STUDENT_LINK_HOURS = [24, 72, 168] as const
+export const DEFAULT_STUDENT_LINK_HOURS = 24
 
 export interface StudentAccess {
   token: string
   created_at: string
   last_seen_at: string | null
+  expires_at: string
 }
 
 /** Dados da área do aluno; null se o link não existe ou foi revogado. Funciona sem login. */
@@ -52,13 +72,39 @@ export async function getStudentPortal(db: Db, token: string): Promise<StudentPo
 
 export async function getStudentAccess(db: Db, studentId: string): Promise<StudentAccess | null> {
   return unwrap(
-    await db.from('student_access').select('token, created_at, last_seen_at').eq('student_id', studentId).maybeSingle(),
+    await db.from('student_access').select('token, created_at, last_seen_at, expires_at').eq('student_id', studentId).maybeSingle(),
   )
 }
 
-/** Gera o link do aluno ou troca o atual (o antigo para de funcionar). Devolve o token novo. */
-export async function rotateStudentAccess(db: Db, studentId: string): Promise<string> {
-  return unwrap(await db.rpc('rotate_student_access', { p_student_id: studentId }))
+/** Gera o link do aluno ou troca o atual (o antigo para de funcionar), válido por `hours`. Devolve o token novo. */
+export async function rotateStudentAccess(db: Db, studentId: string, hours: number = DEFAULT_STUDENT_LINK_HOURS): Promise<string> {
+  return unwrap(await db.rpc('rotate_student_access', { p_student_id: studentId, p_hours: hours }))
+}
+
+/** Liga a conta logada ao aluno do link (o link precisa estar válido). */
+export async function claimStudentAccount(db: Db, token: string): Promise<void> {
+  unwrap(await db.rpc('claim_student_account', { p_token: token }))
+}
+
+/** Aluno ligado à conta logada; null se a conta não é de aluno. */
+export async function getMyStudentAccount(db: Db): Promise<MyStudentAccount | null> {
+  const data = unwrap(await db.rpc('my_student_account'))
+  return (data ?? null) as unknown as MyStudentAccount | null
+}
+
+export async function acceptImageConsent(db: Db): Promise<void> {
+  unwrap(await db.rpc('accept_image_consent'))
+}
+
+/** Área do aluno pela conta (sem link). null sem aceite. */
+export async function getMyStudentPortal(db: Db): Promise<StudentPortal | null> {
+  const data = unwrap(await db.rpc('my_student_portal'))
+  return (data ?? null) as unknown as StudentPortal | null
+}
+
+/** Professor desliga a conta do aluno (ele volta a depender do link até criar/ligar uma conta de novo). */
+export async function unlinkStudentAccount(db: Db, studentId: string): Promise<void> {
+  unwrap(await db.from('students').update({ profile_id: null, account_consent_at: null }).eq('id', studentId))
 }
 
 export async function revokeStudentAccess(db: Db, studentId: string): Promise<void> {

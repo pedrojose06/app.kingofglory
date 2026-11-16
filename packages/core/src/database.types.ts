@@ -485,6 +485,7 @@ export type Database = {
           created_by: string
           created_at: string
           last_seen_at: string | null
+          expires_at: string
         }
         Insert: {
           student_id: string
@@ -492,6 +493,7 @@ export type Database = {
           created_by?: string
           created_at?: string
           last_seen_at?: string | null
+          expires_at?: string
         }
         Update: {
           student_id?: string
@@ -499,6 +501,7 @@ export type Database = {
           created_by?: string
           created_at?: string
           last_seen_at?: string | null
+          expires_at?: string
         }
         Relationships: []
       }
@@ -512,6 +515,7 @@ export type Database = {
           active: boolean
           profile_id: string | null
           image_consent_at: string | null
+          account_consent_at: string | null
           notes: string | null
           created_at: string
           opening_present: number
@@ -531,6 +535,7 @@ export type Database = {
           active?: boolean
           profile_id?: string | null
           image_consent_at?: string | null
+          account_consent_at?: string | null
           notes?: string | null
           created_at?: string
           opening_present?: number
@@ -550,6 +555,7 @@ export type Database = {
           active?: boolean
           profile_id?: string | null
           image_consent_at?: string | null
+          account_consent_at?: string | null
           notes?: string | null
           created_at?: string
           opening_present?: number
@@ -632,7 +638,11 @@ export type Database = {
         }
         Returns: number
       }
-      rotate_student_access: { Args: { p_student_id: string }; Returns: string }
+      rotate_student_access: { Args: { p_student_id: string; p_hours?: number }; Returns: string }
+      claim_student_account: { Args: { p_token: string }; Returns: undefined }
+      my_student_account: { Args: never; Returns: Json }
+      accept_image_consent: { Args: never; Returns: undefined }
+      my_student_portal: { Args: never; Returns: Json }
       student_portal: { Args: { p_token: string }; Returns: Json }
       rotate_lesson_plan_share: { Args: { p_class_id: string }; Returns: string }
       shared_lesson_plan: { Args: { p_token: string }; Returns: Json }

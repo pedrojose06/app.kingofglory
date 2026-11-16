@@ -73,6 +73,7 @@ As migrations em `supabase/migrations` já estão aplicadas no projeto remoto, c
 | `kids_rank_age` | `ranks.min_age`: graduação infantil por idade que o aluno completa no ano (11 Branco, 12 Amarelo, 13 Laranja, 14 Verde) |
 | `lesson_plan_reminders` | lembrete do plano de aula por push: `lesson_plan_reminders` (um horário por professor, padrão 13:30) e `claim_lesson_plan_reminders()`; o job do cron passa a acordar a Edge Function também para ele |
 | `student_portal` | área do aluno: `student_access` (link secreto por aluno), `rotate_student_access()` e `student_portal(token)`, chamável sem login |
+| `student_accounts` | link com validade (`student_access.expires_at`, padrão 24 h), conta do aluno (`claim_student_account`, `my_student_account`, `my_student_portal`) e aceite LGPD do aluno (`students.account_consent_at`, `accept_image_consent`) |
 | `attendance_credits` | `attendance.credits`: quanto a presença vale (aulão = 2), somado em `student_progress`; `register_walk_ins()` registra avulsa com valor |
 | `next_graduation` | `gyms.next_graduation_on`: data marcada da próxima graduação; o app conta os meses de cada aluno até ela |
 | `graduation_schedule` | data da próxima graduação da equipe por trilha (adulto e infantil), igual para todas as academias; substitui `gyms.next_graduation_on` |
@@ -238,9 +239,26 @@ frequência, faltas, grau atual e progresso para o próximo, graduações, trein
 Telefone e observações do professor não aparecem.
 
 - O token (122 bits aleatórios) vai no `#`, que não chega ao servidor nem aos logs. Quem tem o link vê os dados.
-- **Gerar novo link** invalida o anterior; **Desativar** apaga o acesso. O card mostra quando o aluno abriu pela última vez.
+- O link **expira**: 24 horas por padrão (dá para escolher 3 ou 7 dias ao gerar). Vencido, o aluno vê "Link expirado".
+- **Gerar novo link** invalida o anterior; **Desativar** apaga o acesso. O card mostra a validade e quando o aluno abriu.
 - O aparelho guarda o link: com o app instalado na Tela de Início, ele abre direto nas presenças do aluno.
   Os dados ficam em cache e abrem offline.
+
+### Conta do aluno
+
+Pelo link, o aluno pode **criar a conta** (nome, e-mail, senha). A conta é ligada a ele pelo próprio link
+(`claim_student_account`), então só dá para criar com um link válido. Depois disso ele entra em
+`/minhas-presencas` com e-mail e senha, sem precisar de link.
+
+- **Aceite LGPD**: no primeiro acesso da conta o aluno precisa autorizar o uso de imagem. Se não aceitar, sai da
+  conta e continua dependendo do link do professor. Sem esse aceite (`students.account_consent_at`) e com o
+  consentimento de imagem em vigor, a conta não lê nada no banco (`is_own_student`, `my_student_portal`).
+- Se o professor desmarcar "Autorizou uso de imagem", a conta fica bloqueada até o aluno aceitar de novo.
+- No card **Área do aluno** o professor vê se o aluno tem conta e pode **Desvincular**.
+- Conta de aluno que entra pelo login do professor é levada para a área do aluno. Conta de professor (com academia)
+  não pode ser ligada a um aluno.
+- Para o aluno criar conta, "Allow new users to sign up" precisa estar ligado no Supabase. Se a confirmação de
+  e-mail estiver ligada, o aluno confirma no mesmo celular enquanto o link ainda vale; ao abrir, a conta é ligada.
 
 ## Importação do InClass
 
@@ -272,10 +290,11 @@ altere apenas `parseAttendanceExport` em `packages/core/src/domain/import.ts`.
    `xxxx.vercel-dns-017.com`); se mostrar, use o que estiver lá. O certificado HTTPS é emitido sozinho
    alguns minutos depois de o DNS propagar.
 6. **Supabase › Authentication › URL Configuration**: Site URL `https://app.kingofglory.com.br` e a mesma URL
-   em Redirect URLs, mais `https://app.kingofglory.com.br/login-professor` (necessário para o link de "esqueci a senha").
-7. **Criar sua conta** no app e depois, em Supabase › Authentication › Sign In / Providers, desligar
-   "Allow new users to sign up". Enquanto estiver ligado, qualquer pessoa com o link consegue criar uma conta
-   de professor (ela não vê seus dados, mas poderia editar os requisitos dos graus).
+   em Redirect URLs, mais `https://app.kingofglory.com.br/login-professor` (necessário para o link de "esqueci a senha")
+   e `https://app.kingofglory.com.br/minhas-presencas` (confirmação de e-mail da conta do aluno).
+7. **Criar sua conta** no app. "Allow new users to sign up" (Supabase › Authentication › Sign In / Providers)
+   precisa ficar ligado para alunos e professores criarem conta. Uma conta nova sem academia não vê dados de
+   ninguém, mas, enquanto não vira aluno, conta como professor e poderia editar os requisitos dos graus.
 8. **Instalar no celular**: abrir `https://app.kingofglory.com.br` e usar "Adicionar à tela de início".
 
 ## Fases seguintes

@@ -281,9 +281,15 @@ export default function StudentPage() {
           <label className="flex items-center justify-between gap-3 px-3 py-2.5">
             <span>
               <span className="block text-text">Autorizou uso de imagem</span>
-              <span className="block text-xs text-dim">{student.image_consent_at ? `Aceite registrado em ${formatDateBR(student.image_consent_at.slice(0, 10))}` : 'Sem aceite registrado (LGPD)'}</span>
+              <span className="block text-xs text-dim">{student.image_consent_at
+                  ? `${student.account_consent_at ? 'Aceito pelo aluno no app' : 'Aceite registrado'} em ${formatDateBR(student.image_consent_at.slice(0, 10))}`
+                  : 'Sem aceite registrado (LGPD)'}</span>
             </span>
-            <input type="checkbox" className="size-5 accent-[var(--kog-gold)]" checked={!!student.image_consent_at} onChange={(e) => setConsent.mutate(e.target.checked)} />
+            <input type="checkbox" className="size-5 accent-[var(--kog-gold)]" checked={!!student.image_consent_at} onChange={(e) => {
+              const next = e.target.checked
+              if (!next && student.profile_id && !window.confirm('Retirar a autorização? A conta do aluno no app fica bloqueada até ele aceitar de novo.')) return
+              setConsent.mutate(next)
+            }} />
           </label>
         </Card>
         <Button variant={student.active ? 'danger' : 'ghost'} block className="mt-3" loading={setActive.isPending} onPress={() => setActive.mutate(!student.active)}>

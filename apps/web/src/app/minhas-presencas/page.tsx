@@ -1,65 +1,253 @@
 'use client'
 
 import {
-  attendanceStats, formatDateBR, monthsBetween, formatDayShort, formatMonth, formatTime, getStudentPortal, graduationStatus, isCounted,
+  acceptImageConsent, attendanceStats, claimStudentAccount, formatDateBR, getMyStudentAccount, getMyStudentPortal, hasAccountConsent,
+  monthsBetween, formatDayShort, formatMonth, formatTime, getStudentPortal, graduationStatus, isCounted,
   keys, missingLabel, trackOf, type StudentPortal,
 } from '@kog/core'
 import { Badge, Button, Card, EmptyState, Kicker, ProgressBar, RankBand, Title } from '@kog/ui'
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { LogOut, UserPlus } from 'lucide-react'
 import Link from 'next/link'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { Section, StatusBadge, studentSince } from '@/components/common'
 import { Loading } from '@/components/shell'
+import { ConsentScreen, StudentAuthForm, formatDateTimeBR } from '@/components/student-account'
+import { useAuth } from '@/lib/auth'
 import { useToday } from '@/lib/queries'
 import { getStoredStudentToken, storeStudentToken } from '@/lib/student-link'
 import { db, isConfigured } from '@/lib/supabase'
+import { errorMessage } from '@/lib/toast'
 
-/** Área do aluno: abre pelo link secreto que o professor envia (/minhas-presencas#token). Não exige login. */
+/**
+ * Área do aluno. Dois jeitos de entrar:
+ * - pelo link que o professor envia (/minhas-presencas#token), que expira (padrão 24 h);
+ * - pela conta do aluno, ligada a ele pelo link e liberada só depois do aceite de uso de imagem (LGPD).
+ */
 export default function StudentPortalPage() {
+  const { session, ready } = useAuth()
   const [token, setToken] = useState<string | null | undefined>(undefined)
+  const [notice, setNotice] = useState<string | null>(null)
 
   useEffect(() => {
     const read = () => {
       const fromHash = window.location.hash.replace(/^#/, '').trim()
-      setToken(fromHash || getStoredStudentToken())
+      // Retorno da confirmação de e-mail traz tokens de login no fragmento (com "="): não é link de aluno.
+      setToken(fromHash && !fromHash.includes('=') ? fromHash : getStoredStudentToken())
     }
     read()
     window.addEventListener('hashchange', read)
     return () => window.removeEventListener('hashchange', read)
   }, [])
 
+  if (!ready || token === undefined) return <Shell><Loading /></Shell>
+  if (session) return <AccountMode token={token} onLeave={setNotice} />
+  return <LinkMode token={token} notice={notice} />
+}
+
+function Shell({ children }: { children: ReactNode }) {
+  return (
+    <main className="mx-auto max-w-xl px-4 pt-[calc(env(safe-area-inset-top)+1.25rem)] pb-[calc(env(safe-area-inset-bottom)+2.5rem)]">
+      {children}
+      <p className="mt-10 text-center text-xs text-faint">
+        <Link href="/login-professor" className="underline underline-offset-2">Sou professor</Link>
+      </p>
+    </main>
+  )
+}
+
+/** Sem login: só pelo link do professor. */
+function LinkMode({ token, notice }: { token: string | null; notice: string | null }) {
+  const [form, setForm] = useState<'signin' | 'signup' | null>(null)
   const portal = useQuery({
     queryKey: keys.studentPortal(token ?? ''),
     queryFn: () => getStudentPortal(db(), token!),
     enabled: !!token && isConfigured,
   })
 
-  // Link válido fica guardado no aparelho; link revogado é esquecido.
+  // Link válido fica guardado no aparelho; link vencido ou revogado é esquecido.
   useEffect(() => {
     if (!token || portal.isFetching) return
     if (portal.data) storeStudentToken(token)
     else if (portal.data === null && getStoredStudentToken() === token) storeStudentToken(null)
   }, [token, portal.data, portal.isFetching])
 
+  const noticeCard = notice ? <Card className="mb-4 border-warning p-3 text-sm text-text">{notice}</Card> : null
+  const valid = !!token && !!portal.data
+
+  if (token && portal.isPending) return <Shell><Loading /></Shell>
+
+  if (!valid) {
+    if (portal.isError && !portal.data) {
+      return (
+        <Shell>
+          <div className="pt-16">
+            <EmptyState title="Não foi possível carregar" action={<Button variant="ghost" onPress={() => void portal.refetch()}>Tentar de novo</Button>}>
+              Confira a conexão com a internet.
+            </EmptyState>
+          </div>
+        </Shell>
+      )
+    }
+    return (
+      <Shell>
+        <Brand />
+        {noticeCard}
+        <EmptyState title="Link expirado ou inválido">
+          O link do professor vale por tempo limitado. Peça um novo link ou entre na sua conta.
+        </EmptyState>
+        <Card className="mt-4 p-4"><StudentAuthForm canSignUp={false} /></Card>
+      </Shell>
+    )
+  }
+
+  const data = portal.data!
+  const access = data.access
   return (
-    <main className="mx-auto max-w-xl px-4 pt-[calc(env(safe-area-inset-top)+1.25rem)] pb-[calc(env(safe-area-inset-bottom)+2.5rem)]">
-      {token === undefined || (token && portal.isPending) ? (
-        <Loading />
-      ) : !token || portal.data === null ? (
-        <InvalidLink />
-      ) : portal.data ? (
-        <PortalView data={portal.data} updatedAt={portal.dataUpdatedAt} offline={portal.isError} />
-      ) : (
+    <Shell>
+      <PortalView
+        data={data}
+        updatedAt={portal.dataUpdatedAt}
+        offline={portal.isError}
+        top={
+          <>
+            {noticeCard}
+            {access ? <p className="mt-2 text-xs text-dim">Link válido até {formatDateTimeBR(access.expires_at)}</p> : null}
+          </>
+        }
+        bottom={
+          <Section title="Sua conta">
+            <Card className="p-4">
+              {form ? (
+                <StudentAuthForm initialMode={form} canSignUp={!access?.has_account} onCancel={() => setForm(null)} />
+              ) : access?.has_account ? (
+                <>
+                  <p className="text-sm text-soft">Você já tem conta. Entre para acompanhar suas presenças sem precisar de link.</p>
+                  <Button block className="mt-3" onPress={() => setForm('signin')}>Entrar</Button>
+                </>
+              ) : (
+                <>
+                  <p className="text-sm text-soft">
+                    Este link expira. Crie sua conta para acompanhar suas presenças quando quiser, sem pedir link ao professor.
+                  </p>
+                  <Button block className="mt-3" onPress={() => setForm('signup')}><UserPlus className="size-4" /> Criar minha conta</Button>
+                  <Button variant="plain" block className="mt-1" onPress={() => setForm('signin')}>Já tenho conta</Button>
+                </>
+              )}
+            </Card>
+          </Section>
+        }
+      />
+    </Shell>
+  )
+}
+
+/** Logado: liga a conta ao aluno (pelo link), pede o aceite LGPD e mostra a área do aluno. */
+function AccountMode({ token, onLeave }: { token: string | null; onLeave: (notice: string | null) => void }) {
+  const queryClient = useQueryClient()
+  const account = useQuery({ queryKey: keys.myStudentAccount, queryFn: () => getMyStudentAccount(db()) })
+  const consented = !!account.data && hasAccountConsent(account.data)
+  const portal = useQuery({ queryKey: keys.myStudentPortal, queryFn: () => getMyStudentPortal(db()), enabled: consented })
+  const tried = useRef(false)
+  const [claimError, setClaimError] = useState<string | null>(null)
+
+  const claim = useMutation({
+    mutationFn: (t: string) => claimStudentAccount(db(), t),
+    networkMode: 'online',
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: keys.myStudentAccount }),
+    onError: (e) => setClaimError(errorMessage(e)),
+  })
+  const accept = useMutation({
+    mutationFn: () => acceptImageConsent(db()),
+    networkMode: 'online',
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: keys.myStudentPortal }),
+  })
+
+  // Conta ainda sem aluno e com link no aparelho: liga automaticamente (uma tentativa).
+  useEffect(() => {
+    if (account.isSuccess && account.data === null && token && !tried.current) {
+      tried.current = true
+      claim.mutate(token)
+    }
+  }, [account.isSuccess, account.data, token, claim])
+
+  async function signOut(notice: string | null = null) {
+    onLeave(notice)
+    await db().auth.signOut()
+    // Cache (persistido no aparelho) é da conta: não pode vazar para o próximo login.
+    queryClient.clear()
+  }
+
+  // Conta de professor abrindo um link de aluno: mostra o link, sem mexer na conta.
+  if (claimError && /professor/i.test(claimError)) return <LinkMode token={token} notice={null} />
+
+  if (account.isPending || claim.isPending) return <Shell><Loading /></Shell>
+
+  if (account.isError && !account.data) {
+    return (
+      <Shell>
+        <div className="pt-16">
+          <EmptyState title="Não foi possível carregar" action={<Button variant="ghost" onPress={() => void account.refetch()}>Tentar de novo</Button>}>
+            Confira a conexão com a internet.
+          </EmptyState>
+        </div>
+      </Shell>
+    )
+  }
+
+  if (!account.data) {
+    return (
+      <Shell>
+        <Brand />
+        <EmptyState title="Conta ainda não ligada">
+          {claimError ?? 'Para ligar esta conta a você, abra neste celular o link que o professor enviou.'}
+        </EmptyState>
+        <Button variant="ghost" block className="mt-4" onPress={() => void signOut()}><LogOut className="size-4" /> Sair</Button>
+      </Shell>
+    )
+  }
+
+  if (!consented) {
+    return (
+      <Shell>
+        <Brand />
+        <ConsentScreen
+          name={account.data.name}
+          busy={accept.isPending}
+          error={accept.isError ? errorMessage(accept.error) : undefined}
+          onAccept={() => accept.mutate()}
+          onDecline={() =>
+            void signOut('Sem a autorização de uso de imagem você não pode usar a conta. Peça ao professor um link para ver suas presenças.')
+          }
+        />
+      </Shell>
+    )
+  }
+
+  if (portal.isPending) return <Shell><Loading /></Shell>
+  if (!portal.data) {
+    return (
+      <Shell>
         <div className="pt-16">
           <EmptyState title="Não foi possível carregar" action={<Button variant="ghost" onPress={() => void portal.refetch()}>Tentar de novo</Button>}>
             Confira a conexão com a internet.
           </EmptyState>
         </div>
-      )}
-      <p className="mt-10 text-center text-xs text-faint">
-        <Link href="/login-professor" className="underline underline-offset-2">Sou professor</Link>
-      </p>
-    </main>
+      </Shell>
+    )
+  }
+
+  return (
+    <Shell>
+      <PortalView
+        data={portal.data}
+        updatedAt={portal.dataUpdatedAt}
+        offline={portal.isError}
+        bottom={
+          <Button variant="ghost" block className="mt-8" onPress={() => void signOut()}><LogOut className="size-4" /> Sair da conta</Button>
+        }
+      />
+    </Shell>
   )
 }
 
@@ -73,18 +261,7 @@ function Brand() {
   )
 }
 
-function InvalidLink() {
-  return (
-    <>
-      <Brand />
-      <EmptyState title="Link inválido ou desativado">
-        Peça ao seu professor um novo link para acompanhar suas presenças.
-      </EmptyState>
-    </>
-  )
-}
-
-function PortalView({ data, updatedAt, offline }: { data: StudentPortal; updatedAt: number; offline: boolean }) {
+function PortalView({ data, updatedAt, offline, top, bottom }: { data: StudentPortal; updatedAt: number; offline: boolean; top?: ReactNode; bottom?: ReactNode }) {
   const today = useToday()
   const [showAll, setShowAll] = useState(false)
   const { student } = data
@@ -131,6 +308,7 @@ function PortalView({ data, updatedAt, offline }: { data: StudentPortal; updated
       {offline ? (
         <p className="mt-2 text-xs text-warning">Sem conexão · mostrando dados de {new Date(updatedAt).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}</p>
       ) : null}
+      {top}
 
       <div className="mt-5 grid grid-cols-2 gap-2">
         <Stat value={total} label="treinos no total" accent />
@@ -256,6 +434,7 @@ function PortalView({ data, updatedAt, offline }: { data: StudentPortal; updated
       </Section>
 
       {!student.active ? <p className="mt-6 text-center"><Badge>Matrícula inativa</Badge></p> : null}
+      {bottom}
     </>
   )
 }

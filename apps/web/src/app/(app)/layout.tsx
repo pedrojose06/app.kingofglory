@@ -9,6 +9,7 @@ import { BottomNav, Loading } from '@/components/shell'
 import { useAuth } from '@/lib/auth'
 import { outbox } from '@/lib/outbox'
 import { syncPushSubscription } from '@/lib/push'
+import { useProfile } from '@/lib/queries'
 import { getStoredStudentToken } from '@/lib/student-link'
 import { db } from '@/lib/supabase'
 
@@ -17,6 +18,13 @@ export default function AppLayout({ children }: { children: ReactNode }) {
   const router = useRouter()
   const queryClient = useQueryClient()
   const userId = session?.user.id
+  const profile = useProfile()
+  const isStudent = profile.data?.role === 'student'
+
+  // Conta de aluno não usa o app do professor: vai para a área do aluno.
+  useEffect(() => {
+    if (isStudent) router.replace(STUDENT_PORTAL_PATH)
+  }, [isStudent, router])
 
   useEffect(() => {
     if (!ready || session) return
@@ -26,15 +34,15 @@ export default function AppLayout({ children }: { children: ReactNode }) {
   }, [ready, session, router])
 
   useEffect(() => {
-    if (!userId) return
+    if (!userId || isStudent) return
     return outbox.init(db(), queryClient)
-  }, [userId, queryClient])
+  }, [userId, isStudent, queryClient])
 
   useEffect(() => {
-    if (userId) void syncPushSubscription().catch(() => {})
-  }, [userId])
+    if (userId && profile.data?.role === 'instructor') void syncPushSubscription().catch(() => {})
+  }, [userId, profile.data?.role])
 
-  if (!ready || !session) return <Loading />
+  if (!ready || !session || isStudent) return <Loading />
 
   return (
     <>
