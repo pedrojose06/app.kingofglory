@@ -73,6 +73,9 @@ function PlanView({ token, data }: { token: string; data: SharedPlan }) {
       </p>
       {data.updated_at ? <p className="mt-0.5 text-xs text-faint">Atualizado em {formatStamp(data.updated_at)}</p> : null}
 
+      {/* Botões antes do plano: o mestre já sabe, ao abrir, que deve aprovar ou pedir ajuste depois de ler. */}
+      <ReviewSection token={token} data={data} />
+
       <div className="mt-5 rounded-lg border border-line bg-surface p-4">
         {planHasContent(data.content) ? (
           <ReadOnlyPlan content={data.content as object} />
@@ -80,8 +83,6 @@ function PlanView({ token, data }: { token: string; data: SharedPlan }) {
           <p className="text-sm text-dim">O professor ainda não escreveu este plano.</p>
         )}
       </div>
-
-      <ReviewSection token={token} data={data} />
     </>
   )
 }
@@ -124,8 +125,10 @@ function ReviewSection({ token, data }: { token: string; data: SharedPlan }) {
   }
 
   return (
-    <section className="mt-6">
-      <h2 className="mb-3 font-display text-lg uppercase tracking-[0.04em] text-text">Revisão do mestre</h2>
+    <section className="mt-5">
+      {review && !editing ? null : (
+        <p className="mb-2 text-sm text-soft">Leia o plano abaixo e aprove ou solicite um ajuste.</p>
+      )}
 
       {review && !editing ? (
         <div className={cn('rounded-lg px-4 py-3', review.status === 'approved' ? 'bg-success-tint' : 'bg-warning-tint')}>
