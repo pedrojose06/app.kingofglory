@@ -10,10 +10,13 @@ em **Body** (modo "Source"/HTML) e salve.
 | Confirm signup | `confirmation.html` | `Confirme seu e-mail · King of Glory` |
 | Reset password | `recovery.html` | `Crie uma nova senha · King of Glory` |
 | Change email address | `email_change.html` | `Confirme seu novo e-mail · King of Glory` |
-| Magic link | `magic_link.html` | `Seu link de acesso · King of Glory` |
+| Magic link or OTP | `magic_link.html` | `Seu link de acesso · King of Glory` |
+| Invite user | `invite.html` | `Você foi convidado · King of Glory` |
+| Reauthentication | `reauthentication.html` | `Seu código de confirmação · King of Glory` |
 
 - Em uso hoje: **Confirm signup** (cadastro de aluno e professor) e **Reset password** ("Esqueci a senha").
-  Troca de e-mail e link mágico ainda não aparecem no app; os modelos ficam prontos para quando aparecerem.
+  Os outros ficam prontos para quando aparecerem: troca de e-mail, link mágico, convite pelo painel do Supabase
+  (o convite de professor do app é outro, por link) e reautenticação (código `{{ .Token }}`, sem botão).
 - O logo vem de `https://app.kingofglory.com.br/icons/icon-192.png`; se o domínio mudar, troque nos arquivos.
 - Variáveis do Supabase usadas: `{{ .ConfirmationURL }}`, `{{ .Email }}`, `{{ .NewEmail }}` (troca de e-mail) e
   `{{ .Data.name }}` (nome informado no cadastro; sem nome, o e-mail diz só "Olá!").
