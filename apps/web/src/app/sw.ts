@@ -44,7 +44,12 @@ self.addEventListener('push', (event) => {
       // Ícone da barra de status no Android: só a silhueta (canal alfa) é usada; imagem opaca vira um quadrado branco.
       badge: '/icons/notification-badge.png',
       data: { url: data.url ?? '/' },
-    }),
+      // Toca o som do sistema e vibra (Android) também quando o aviso substitui um anterior com a mesma tag;
+      // sem renotify, o substituto chega mudo.
+      silent: false,
+      renotify: Boolean(data.tag),
+      vibrate: [200, 100, 200],
+    } as NotificationOptions),
   )
 })
 

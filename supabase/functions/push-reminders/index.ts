@@ -1,8 +1,8 @@
-// Envia os lembretes de chamada e do plano de aula por Web Push.
+// Envia os lembretes de chamada e do plano de aula, e o aviso de revisão do plano pelo mestre, por Web Push.
 //
 // Dois jeitos de chamar:
-//  - pg_cron (header x-cron-secret): envia os lembretes vencidos, via claim_attendance_reminders() e
-//    claim_lesson_plan_reminders().
+//  - pg_cron ou banco (header x-cron-secret): envia os lembretes vencidos e as revisões pendentes, via
+//    claim_attendance_reminders(), claim_lesson_plan_reminders() e claim_plan_review_notifications().
 //  - app (Authorization: Bearer <sessão>): envia uma notificação de teste aos aparelhos do próprio usuário.
 //
 // Deploy sem verificação de JWT (a função valida por conta própria):
@@ -12,7 +12,7 @@
 
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import webpush from 'npm:web-push@3.6.7'
-import { lessonPlanMessage, reminderMessage, type OpenClass, type PlanClass, type PushMessage } from './message.ts'
+import { lessonPlanMessage, planReviewMessage, reminderMessage, type OpenClass, type PlanClass, type PlanReview, type PushMessage } from './message.ts'
 
 interface Subscription {
   id: string
@@ -30,6 +30,10 @@ interface Claimed {
 interface ClaimedPlan {
   profile_id: string
   classes: PlanClass[]
+  subscriptions: Subscription[]
+}
+
+interface ClaimedReview extends PlanReview {
   subscriptions: Subscription[]
 }
 
@@ -88,15 +92,17 @@ Deno.serve(async (req) => {
     const { data: ok, error: checkError } = await admin.rpc('cron_secret_matches', { p_secret: cronHeader })
     if (checkError) return json({ error: checkError.message }, 500)
     if (!ok) return json({ error: 'unauthorized' }, 401)
-    const [attendance, plans] = await Promise.all([
+    const [attendance, plans, reviews] = await Promise.all([
       admin.rpc('claim_attendance_reminders'),
       admin.rpc('claim_lesson_plan_reminders'),
+      admin.rpc('claim_plan_review_notifications'),
     ])
-    // Um claim que falhou não impede o envio do outro (o que já foi marcado como enviado não se perde).
-    const error = attendance.error ?? plans.error
+    // Um claim que falhou não impede o envio dos outros (o que já foi marcado como enviado não se perde).
+    const error = attendance.error ?? plans.error ?? reviews.error
     const messages = [
       ...((attendance.data ?? []) as Claimed[]).map((c) => ({ to: c.subscriptions, msg: reminderMessage(c.reminder_id, c.classes) })),
       ...((plans.data ?? []) as ClaimedPlan[]).map((c) => ({ to: c.subscriptions, msg: lessonPlanMessage(c.profile_id, c.classes) })),
+      ...((reviews.data ?? []) as ClaimedReview[]).map((c) => ({ to: c.subscriptions, msg: planReviewMessage(c) })),
     ]
     const totals = { reminders: messages.length, sent: 0, failed: 0 }
     for (const { to, msg } of messages) {

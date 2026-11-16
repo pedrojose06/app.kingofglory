@@ -51,3 +51,33 @@ export function lessonPlanMessage(profileId: string, classes: PlanClass[]): Push
     tag: `kog-plan-${profileId}`,
   }
 }
+
+export interface PlanReview {
+  class_id: string
+  /** YYYY-MM-DD */
+  date: string
+  start_time: string | null
+  gym: string
+  status: 'approved' | 'changes_requested'
+  note: string | null
+  reviewer_name: string | null
+}
+
+const shortDate = (iso: string) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}`
+const clip = (s: string, max: number) => (s.length > max ? `${s.slice(0, max - 1).trimEnd()}…` : s)
+
+/** Revisão do mestre no plano compartilhado; tocar abre o plano da aula. */
+export function planReviewMessage(r: PlanReview): PushMessage {
+  const who = r.reviewer_name?.trim() || 'O mestre'
+  const aula = [shortDate(r.date), r.start_time, r.gym].filter(Boolean).join(' ')
+  const approved = r.status === 'approved'
+  const note = r.note?.trim() ? `: “${clip(r.note.trim(), 140)}”` : '.'
+  return {
+    title: approved ? 'Plano de aula aprovado' : 'Ajustes no plano de aula',
+    body: approved
+      ? `${who} aprovou o plano da aula ${aula}${note}`
+      : `${who} pediu ajustes no plano da aula ${aula}${note}`,
+    url: `/aula?id=${r.class_id}&aba=plano`,
+    tag: `kog-review-${r.class_id}`,
+  }
+}

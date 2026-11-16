@@ -77,6 +77,7 @@ As migrations em `supabase/migrations` já estão aplicadas no projeto remoto, c
 | `next_graduation` | `gyms.next_graduation_on`: data marcada da próxima graduação; o app conta os meses de cada aluno até ela |
 | `graduation_schedule` | data da próxima graduação da equipe por trilha (adulto e infantil), igual para todas as academias; substitui `gyms.next_graduation_on` |
 | `lesson_plan_share` | compartilhar o plano de aula: `lesson_plan_shares` (link secreto por aula + revisão do mestre), `rotate_lesson_plan_share()`, `shared_lesson_plan(token)` e `review_shared_lesson_plan(token, …)`, chamáveis sem login |
+| `plan_review_push` | push para o professor quando o mestre revisa o plano: `lesson_plan_shares.review_notify_pending`, `claim_plan_review_notifications()` e `wake_push_reminders()` (acorda a Edge Function na hora) |
 | `…future_face_recognition.sql.disabled` | schema previsto da Fase 4 (pgvector), não aplicado |
 
 Para criar uma migration nova e aplicar (com a CLI do Supabase):
@@ -149,6 +150,11 @@ o link não precisa de login: vê academia, data, horário e o plano sempre na v
 (nada de alunos ou presenças) e pode **Aprovar** ou **Pedir ajustes** (com comentário obrigatório e nome).
 A revisão aparece no topo do plano para o professor, com aviso se o plano foi editado depois dela.
 **Gerar novo link** invalida o anterior e zera a revisão; **Desativar** corta o acesso. Exige conexão.
+
+Quando o mestre aprova ou pede ajustes, o professor que compartilhou recebe um **push** na hora ("Plano de aula
+aprovado" / "Ajustes no plano de aula", com o comentário); tocar abre a aba Plano da aula. Usa os mesmos aparelhos
+e a mesma Edge Function dos lembretes: a revisão acorda a função via `pg_net`, e o cron de cada minuto reenvia o
+que tiver ficado pendente. Precisa das notificações ativadas em Mais › Lembretes.
 
 ## Lembretes de chamada e plano de aula (push)
 
