@@ -7,14 +7,14 @@ alter table public.attendance
 comment on column public.attendance.credits is
   'Quantas presenças este registro vale (ex.: aulão = 2). Só pesa em presença e atraso.';
 
--- Avulsa com valor. Repetir o registro (mesmo aluno, dia e local) atualiza o valor.
-drop function public.add_walk_ins(uuid[], date, text, public.attendance_source);
-create or replace function public.add_walk_ins(
+-- Avulsa com valor. Função nova (add_walk_ins continua igual para versões antigas do app em cache).
+-- Repetir o registro (mesmo aluno, dia e local) atualiza o valor.
+create or replace function public.register_walk_ins(
   p_student_ids uuid[],
   p_date date,
   p_location text,
-  p_source public.attendance_source default 'walk_in',
-  p_credits smallint default 1
+  p_credits smallint default 1,
+  p_source public.attendance_source default 'walk_in'
 )
 returns integer
 language plpgsql
@@ -36,8 +36,8 @@ begin
   get diagnostics v_count = row_count;
   return v_count;
 end $$;
-revoke execute on function public.add_walk_ins(uuid[], date, text, public.attendance_source, smallint) from public, anon;
-grant execute on function public.add_walk_ins(uuid[], date, text, public.attendance_source, smallint) to authenticated;
+revoke execute on function public.register_walk_ins(uuid[], date, text, smallint, public.attendance_source) from public, anon;
+grant execute on function public.register_walk_ins(uuid[], date, text, smallint, public.attendance_source) to authenticated;
 
 -- Progresso: presenças somam `credits`; no período, falta conta 1 aula.
 create or replace view public.student_progress

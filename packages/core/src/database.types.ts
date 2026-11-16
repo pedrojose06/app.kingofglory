@@ -550,7 +550,6 @@ export type Database = {
           p_date: string
           p_location: string
           p_source?: Database["public"]["Enums"]["attendance_source"]
-          p_credits?: number
         }
         Returns: number
       }
@@ -566,6 +565,16 @@ export type Database = {
       can_manage_student: { Args: { p_student_id: string }; Returns: boolean }
       storage_path_gym: { Args: { p_name: string }; Returns: string }
       can_manage_class: { Args: { p_class_id: string }; Returns: boolean }
+      register_walk_ins: {
+        Args: {
+          p_student_ids: string[]
+          p_date: string
+          p_location: string
+          p_credits?: number
+          p_source?: Database["public"]["Enums"]["attendance_source"]
+        }
+        Returns: number
+      }
       rotate_student_access: { Args: { p_student_id: string }; Returns: string }
       student_portal: { Args: { p_token: string }; Returns: Json }
       save_push_subscription: {

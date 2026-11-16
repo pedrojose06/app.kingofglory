@@ -31,12 +31,12 @@ export async function addWalkIns(
   input: { student_ids: string[]; date: string; location: string; source?: AttendanceSource; credits?: number },
 ): Promise<number> {
   return unwrap(
-    await db.rpc('add_walk_ins', {
+    await db.rpc('register_walk_ins', {
       p_student_ids: input.student_ids,
       p_date: input.date,
       p_location: input.location,
+      p_credits: input.credits ?? 1,
       ...(input.source ? { p_source: input.source } : {}),
-      ...(input.credits && input.credits !== 1 ? { p_credits: input.credits } : {}),
     }),
   )
 }
