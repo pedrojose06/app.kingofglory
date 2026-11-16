@@ -46,12 +46,16 @@ export default function StudentPortalPage() {
 }
 
 function Shell({ children }: { children: ReactNode }) {
+  const { session } = useAuth()
   return (
     <main className="mx-auto max-w-xl px-4 pt-[calc(env(safe-area-inset-top)+1.25rem)] pb-[calc(env(safe-area-inset-bottom)+2.5rem)]">
       {children}
-      <p className="mt-10 text-center text-xs text-faint">
-        <Link href="/login-professor" className="underline underline-offset-2">Sou professor</Link>
-      </p>
+      {/* Só para quem não está logado: logado como aluno, o login do professor mandaria de volta para cá. */}
+      {!session ? (
+        <p className="mt-10 text-center text-xs text-faint">
+          <Link href="/login-professor" className="underline underline-offset-2">Sou professor</Link>
+        </p>
+      ) : null}
     </main>
   )
 }
@@ -245,6 +249,7 @@ function AccountMode({ token, onLeave }: { token: string | null; onLeave: (notic
         data={portal.data}
         updatedAt={portal.dataUpdatedAt}
         offline={portal.isError}
+        onSignOut={() => void signOut()}
         bottom={
           <Button variant="ghost" block className="mt-8" onPress={() => void signOut()}><LogOut className="size-4" /> Sair da conta</Button>
         }
@@ -290,17 +295,20 @@ function PendingAccount({ claimError, onSignOut }: { claimError: string | null; 
   )
 }
 
-function Brand() {
+function Brand({ onSignOut }: { onSignOut?: () => void }) {
   return (
     <div className="mb-6 flex items-center gap-3">
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src="/icons/icon-192.png" alt="" width={40} height={40} className="rounded-full ring-1 ring-line-strong" />
-      <Kicker>King of Glory Academy</Kicker>
+      <Kicker className="flex-1">King of Glory Academy</Kicker>
+      {onSignOut ? (
+        <Button variant="plain" size="sm" onPress={onSignOut}><LogOut className="size-4" /> Sair</Button>
+      ) : null}
     </div>
   )
 }
 
-function PortalView({ data, updatedAt, offline, top, bottom }: { data: StudentPortal; updatedAt: number; offline: boolean; top?: ReactNode; bottom?: ReactNode }) {
+function PortalView({ data, updatedAt, offline, top, bottom, onSignOut }: { data: StudentPortal; updatedAt: number; offline: boolean; top?: ReactNode; bottom?: ReactNode; onSignOut?: () => void }) {
   const today = useToday()
   const [showAll, setShowAll] = useState(false)
   const { student } = data
@@ -341,7 +349,7 @@ function PortalView({ data, updatedAt, offline, top, bottom }: { data: StudentPo
 
   return (
     <>
-      <Brand />
+      <Brand onSignOut={onSignOut} />
       <Kicker className="mb-1.5">{data.gym_name}</Kicker>
       <Title>{student.name}</Title>
       {offline ? (
