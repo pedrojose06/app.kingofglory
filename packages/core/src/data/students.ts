@@ -1,5 +1,6 @@
 import type { GraduationInput, RankRequirementInput, StudentInput } from '../schemas'
 import type { Db, Graduation, Rank, Student, StudentProgress } from '../types'
+import type { RankTrack } from '../domain/graduation'
 import { fetchAll, unwrap } from './util'
 
 export async function listStudents(db: Db): Promise<Student[]> {
@@ -31,6 +32,20 @@ export async function listRanks(db: Db): Promise<Rank[]> {
 
 export async function updateRankRequirements(db: Db, id: string, input: RankRequirementInput): Promise<void> {
   unwrap(await db.from('ranks').update(input).eq('id', id))
+}
+
+/** Datas da próxima graduação da equipe, por trilha (adulto/infantil). Sem data: null. */
+export type GraduationSchedule = Record<RankTrack, string | null>
+
+export async function getGraduationSchedule(db: Db): Promise<GraduationSchedule> {
+  const rows = unwrap(await db.from('graduation_schedule').select('track, next_on'))
+  const out: GraduationSchedule = { adulto: null, infantil: null }
+  for (const r of rows) if (r.track === 'adulto' || r.track === 'infantil') out[r.track] = r.next_on
+  return out
+}
+
+export async function setGraduationDate(db: Db, track: RankTrack, date: string | null): Promise<void> {
+  unwrap(await db.from('graduation_schedule').update({ next_on: date }).eq('track', track))
 }
 
 export async function listProgress(db: Db): Promise<StudentProgress[]> {

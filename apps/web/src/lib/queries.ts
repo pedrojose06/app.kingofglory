@@ -1,7 +1,7 @@
 'use client'
 
 import {
-  countPresentByClass, ensureClasses, listAbsenceStreaks, listClassTurnout, getClass, getLessonPlan, getLessonPlanReminder, getProfile, keys, listClassAttendance, listClassesByDate,
+  countPresentByClass, ensureClasses, getGraduationSchedule, listAbsenceStreaks, listClassTurnout, getClass, getLessonPlan, getLessonPlanReminder, getProfile, keys, listClassAttendance, listClassesByDate,
   listClassesRange, listClassPhotos, listGraduations, listGyms, listPendingClasses, listProgress, listRanks, listReminders, listSchedules,
   listPlannedClassIds, listStudentAttendance, listStudents, listWalkInLocations, todayISO, type ClassRow,
 } from '@kog/core'
@@ -38,6 +38,8 @@ export const useAbsenceStreaks = () => useQuery({ queryKey: keys.absenceStreaks,
 export const useClassTurnout = () => useQuery({ queryKey: keys.classTurnout, queryFn: () => listClassTurnout(db()) })
 export const useStudents = () => useQuery({ queryKey: keys.students, queryFn: () => listStudents(db()) })
 export const useRanks = () => useQuery({ queryKey: keys.ranks, queryFn: () => listRanks(db()), staleTime: 5 * 60_000 })
+export const useGraduationSchedule = () =>
+  useQuery({ queryKey: keys.graduationSchedule, queryFn: () => getGraduationSchedule(db()), staleTime: 5 * 60_000 })
 export const useProgress = () => useQuery({ queryKey: keys.progress, queryFn: () => listProgress(db()) })
 export const useGraduations = (studentId: string) =>
   useQuery({ queryKey: keys.graduations(studentId), queryFn: () => listGraduations(db(), studentId), enabled: !!studentId })

@@ -7,6 +7,7 @@ export const keys = {
   planReminder: ['reminders', 'plan'] as const,
   students: ['students'] as const,
   ranks: ['ranks'] as const,
+  graduationSchedule: ['graduation-schedule'] as const,
   progress: ['progress'] as const,
   absenceStreaks: ['attendance', 'streaks'] as const,
   classTurnout: ['attendance', 'turnout'] as const,

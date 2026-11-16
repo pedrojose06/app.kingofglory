@@ -75,6 +75,7 @@ As migrations em `supabase/migrations` já estão aplicadas no projeto remoto, c
 | `student_portal` | área do aluno: `student_access` (link secreto por aluno), `rotate_student_access()` e `student_portal(token)`, chamável sem login |
 | `attendance_credits` | `attendance.credits`: quanto a presença vale (aulão = 2), somado em `student_progress`; `register_walk_ins()` registra avulsa com valor |
 | `next_graduation` | `gyms.next_graduation_on`: data marcada da próxima graduação; o app conta os meses de cada aluno até ela |
+| `graduation_schedule` | data da próxima graduação da equipe por trilha (adulto e infantil), igual para todas as academias; substitui `gyms.next_graduation_on` |
 | `…future_face_recognition.sql.disabled` | schema previsto da Fase 4 (pgvector), não aplicado |
 
 Para criar uma migration nova e aplicar (com a CLI do Supabase):
@@ -189,11 +190,13 @@ A chave privada VAPID nunca entra no repositório nem no app.
 
 ## Data da próxima graduação
 
-Em Alunos › Graduação, card **Próxima graduação**: uma data por academia. Com a data marcada (futura), os meses de
-cada aluno contam até o dia da graduação; os treinos são os registrados até hoje. Ex.: começou há 5 meses, graduação
-daqui a 1 mês → conta 6 meses. Na primeira graduação, quem cumpre os requisitos do segundo grau (treinos e meses)
-aparece como **Pode ir direto** (ex.: direto para Vermelho e Branco), e o registro da graduação já sugere esse grau.
-Depois que a data passa, o cálculo volta a ser para hoje. A área do aluno mostra a data.
+A graduação é da equipe toda, com datas separadas para adulto e infantil. Em Alunos › Graduação, card
+**Próxima graduação**: uma data para **Adulto** e outra para **Infantil** (valem para todas as academias). Com a
+data marcada (futura), os meses de cada aluno — e, no infantil, a idade que completa no ano — contam até o dia da
+graduação da trilha dele; os treinos são os registrados até hoje. Ex.: começou há 5 meses, graduação daqui a 1 mês →
+conta 6 meses. Na primeira graduação, quem cumpre os requisitos do segundo grau (treinos e meses) aparece como
+**Pode ir direto** (ex.: direto para Vermelho e Branco), e o registro da graduação já sugere esse grau. Depois que a
+data passa, o cálculo volta a ser para hoje. A área do aluno mostra a data da trilha dele.
 
 ## Presença que vale mais de uma (aulão)
 

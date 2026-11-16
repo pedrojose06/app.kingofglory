@@ -277,6 +277,24 @@ export type Database = {
         }
         Relationships: []
       }
+      graduation_schedule: {
+        Row: {
+          track: string
+          next_on: string | null
+          updated_at: string
+        }
+        Insert: {
+          track: string
+          next_on?: string | null
+          updated_at?: string
+        }
+        Update: {
+          track?: string
+          next_on?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       lesson_plans: {
         Row: {
           id: string

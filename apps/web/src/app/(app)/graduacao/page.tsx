@@ -1,12 +1,14 @@
 'use client'
 
-import { formatDateBR, graduationStatus, keys, missingLabel, setNextGraduation, trackOf, type Gym } from '@kog/core'
+import {
+  formatDateBR, graduationStatus, keys, missingLabel, RANK_TRACKS, setGraduationDate, trackOf, TRACK_LABEL, type GraduationSchedule, type RankTrack,
+} from '@kog/core'
 import { Badge, Card, DateInput, EmptyState, ProgressBar, RankBand } from '@kog/ui'
 import Link from 'next/link'
 import { useMemo, useState } from 'react'
 import { GymChips, studentSince } from '@/components/common'
 import { Loading, Page } from '@/components/shell'
-import { useGyms, useProgress, useRanks, useSave, useStudents, useToday } from '@/lib/queries'
+import { useGraduationSchedule, useGyms, useProgress, useRanks, useSave, useStudents, useToday } from '@/lib/queries'
 import { db } from '@/lib/supabase'
 import { toast } from '@/lib/toast'
 
@@ -16,11 +18,11 @@ export default function GraduationPage() {
   const students = useStudents()
   const ranks = useRanks()
   const progress = useProgress()
+  const schedule = useGraduationSchedule()
   const [gymId, setGymId] = useState<string | null>(null)
 
   const rows = useMemo(() => {
     const progressOf = new Map((progress.data ?? []).map((p) => [p.student_id, p]))
-    const dateOf = new Map((gyms.data ?? []).map((g) => [g.id, g.next_graduation_on ?? null]))
     return (students.data ?? [])
       .filter((s) => s.active && (!gymId || s.gym_id === gymId))
       .map((s) => ({
@@ -28,7 +30,7 @@ export default function GraduationPage() {
         status: graduationStatus(progressOf.get(s.id), ranks.data ?? [], studentSince(s), today, {
           track: trackOf(s),
           birthDate: s.birth_date,
-          graduationOn: dateOf.get(s.gym_id),
+          graduationOn: schedule.data?.[trackOf(s)],
         }),
       }))
       .sort(
@@ -39,14 +41,14 @@ export default function GraduationPage() {
           a.status.missingClasses + a.status.missingMonths * 8 - (b.status.missingClasses + b.status.missingMonths * 8) ||
           a.student.name.localeCompare(b.student.name, 'pt-BR'),
       )
-  }, [students.data, progress.data, ranks.data, gyms.data, gymId, today])
+  }, [students.data, progress.data, ranks.data, schedule.data, gymId, today])
 
   const eligible = rows.filter((r) => r.status.eligible).length
 
   return (
     <Page title="Graduação" kicker={`${eligible} ${eligible === 1 ? 'aluno apto' : 'alunos aptos'}`} back>
+      <NextGraduation schedule={schedule.data} today={today} />
       <GymChips gyms={gyms.data ?? []} value={gymId} onChange={setGymId} />
-      <NextGraduation gyms={(gyms.data ?? []).filter((g) => !gymId || g.id === gymId)} today={today} />
       {students.isPending || progress.isPending || ranks.isPending ? (
         <Loading />
       ) : rows.length === 0 ? (
@@ -92,30 +94,31 @@ export default function GraduationPage() {
   )
 }
 
+
 /**
- * Data marcada da próxima graduação, por academia. Com data futura, os meses (e a idade, no infantil)
- * são calculados até ela; os treinos continuam sendo os registrados até hoje.
+ * Datas da próxima graduação da equipe (todas as academias juntas), uma para adulto e outra para infantil.
+ * Com data futura, os meses (e a idade, no infantil) são calculados até ela; os treinos são os de hoje.
  */
-function NextGraduation({ gyms, today }: { gyms: readonly Gym[]; today: string }) {
+function NextGraduation({ schedule, today }: { schedule: GraduationSchedule | undefined; today: string }) {
   const save = useSave(
-    ({ id, date }: { id: string; date: string | null }) => setNextGraduation(db(), id, date),
-    [keys.gyms],
+    ({ track, date }: { track: RankTrack; date: string | null }) => setGraduationDate(db(), track, date),
+    [keys.graduationSchedule],
     () => toast('Data da graduação salva'),
   )
-  if (gyms.length === 0) return null
+  if (!schedule) return null
   return (
     <Card className="mb-4 p-3">
       <p className="kicker">Próxima graduação</p>
       <div className="mt-2 space-y-2">
-        {gyms.map((g) => {
-          const date = g.next_graduation_on ?? ''
+        {RANK_TRACKS.map((track) => {
+          const date = schedule[track] ?? ''
           const past = !!date && date <= today
           return (
-            <div key={g.id} className="grid grid-cols-[minmax(0,1fr)_9.5rem] items-center gap-2">
+            <div key={track} className="grid grid-cols-[minmax(0,1fr)_9.5rem] items-center gap-2">
               <span className="min-w-0">
-                <span className="block truncate text-sm font-medium text-text">{g.name}</span>
+                <span className="block truncate text-sm font-medium text-text">{TRACK_LABEL[track]}</span>
                 {date ? (
-                  <button type="button" className="text-xs text-dim underline underline-offset-2" onClick={() => save.mutate({ id: g.id, date: null })}>
+                  <button type="button" className="text-xs text-dim underline underline-offset-2" onClick={() => save.mutate({ track, date: null })}>
                     {past ? `Já passou (${formatDateBR(date)}) · limpar` : 'Limpar data'}
                   </button>
                 ) : (
@@ -125,14 +128,14 @@ function NextGraduation({ gyms, today }: { gyms: readonly Gym[]; today: string }
               <DateInput
                 value={date}
                 min={today}
-                aria-label={`Data da próxima graduação em ${g.name}`}
-                onChange={(e) => save.mutate({ id: g.id, date: e.target.value || null })}
+                aria-label={`Data da próxima graduação ${TRACK_LABEL[track].toLowerCase()}`}
+                onChange={(e) => save.mutate({ track, date: e.target.value || null })}
               />
             </div>
           )
         })}
       </div>
-      <p className="mt-2 text-xs text-dim">Com a data marcada, os meses de cada aluno contam até o dia da graduação. Os treinos são os registrados até hoje.</p>
+      <p className="mt-2 text-xs text-dim">Vale para todas as academias. Com a data marcada, os meses de cada aluno contam até o dia da graduação; os treinos são os registrados até hoje.</p>
     </Card>
   )
 }

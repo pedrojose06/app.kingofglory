@@ -11,7 +11,7 @@ import { Section, StatusBadge, studentSince, useParam } from '@/components/commo
 import { Loading, Page } from '@/components/shell'
 import { StudentAccessSection } from '@/components/student-access'
 import { StudentForm } from '@/components/student-form'
-import { useGraduations, useGyms, useProgress, useRanks, useSave, useStudentAttendance, useStudents, useToday } from '@/lib/queries'
+import { useGraduationSchedule, useGraduations, useGyms, useProgress, useRanks, useSave, useStudentAttendance, useStudents, useToday } from '@/lib/queries'
 import { db } from '@/lib/supabase'
 import { toast } from '@/lib/toast'
 
@@ -22,6 +22,7 @@ export default function StudentPage() {
   const gyms = useGyms()
   const ranks = useRanks()
   const progress = useProgress()
+  const schedule = useGraduationSchedule()
   const attendance = useStudentAttendance(id)
   const graduations = useGraduations(id)
   const [editOpen, setEditOpen] = useState(false)
@@ -32,11 +33,10 @@ export default function StudentPage() {
   const [showAll, setShowAll] = useState(false)
 
   const student = students.data?.find((s) => s.id === id)
-  const gym = gyms.data?.find((g) => g.id === student?.gym_id)
-  const gymName = gym?.name ?? 'Academia'
+  const gymName = gyms.data?.find((g) => g.id === student?.gym_id)?.name ?? 'Academia'
   const status = useMemo(
-    () => graduationStatus(progress.data?.find((p) => p.student_id === id), ranks.data ?? [], student ? studentSince(student) : today, today, { track: trackOf(student), birthDate: student?.birth_date, graduationOn: gym?.next_graduation_on }),
-    [progress.data, ranks.data, student, id, today, gym?.next_graduation_on],
+    () => graduationStatus(progress.data?.find((p) => p.student_id === id), ranks.data ?? [], student ? studentSince(student) : today, today, { track: trackOf(student), birthDate: student?.birth_date, graduationOn: schedule.data?.[trackOf(student)] }),
+    [progress.data, ranks.data, student, id, today, schedule.data],
   )
   const stats = useMemo(() => attendanceStats(attendance.data ?? [], gymName), [attendance.data, gymName])
   const rankOf = (rankId: string) => ranks.data?.find((r) => r.id === rankId)
