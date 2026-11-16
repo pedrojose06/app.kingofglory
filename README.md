@@ -73,6 +73,7 @@ As migrations em `supabase/migrations` já estão aplicadas no projeto remoto, c
 | `kids_rank_age` | `ranks.min_age`: graduação infantil por idade que o aluno completa no ano (11 Branco, 12 Amarelo, 13 Laranja, 14 Verde) |
 | `lesson_plan_reminders` | lembrete do plano de aula por push: `lesson_plan_reminders` (um horário por professor, padrão 13:30) e `claim_lesson_plan_reminders()`; o job do cron passa a acordar a Edge Function também para ele |
 | `student_portal` | área do aluno: `student_access` (link secreto por aluno), `rotate_student_access()` e `student_portal(token)`, chamável sem login |
+| `attendance_credits` | `attendance.credits`: quanto a presença vale (aulão = 2), somado em `student_progress`; `register_walk_ins()` registra avulsa com valor |
 | `…future_face_recognition.sql.disabled` | schema previsto da Fase 4 (pgvector), não aplicado |
 
 Para criar uma migration nova e aplicar (com a CLI do Supabase):
@@ -184,6 +185,12 @@ Configuração (uma vez por projeto):
 4. Na Vercel, `NEXT_PUBLIC_VAPID_PUBLIC_KEY` com a chave pública (Production e Preview) e um novo deploy.
 
 A chave privada VAPID nunca entra no repositório nem no app.
+
+## Presença que vale mais de uma (aulão)
+
+Em Presença avulsa, **Vale: 1, 2 ou 3 presenças**. O valor soma no progresso da graduação, no total e nos
+treinos por mês (falta continua contando 1 aula no período). Registrar de novo o mesmo aluno, dia e local
+corrige o valor sem duplicar. O histórico mostra o selo "Vale 2".
 
 ## Área do aluno
 
