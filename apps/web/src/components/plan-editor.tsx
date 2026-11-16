@@ -2,15 +2,14 @@
 
 import type { Json } from '@kog/core'
 import { cn, Sheet } from '@kog/ui'
-import { Details, DetailsContent, DetailsSummary } from '@tiptap/extension-details'
-import { TaskItem, TaskList } from '@tiptap/extension-list'
 import { Placeholder } from '@tiptap/extensions'
 import { Extension, type Editor, type Range } from '@tiptap/core'
 import { EditorContent, useEditor } from '@tiptap/react'
-import StarterKit from '@tiptap/starter-kit'
 import Suggestion, { type SuggestionKeyDownProps, type SuggestionProps } from '@tiptap/suggestion'
 import { Plus } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { PlanReviewBanner, PlanShareButton } from '@/components/plan-share'
+import { planExtensions } from '@/components/plan-extensions'
 import { Loading } from '@/components/shell'
 import { outbox, useOnline, useOutbox } from '@/lib/outbox'
 import { useLessonPlan } from '@/lib/queries'
@@ -94,10 +93,19 @@ export function PlanEditor({ classId }: { classId: string }) {
   }
 
   const initial = pendingItem?.op.type === 'plan.save' ? pendingItem.op.content : (plan.data?.content ?? null)
-  return <EditorInner key={classId} classId={classId} initial={initial} pending={!!pendingItem} failed={!!pendingItem?.error} />
+  return (
+    <EditorInner
+      key={classId}
+      classId={classId}
+      initial={initial}
+      pending={!!pendingItem}
+      failed={!!pendingItem?.error}
+      planUpdatedAt={plan.data?.updated_at ?? null}
+    />
+  )
 }
 
-function EditorInner({ classId, initial, pending, failed }: { classId: string; initial: Json | null; pending: boolean; failed: boolean }) {
+function EditorInner({ classId, initial, pending, failed, planUpdatedAt }: { classId: string; initial: Json | null; pending: boolean; failed: boolean; planUpdatedAt: string | null }) {
   const online = useOnline()
   const [slash, setSlash] = useState<SlashState | null>(null)
   const [insertOpen, setInsertOpen] = useState(false)
@@ -120,12 +128,7 @@ function EditorInner({ classId, initial, pending, failed }: { classId: string; i
 
   const extensions = useMemo(
     () => [
-      StarterKit,
-      TaskList,
-      TaskItem.configure({ nested: true }),
-      Details.configure({ persist: true, HTMLAttributes: { class: 'details' } }),
-      DetailsSummary,
-      DetailsContent,
+      ...planExtensions(),
       Placeholder.configure({
         includeChildren: true,
         placeholder: ({ node }) => (node.type.name === 'detailsSummary' ? 'Título do toggle' : node.type.name === 'heading' ? 'Título' : 'Escreva, ou digite / para blocos'),
@@ -184,10 +187,15 @@ function EditorInner({ classId, initial, pending, failed }: { classId: string; i
     <div className="plan-editor">
       <div className="mb-2 flex items-center justify-between">
         <p className={cn('text-xs', failed ? 'text-danger' : 'text-dim')} aria-live="polite">{status}</p>
-        <button type="button" onClick={() => setInsertOpen(true)} className="flex h-9 items-center gap-1 rounded border border-line px-2.5 text-xs font-bold uppercase tracking-[0.1em] text-accent">
-          <Plus className="size-4" /> Bloco
-        </button>
+        <div className="flex gap-2">
+          <PlanShareButton classId={classId} unsynced={pending || dirty} planUpdatedAt={planUpdatedAt} />
+          <button type="button" onClick={() => setInsertOpen(true)} className="flex h-9 items-center gap-1 rounded border border-line px-2.5 text-xs font-bold uppercase tracking-[0.1em] text-accent">
+            <Plus className="size-4" /> Bloco
+          </button>
+        </div>
       </div>
+
+      <PlanReviewBanner classId={classId} planUpdatedAt={planUpdatedAt} />
 
       <EditorContent editor={editor} />
 

@@ -25,4 +25,6 @@ export const keys = {
   classPhotos: (classId: string) => ['photos', classId] as const,
   studentAccess: (studentId: string) => ['student-access', studentId] as const,
   studentPortal: (token: string) => ['student-portal', token] as const,
+  planShare: (classId: string) => ['plan-share', classId] as const,
+  sharedPlan: (token: string) => ['shared-plan', token] as const,
 }

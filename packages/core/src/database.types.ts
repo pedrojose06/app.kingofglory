@@ -442,6 +442,42 @@ export type Database = {
         }
         Relationships: []
       }
+      lesson_plan_shares: {
+        Row: {
+          class_id: string
+          token: string
+          created_by: string
+          created_at: string
+          last_seen_at: string | null
+          review_status: string | null
+          review_note: string | null
+          reviewer_name: string | null
+          reviewed_at: string | null
+        }
+        Insert: {
+          class_id: string
+          token?: string
+          created_by?: string
+          created_at?: string
+          last_seen_at?: string | null
+          review_status?: string | null
+          review_note?: string | null
+          reviewer_name?: string | null
+          reviewed_at?: string | null
+        }
+        Update: {
+          class_id?: string
+          token?: string
+          created_by?: string
+          created_at?: string
+          last_seen_at?: string | null
+          review_status?: string | null
+          review_note?: string | null
+          reviewer_name?: string | null
+          reviewed_at?: string | null
+        }
+        Relationships: []
+      }
       student_access: {
         Row: {
           student_id: string
@@ -598,6 +634,12 @@ export type Database = {
       }
       rotate_student_access: { Args: { p_student_id: string }; Returns: string }
       student_portal: { Args: { p_token: string }; Returns: Json }
+      rotate_lesson_plan_share: { Args: { p_class_id: string }; Returns: string }
+      shared_lesson_plan: { Args: { p_token: string }; Returns: Json }
+      review_shared_lesson_plan: {
+        Args: { p_token: string; p_status: string; p_note?: string; p_reviewer_name?: string }
+        Returns: boolean
+      }
       save_push_subscription: {
         Args: { p_endpoint: string; p_p256dh: string; p_auth: string; p_user_agent?: string }
         Returns: undefined

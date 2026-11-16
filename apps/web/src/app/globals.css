@@ -80,3 +80,11 @@
   height: 0;
   pointer-events: none;
 }
+
+/* Plano compartilhado (somente leitura): sem a área extra para digitar. */
+.plan-editor.plan-view .tiptap {
+  min-height: 0;
+  padding-bottom: 0;
+}
+.plan-editor.plan-view .tiptap > :first-child { margin-top: 0; }
+.plan-editor.plan-view .tiptap > :last-child { margin-bottom: 0; }

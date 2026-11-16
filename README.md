@@ -76,6 +76,7 @@ As migrations em `supabase/migrations` já estão aplicadas no projeto remoto, c
 | `attendance_credits` | `attendance.credits`: quanto a presença vale (aulão = 2), somado em `student_progress`; `register_walk_ins()` registra avulsa com valor |
 | `next_graduation` | `gyms.next_graduation_on`: data marcada da próxima graduação; o app conta os meses de cada aluno até ela |
 | `graduation_schedule` | data da próxima graduação da equipe por trilha (adulto e infantil), igual para todas as academias; substitui `gyms.next_graduation_on` |
+| `lesson_plan_share` | compartilhar o plano de aula: `lesson_plan_shares` (link secreto por aula + revisão do mestre), `rotate_lesson_plan_share()`, `shared_lesson_plan(token)` e `review_shared_lesson_plan(token, …)`, chamáveis sem login |
 | `…future_face_recognition.sql.disabled` | schema previsto da Fase 4 (pgvector), não aplicado |
 
 Para criar uma migration nova e aplicar (com a CLI do Supabase):
@@ -139,6 +140,15 @@ A tela Hoje lista as **próximas aulas** (7 dias, a partir de amanhã) com o sel
 Tocar abre a aba Plano; se a aula da grade ainda não foi gerada, ela é criada naquele momento (exige conexão) e,
 no dia, `ensure_classes` encontra a aula já criada. A chamada de uma aula futura só abre no dia. Encerrar um
 horário da grade cancela as aulas futuras dele que já tinham sido criadas.
+
+## Compartilhar o plano de aula (aprovação do mestre)
+
+Na aba **Plano** da aula, o botão **Compartilhar** (como no Notion) gera um link secreto daquela aula
+(`/plano#token`). O professor envia pelo menu de compartilhar do celular (ou WhatsApp) ou copia o link. Quem abre
+o link não precisa de login: vê academia, data, horário e o plano sempre na versão mais recente salva no servidor
+(nada de alunos ou presenças) e pode **Aprovar** ou **Pedir ajustes** (com comentário obrigatório e nome).
+A revisão aparece no topo do plano para o professor, com aviso se o plano foi editado depois dela.
+**Gerar novo link** invalida o anterior e zera a revisão; **Desativar** corta o acesso. Exige conexão.
 
 ## Lembretes de chamada e plano de aula (push)
 
