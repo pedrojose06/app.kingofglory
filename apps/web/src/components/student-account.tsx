@@ -25,7 +25,17 @@ function translate(text: string): string {
  * Login/cadastro do aluno. A conta é ligada ao aluno depois, pela página, usando o link do professor:
  * por isso "Criar conta" só aparece com um link válido (`canSignUp`).
  */
-export function StudentAuthForm({ initialMode = 'signin', canSignUp, onCancel }: { initialMode?: AuthMode; canSignUp: boolean; onCancel?: () => void }) {
+export function StudentAuthForm({
+  initialMode = 'signin', canSignUp, onCancel, redirectPath = '/minhas-presencas', linkName = 'link do professor',
+}: {
+  initialMode?: AuthMode
+  canSignUp: boolean
+  onCancel?: () => void
+  /** Para onde o link de confirmação de e-mail volta. */
+  redirectPath?: string
+  /** Como chamar o link que precisa continuar válido até a confirmação. */
+  linkName?: string
+}) {
   const [mode, setMode] = useState<AuthMode>(canSignUp ? initialMode : initialMode === 'signup' ? 'signin' : initialMode)
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
@@ -46,12 +56,12 @@ export function StudentAuthForm({ initialMode = 'signin', canSignUp, onCancel }:
         const { data, error } = await auth.signUp({
           email,
           password,
-          options: { data: { name }, emailRedirectTo: `${window.location.origin}/minhas-presencas` },
+          options: { data: { name }, emailRedirectTo: `${window.location.origin}${redirectPath}` },
         })
         if (error) throw error
         if (!data.session) {
           setMessage({
-            text: 'Conta criada! Abra o link de confirmação que enviamos ao seu e-mail neste celular. Faça isso enquanto o link do professor ainda vale.',
+            text: `Conta criada! Abra o link de confirmação que enviamos ao seu e-mail neste celular, enquanto o ${linkName} ainda vale.`,
             error: false,
           })
         }

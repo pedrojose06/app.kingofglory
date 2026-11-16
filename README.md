@@ -73,6 +73,7 @@ As migrations em `supabase/migrations` já estão aplicadas no projeto remoto, c
 | `kids_rank_age` | `ranks.min_age`: graduação infantil por idade que o aluno completa no ano (11 Branco, 12 Amarelo, 13 Laranja, 14 Verde) |
 | `lesson_plan_reminders` | lembrete do plano de aula por push: `lesson_plan_reminders` (um horário por professor, padrão 13:30) e `claim_lesson_plan_reminders()`; o job do cron passa a acordar a Edge Function também para ele |
 | `student_portal` | área do aluno: `student_access` (link secreto por aluno), `rotate_student_access()` e `student_portal(token)`, chamável sem login |
+| `instructor_invites` | convite de professor: conta nova começa sem acesso (`profiles.role` padrão `student`); `create_instructor_invite`, `instructor_invite_info(token)` (sem login) e `accept_instructor_invite(token)` |
 | `student_accounts` | link com validade (`student_access.expires_at`, padrão 24 h), conta do aluno (`claim_student_account`, `my_student_account`, `my_student_portal`) e aceite LGPD do aluno (`students.account_consent_at`, `accept_image_consent`) |
 | `attendance_credits` | `attendance.credits`: quanto a presença vale (aulão = 2), somado em `student_progress`; `register_walk_ins()` registra avulsa com valor |
 | `next_graduation` | `gyms.next_graduation_on`: data marcada da próxima graduação; o app conta os meses de cada aluno até ela |
@@ -260,6 +261,16 @@ Pelo link, o aluno pode **criar a conta** (nome, e-mail, senha). A conta é liga
 - Para o aluno criar conta, "Allow new users to sign up" precisa estar ligado no Supabase. Se a confirmação de
   e-mail estiver ligada, o aluno confirma no mesmo celular enquanto o link ainda vale; ao abrir, a conta é ligada.
 
+## Convite de professor
+
+Mais › **Convidar professor** › Gerar convite. Qualquer professor pode convidar. O link `/convite#<token>` vale
+para uma pessoa e por 7 dias; quem abre cria a conta (ou entra, se já tiver) e vira professor. O convite só
+libera o acesso: o convidado cadastra a própria academia, alunos e grade, e não vê as academias de quem convidou.
+
+- Conta criada sem convite nem link de aluno não tem acesso a nada (é levada para uma tela explicando isso).
+- O login do professor não tem mais "Criar conta": professor novo entra pelo convite.
+- Convites abertos podem ser cancelados; a tela lista também os usados e vencidos.
+
 ## Importação do InClass
 
 Mais › Importar presenças. O arquivo é lido no browser, o app mostra um preview (alunos e aulas que serão
@@ -293,8 +304,8 @@ altere apenas `parseAttendanceExport` em `packages/core/src/domain/import.ts`.
    em Redirect URLs, mais `https://app.kingofglory.com.br/login-professor` (necessário para o link de "esqueci a senha")
    e `https://app.kingofglory.com.br/minhas-presencas` (confirmação de e-mail da conta do aluno).
 7. **Criar sua conta** no app. "Allow new users to sign up" (Supabase › Authentication › Sign In / Providers)
-   precisa ficar ligado para alunos e professores criarem conta. Uma conta nova sem academia não vê dados de
-   ninguém, mas, enquanto não vira aluno, conta como professor e poderia editar os requisitos dos graus.
+   precisa ficar ligado para alunos e professores criarem conta. Conta nova começa sem acesso: vira aluno pelo
+   link do aluno ou professor pelo convite (Mais › Convidar professor).
 8. **Instalar no celular**: abrir `https://app.kingofglory.com.br` e usar "Adicionar à tela de início".
 
 ## Fases seguintes

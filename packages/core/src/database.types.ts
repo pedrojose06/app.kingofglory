@@ -478,6 +478,33 @@ export type Database = {
         }
         Relationships: []
       }
+      instructor_invites: {
+        Row: {
+          token: string
+          created_by: string
+          created_at: string
+          expires_at: string
+          used_by: string | null
+          used_at: string | null
+        }
+        Insert: {
+          token?: string
+          created_by?: string
+          created_at?: string
+          expires_at?: string
+          used_by?: string | null
+          used_at?: string | null
+        }
+        Update: {
+          token?: string
+          created_by?: string
+          created_at?: string
+          expires_at?: string
+          used_by?: string | null
+          used_at?: string | null
+        }
+        Relationships: []
+      }
       student_access: {
         Row: {
           student_id: string
@@ -643,6 +670,9 @@ export type Database = {
       my_student_account: { Args: never; Returns: Json }
       accept_image_consent: { Args: never; Returns: undefined }
       my_student_portal: { Args: never; Returns: Json }
+      create_instructor_invite: { Args: never; Returns: string }
+      instructor_invite_info: { Args: { p_token: string }; Returns: Json }
+      accept_instructor_invite: { Args: { p_token: string }; Returns: undefined }
       student_portal: { Args: { p_token: string }; Returns: Json }
       rotate_lesson_plan_share: { Args: { p_class_id: string }; Returns: string }
       shared_lesson_plan: { Args: { p_token: string }; Returns: Json }

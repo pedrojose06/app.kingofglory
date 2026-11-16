@@ -200,7 +200,8 @@ function AccountMode({ token, onLeave }: { token: string | null; onLeave: (notic
       <Shell>
         <Brand />
         <EmptyState title="Conta ainda não ligada">
-          {claimError ?? 'Para ligar esta conta a você, abra neste celular o link que o professor enviou.'}
+          {claimError ??
+            'Esta conta ainda não tem acesso. Se você é aluno, abra neste celular o link que o professor enviou. Se é professor, abra o convite que recebeu.'}
         </EmptyState>
         <Button variant="ghost" block className="mt-4" onPress={() => void signOut()}><LogOut className="size-4" /> Sair</Button>
       </Shell>

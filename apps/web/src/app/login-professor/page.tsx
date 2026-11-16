@@ -116,7 +116,7 @@ export default function LoginPage() {
               {mode === 'signin' ? (
                 <>
                   <button type="button" onClick={() => setMode('reset')}>Esqueci a senha</button>
-                  <button type="button" onClick={() => setMode('signup')}>Criar conta</button>
+                  <span className="text-right text-xs text-faint">Professor novo? Peça um convite.</span>
                 </>
               ) : (
                 <button type="button" onClick={() => setMode('signin')}>Já tenho conta</button>
