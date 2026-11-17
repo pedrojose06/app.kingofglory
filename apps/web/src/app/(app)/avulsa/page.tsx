@@ -63,14 +63,16 @@ export default function WalkInPage() {
     setSearch('')
   }
 
-  const suggestions = (locations.data ?? []).filter((l) => l !== location.trim()).slice(0, 6)
+  // Matriz e as academias cadastradas vêm primeiro; depois, outros locais já digitados.
+  const suggestions = locations.data ?? []
+  const isCurrent = (l: string) => normalizeName(l) === normalizeName(location)
   const gymName = (id: string) => gyms.data?.find((g) => g.id === id)?.name
 
   return (
     <Page title="Presença avulsa" kicker="Treino em outra academia" back>
       <div className="grid grid-cols-[1fr_9.5rem] gap-2">
         <Field label="Local">
-          <Input value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Ex.: Matriz" autoCapitalize="words" list="walkin-locations" />
+          <Input value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Escolha abaixo ou digite" autoCapitalize="words" list="walkin-locations" />
           <datalist id="walkin-locations">
             {(locations.data ?? []).map((l) => <option key={l} value={l} />)}
           </datalist>
@@ -80,8 +82,8 @@ export default function WalkInPage() {
         </Field>
       </div>
       {suggestions.length > 0 ? (
-        <div className="-mx-4 mt-2 flex gap-2 overflow-x-auto px-4 pb-1">
-          {suggestions.map((l) => <Chip key={l} onPress={() => setLocation(l)}>{l}</Chip>)}
+        <div className="mt-2 flex flex-wrap gap-2">
+          {suggestions.map((l) => <Chip key={l} active={isCurrent(l)} onPress={() => setLocation(l)}>{l}</Chip>)}
         </div>
       ) : null}
 
