@@ -13,7 +13,9 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { Section, StatusBadge, studentSince } from '@/components/common'
 import { FacePhotoField, getPendingFace, storePendingFace } from '@/components/face-photo'
 import { Loading } from '@/components/shell'
+import { InstallPrompt } from '@/components/install-prompt'
 import { ConsentScreen, StudentAuthForm, formatDateTimeBR } from '@/components/student-account'
+import { StudentReminderCard } from '@/components/student-reminders'
 import { useAuth } from '@/lib/auth'
 import { useToday } from '@/lib/queries'
 import { getStoredStudentToken, storeStudentToken } from '@/lib/student-link'
@@ -51,6 +53,7 @@ function Shell({ children }: { children: ReactNode }) {
   return (
     <main className="mx-auto max-w-xl px-4 pt-[calc(env(safe-area-inset-top)+1.25rem)] pb-[calc(env(safe-area-inset-bottom)+2.5rem)]">
       {children}
+      <InstallPrompt bottomNav={false} />
       {/* Só para quem não está logado: logado como aluno, o login do professor mandaria de volta para cá. */}
       {!session ? (
         <p className="mt-10 text-center text-xs text-faint">
@@ -252,7 +255,10 @@ function AccountMode({ token, onLeave }: { token: string | null; onLeave: (notic
         offline={portal.isError}
         onSignOut={() => void signOut()}
         bottom={
-          <Button variant="ghost" block className="mt-8" onPress={() => void signOut()}><LogOut className="size-4" /> Sair da conta</Button>
+          <>
+            <StudentReminderCard />
+            <Button variant="ghost" block className="mt-8" onPress={() => void signOut()}><LogOut className="size-4" /> Sair da conta</Button>
+          </>
         }
       />
     </Shell>

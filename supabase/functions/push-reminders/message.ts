@@ -52,6 +52,23 @@ export function lessonPlanMessage(profileId: string, classes: PlanClass[]): Push
   }
 }
 
+/** Lembrete de aula do aluno: um aviso por dia, com as aulas que ainda faltam; tocar abre a área do aluno. */
+export function studentClassMessage(profileId: string, classes: OpenClass[]): PushMessage {
+  const first = classes[0]!
+  const gyms = [...new Set(classes.map((c) => c.gym))]
+  const one = gyms.length === 1
+  const times = classes.map((c) => (one ? c.start_time ?? '' : label(c))).filter(Boolean)
+  return {
+    title: classes.length === 1 ? `Treino hoje às ${first.start_time}` : 'Tem treino hoje',
+    body:
+      classes.length === 1
+        ? `${first.title} · ${first.gym}. Bom treino!`
+        : `Horários de hoje${one ? ` (${gyms[0]})` : ''}: ${joinList(times)}. Bom treino!`,
+    url: '/minhas-presencas',
+    tag: `kog-student-${profileId}`,
+  }
+}
+
 export interface PlanReview {
   class_id: string
   /** YYYY-MM-DD */

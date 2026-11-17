@@ -37,6 +37,30 @@ export type Database = {
         }
         Relationships: []
       }
+      student_class_reminders: {
+        Row: {
+          profile_id: string
+          enabled: boolean
+          lead_minutes: number
+          last_sent_on: string | null
+          created_at: string
+        }
+        Insert: {
+          profile_id?: string
+          enabled?: boolean
+          lead_minutes?: number
+          last_sent_on?: string | null
+          created_at?: string
+        }
+        Update: {
+          profile_id?: string
+          enabled?: boolean
+          lead_minutes?: number
+          last_sent_on?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
       lesson_plan_reminders: {
         Row: {
           profile_id: string

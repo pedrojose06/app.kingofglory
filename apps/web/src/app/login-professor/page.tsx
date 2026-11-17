@@ -3,6 +3,7 @@
 import { Button, Field, Input, Kicker } from '@kog/ui'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState, type FormEvent } from 'react'
+import { InstallPrompt } from '@/components/install-prompt'
 import { useAuth } from '@/lib/auth'
 import { db, isConfigured } from '@/lib/supabase'
 import { errorMessage } from '@/lib/toast'
@@ -131,6 +132,7 @@ export default function LoginPage() {
         {' · '}
         <a href="/minhas-presencas" className="font-medium text-accent underline underline-offset-2">Entrar</a>
       </p>
+      <InstallPrompt bottomNav={false} />
     </main>
   )
 }

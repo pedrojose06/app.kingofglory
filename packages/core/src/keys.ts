@@ -36,5 +36,6 @@ export const keys = {
   mySignupRequest: ['student-portal', 'me', 'request'] as const,
   studentRequests: ['student-requests'] as const,
   signupRanks: ['signup', 'ranks'] as const,
+  studentClassReminder: ['student-portal', 'me', 'class-reminder'] as const,
   inviteInfo: (token: string) => ['invite-info', token] as const,
 }

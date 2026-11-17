@@ -11,6 +11,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useMemo, useState, type FormEvent } from 'react'
 import { FacePhotoField, storePendingFace } from '@/components/face-photo'
+import { InstallPrompt } from '@/components/install-prompt'
 import { Loading } from '@/components/shell'
 import { useAuth } from '@/lib/auth'
 import { db, isConfigured } from '@/lib/supabase'
@@ -251,6 +252,7 @@ export default function StudentSignupPage() {
       <p className="mt-8 text-center text-sm text-dim">
         Já tem conta? <Link href={STUDENT_PORTAL_PATH} className="font-medium text-accent underline underline-offset-2">Entrar</Link>
       </p>
+      <InstallPrompt bottomNav={false} />
     </main>
   )
 }

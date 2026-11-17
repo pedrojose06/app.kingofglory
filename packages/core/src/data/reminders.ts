@@ -1,4 +1,4 @@
-import type { AttendanceReminder, Db, LessonPlanReminder } from '../types'
+import type { AttendanceReminder, Db, LessonPlanReminder, StudentClassReminder } from '../types'
 import { unwrap } from './util'
 
 /**
@@ -67,6 +67,20 @@ export async function saveLessonPlanReminder(db: Db, remindAt: string | null): P
     return
   }
   unwrap(await db.from('lesson_plan_reminders').upsert({ remind_at: remindAt }, { onConflict: 'profile_id' }))
+}
+
+/** Antecedências do lembrete de aula do aluno, em minutos. */
+export const STUDENT_REMINDER_LEADS = [30, 60, 120, 180] as const
+export const DEFAULT_STUDENT_REMINDER_LEAD = 60
+
+/** Lembrete de aula do aluno logado; nulo = nunca ligou (desligado). */
+export async function getStudentClassReminder(db: Db): Promise<StudentClassReminder | null> {
+  return unwrap(await db.from('student_class_reminders').select('*').maybeSingle())
+}
+
+/** Liga/desliga o lembrete de aula do aluno e grava a antecedência. */
+export async function saveStudentClassReminder(db: Db, input: { enabled: boolean; lead_minutes: number }): Promise<void> {
+  unwrap(await db.from('student_class_reminders').upsert(input, { onConflict: 'profile_id' }))
 }
 
 /** Chaves de uma PushSubscription do navegador (`subscription.toJSON()`). */
