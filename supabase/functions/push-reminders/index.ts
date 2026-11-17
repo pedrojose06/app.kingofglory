@@ -15,7 +15,6 @@
 // O segredo do cron fica só no Vault do banco (push_reminders_secret), conferido por cron_secret_matches().
 
 import { createClient } from 'npm:@supabase/supabase-js@2'
-import nodemailer from 'npm:nodemailer@6.9.16'
 import webpush from 'npm:web-push@3.6.7'
 import { approvalEmail, type EmailMessage } from './email.ts'
 import { approvalMessage, lessonPlanMessage, planReviewMessage, reminderMessage, studentClassMessage, type OpenClass, type PlanClass, type PlanReview, type PushMessage } from './message.ts'
@@ -80,15 +79,22 @@ const smtpUser = Deno.env.get('SMTP_USER')
 const smtpPass = Deno.env.get('SMTP_PASS')
 const smtpPort = Number(Deno.env.get('SMTP_PORT') ?? 465)
 const smtpFrom = Deno.env.get('SMTP_FROM') ?? 'King of Glory <nao-responda@kingofglory.com.br>'
-const mailer =
-  smtpHost && smtpUser && smtpPass
-    ? nodemailer.createTransport({ host: smtpHost, port: smtpPort, secure: smtpPort === 465, auth: { user: smtpUser, pass: smtpPass } })
-    : null
+// Carregado só na hora de mandar e-mail: um problema na biblioteca nunca derruba os lembretes por push.
+let mailer: { sendMail: (m: Record<string, unknown>) => Promise<unknown> } | null = null
+async function getMailer() {
+  if (!mailer && smtpHost && smtpUser && smtpPass) {
+    const { default: nodemailer } = await import('npm:nodemailer@6.9.16')
+    mailer = nodemailer.createTransport({ host: smtpHost, port: smtpPort, secure: smtpPort === 465, auth: { user: smtpUser, pass: smtpPass } })
+  }
+  return mailer
+}
 
 /** Envia um e-mail; sem SMTP configurado, não envia. Falha não interrompe os outros avisos. */
 async function sendEmail(message: EmailMessage): Promise<boolean> {
-  if (!mailer) return false
+  if (!smtpHost || !smtpUser || !smtpPass) return false
   try {
+    const mailer = await getMailer()
+    if (!mailer) return false
     await mailer.sendMail({ from: smtpFrom, to: message.to, subject: message.subject, html: message.html, text: message.text })
     return true
   } catch (error) {
