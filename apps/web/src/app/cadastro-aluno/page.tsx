@@ -1,7 +1,7 @@
 'use client'
 
 import {
-  STUDENT_PORTAL_PATH, getProfile, getSignupDirectory, keys, requestStudentAccess, studentSignupMetadata, type DirectoryProfessor,
+  STUDENT_PORTAL_PATH, getProfile, getSignupDirectory, keys, requestStudentAccess, studentSignupMetadata, uploadSignupPhoto, type DirectoryProfessor,
 } from '@kog/core'
 import { Button, Card, Chip, EmptyState, Field, Input, Kicker, cn } from '@kog/ui'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
@@ -9,6 +9,7 @@ import { Check, LogOut, Search } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useMemo, useState, type FormEvent } from 'react'
+import { FacePhotoField, storePendingFace } from '@/components/face-photo'
 import { Loading } from '@/components/shell'
 import { useAuth } from '@/lib/auth'
 import { db, isConfigured } from '@/lib/supabase'
@@ -37,6 +38,8 @@ export default function StudentSignupPage() {
   const [gymId, setGymId] = useState<string | null>(null)
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
+  const [photo, setPhoto] = useState<Blob | null>(null)
+  const [photoMissing, setPhotoMissing] = useState(false)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [password2, setPassword2] = useState('')
@@ -58,6 +61,10 @@ export default function StudentSignupPage() {
   async function submit(e: FormEvent) {
     e.preventDefault()
     if (!gymId) return setMessage({ text: 'Escolha a academia.', error: true })
+    if (!photo) {
+      setPhotoMissing(true)
+      return setMessage({ text: 'Tire uma foto do seu rosto.', error: true })
+    }
     if (!session && password !== password2) return setMessage({ text: 'As senhas não são iguais.', error: true })
     setBusy(true)
     setMessage(null)
@@ -65,6 +72,7 @@ export default function StudentSignupPage() {
     try {
       if (session) {
         await requestStudentAccess(db(), { gymId, name, phone })
+        await sendPhoto(session.user.id, photo)
         await queryClient.invalidateQueries({ queryKey: keys.mySignupRequest })
         router.replace(STUDENT_PORTAL_PATH)
         return
@@ -80,14 +88,31 @@ export default function StudentSignupPage() {
         setExisting(true)
         return
       }
-      if (data.session) router.replace(STUDENT_PORTAL_PATH)
-      else setMessage({ text: `Conta criada! Confirme pelo link que enviamos para ${email}. Depois é só aguardar o professor aprovar.`, error: false })
+      if (data.session && data.user) {
+        await sendPhoto(data.user.id, photo)
+        router.replace(STUDENT_PORTAL_PATH)
+        return
+      }
+      // Sem sessão até confirmar o e-mail: a foto sobe no primeiro acesso.
+      await storePendingFace(photo)
+      setMessage({ text: `Conta criada! Confirme pelo link que enviamos para ${email}. Depois é só aguardar o professor aprovar.`, error: false })
     } catch (error) {
       const text = errorMessage(error)
       if (/already registered/i.test(text)) setExisting(true)
       else setMessage({ text, error: true })
     } finally {
       setBusy(false)
+    }
+  }
+
+  // Conta/pedido já criados: se o envio da foto falhar, ela fica no aparelho e a área do aluno tenta de novo.
+  async function sendPhoto(userId: string, blob: Blob) {
+    await storePendingFace(blob)
+    try {
+      await uploadSignupPhoto(db(), userId, blob)
+      await storePendingFace(null)
+    } catch {
+      // A área do aluno mostra "Falta sua foto" e reenvia.
     }
   }
 
@@ -163,6 +188,9 @@ export default function StudentSignupPage() {
               <p className="kicker">3. Seus dados</p>
               <Field label="Nome completo" hint="Como o professor te conhece, para ele te encontrar na lista.">
                 <Input value={name} onChange={(e) => setName(e.target.value)} autoComplete="name" required />
+              </Field>
+              <Field label="Foto do rosto" hint="Obrigatória. De frente, sem boné nem óculos escuros, para o professor saber quem é você.">
+                <FacePhotoField value={photo} onChange={(b) => { setPhoto(b); setPhotoMissing(false) }} invalid={photoMissing} />
               </Field>
               <Field label="WhatsApp (opcional)">
                 <Input type="tel" inputMode="tel" value={phone} onChange={(e) => setPhone(e.target.value)} autoComplete="tel" />

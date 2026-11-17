@@ -17,6 +17,8 @@ export interface MySignupRequest {
   gym_name: string
   name: string
   created_at: string
+  /** Foto de rosto já enviada. Sem ela o pedido não chega ao professor. */
+  has_photo: boolean
 }
 
 export interface StudentRequest {
@@ -25,10 +27,33 @@ export interface StudentRequest {
   phone: string | null
   email: string
   gym_id: string
+  photo_path: string
   created_at: string
 }
 
 export const STUDENT_SIGNUP_PATH = '/cadastro-aluno'
+
+/** Bucket privado da foto de rosto do cadastro; caminho `{profile_id}/face.jpg`. */
+export const FACE_BUCKET = 'student-faces'
+export const facePath = (profileId: string) => `${profileId}/face.jpg`
+
+/** Envia a foto de rosto da conta logada e a liga ao pedido de acesso (que já deve existir). */
+export async function uploadSignupPhoto(db: Db, profileId: string, file: Blob): Promise<void> {
+  const path = facePath(profileId)
+  const up = await db.storage.from(FACE_BUCKET).upload(path, file, { contentType: 'image/jpeg', upsert: true })
+  if (up.error) throw up.error
+  unwrap(await db.rpc('set_signup_photo', { p_path: path }))
+}
+
+/** URLs assinadas das fotos de rosto (o professor só consegue as dos pedidos das academias dele). */
+export async function signFaceUrls(db: Db, paths: string[], expiresInSeconds = 3600): Promise<Record<string, string>> {
+  if (paths.length === 0) return {}
+  const { data, error } = await db.storage.from(FACE_BUCKET).createSignedUrls(paths, expiresInSeconds)
+  if (error) throw error
+  const out: Record<string, string> = {}
+  for (const item of data ?? []) if (item.path && item.signedUrl) out[item.path] = item.signedUrl
+  return out
+}
 
 /** Metadados do signUp que já criam o pedido no banco (funciona mesmo confirmando o e-mail em outro navegador). */
 export function studentSignupMetadata(input: { name: string; gymId: string; phone?: string }) {

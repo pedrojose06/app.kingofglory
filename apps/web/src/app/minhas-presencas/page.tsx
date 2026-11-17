@@ -3,7 +3,7 @@
 import {
   STUDENT_SIGNUP_PATH, acceptImageConsent, attendanceStats, getMySignupRequest, claimStudentAccount, formatDateBR, getMyStudentAccount, getMyStudentPortal, hasAccountConsent,
   monthsBetween, formatDayShort, formatMonth, formatTime, getStudentPortal, graduationStatus, isCounted,
-  keys, missingLabel, trackOf, type StudentPortal,
+  keys, missingLabel, trackOf, uploadSignupPhoto, type StudentPortal,
 } from '@kog/core'
 import { Badge, Button, Card, EmptyState, Kicker, ProgressBar, RankBand, Title } from '@kog/ui'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -11,6 +11,7 @@ import { LogOut, UserPlus } from 'lucide-react'
 import Link from 'next/link'
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { Section, StatusBadge, studentSince } from '@/components/common'
+import { FacePhotoField, getPendingFace, storePendingFace } from '@/components/face-photo'
 import { Loading } from '@/components/shell'
 import { ConsentScreen, StudentAuthForm, formatDateTimeBR } from '@/components/student-account'
 import { useAuth } from '@/lib/auth'
@@ -261,7 +262,26 @@ function AccountMode({ token, onLeave }: { token: string | null; onLeave: (notic
 /** Conta sem aluno ligado: mostra o pedido ao professor (aguardando/recusado) ou como pedir acesso. */
 function PendingAccount({ claimError, onSignOut }: { claimError: string | null; onSignOut: () => void }) {
   const queryClient = useQueryClient()
+  const { session } = useAuth()
   const request = useQuery({ queryKey: keys.mySignupRequest, queryFn: () => getMySignupRequest(db()), networkMode: 'online', refetchInterval: 60_000 })
+  const [photo, setPhoto] = useState<Blob | null>(null)
+  const sendPhoto = useMutation({
+    mutationFn: (blob: Blob) => uploadSignupPhoto(db(), session!.user.id, blob),
+    onSuccess: async () => {
+      await storePendingFace(null)
+      await queryClient.invalidateQueries({ queryKey: keys.mySignupRequest })
+    },
+  })
+  const needsPhoto = request.data?.status === 'pending' && !request.data.has_photo
+  // Foto tirada no cadastro (antes de confirmar o e-mail) e guardada neste aparelho: envia sozinha.
+  const autoSent = useRef(false)
+  useEffect(() => {
+    if (!needsPhoto || !session || autoSent.current) return
+    autoSent.current = true
+    void getPendingFace().then((blob) => {
+      if (blob) sendPhoto.mutate(blob)
+    })
+  }, [needsPhoto, session, sendPhoto])
   // Aprovado: a conta já está ligada; recarrega para seguir ao aceite LGPD.
   useEffect(() => {
     if (request.data?.status === 'approved') void queryClient.invalidateQueries({ queryKey: keys.myStudentAccount })
@@ -272,7 +292,19 @@ function PendingAccount({ claimError, onSignOut }: { claimError: string | null; 
     <Shell>
       <Brand />
       {claimError ? <Card className="mb-4 border-warning p-3 text-sm text-text">{claimError}</Card> : null}
-      {r?.status === 'pending' ? (
+      {needsPhoto ? (
+        <Card className="p-4">
+          <p className="font-bold text-text">Falta sua foto</p>
+          <p className="mt-1 mb-4 text-sm text-soft">
+            {`Para o pedido de ${r!.gym_name} chegar ao professor, envie uma foto do seu rosto (de frente, sem boné nem óculos escuros).`}
+          </p>
+          <FacePhotoField value={photo} onChange={setPhoto} />
+          {sendPhoto.isError ? <p className="mt-3 text-sm text-danger">{errorMessage(sendPhoto.error)}</p> : null}
+          <Button block size="lg" className="mt-4" disabled={!photo} loading={sendPhoto.isPending} onPress={() => photo && sendPhoto.mutate(photo)}>
+            Enviar foto
+          </Button>
+        </Card>
+      ) : r?.status === 'pending' ? (
         <EmptyState title="Aguardando o professor">
           {`Seu pedido para ${r.gym_name} foi enviado em ${formatDateBR(r.created_at.slice(0, 10))}. Assim que o professor aprovar, você acessa suas presenças aqui.`}
         </EmptyState>

@@ -1,8 +1,9 @@
 'use client'
 
-import { approveStudentRequest, formatDateBR, keys, rejectStudentRequest, type StudentRequest } from '@kog/core'
+import { approveStudentRequest, formatDateBR, keys, rejectStudentRequest, signFaceUrls, type StudentRequest } from '@kog/core'
 import { Button, Card, Input, Sheet, cn } from '@kog/ui'
-import { Check, Mail, Phone, Search, UserPlus } from 'lucide-react'
+import { useQuery } from '@tanstack/react-query'
+import { Check, Mail, Phone, Search, UserPlus, UserRound } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { Section } from '@/components/common'
 import { Loading } from '@/components/shell'
@@ -23,6 +24,14 @@ export function StudentRequestsSection() {
   const reject = useSave((id: string) => rejectStudentRequest(db(), id), [keys.studentRequests], () => toast('Pedido recusado'))
   const gymName = (id: string) => gyms.data?.find((g) => g.id === id)?.name ?? 'Academia'
   const list = requests.data ?? []
+  const paths = list.map((r) => r.photo_path)
+  const faces = useQuery({
+    queryKey: [...keys.studentRequests, 'faces', paths.join(',')],
+    queryFn: () => signFaceUrls(db(), paths),
+    enabled: paths.length > 0,
+    staleTime: 30 * 60_000,
+    gcTime: 50 * 60_000, // URLs assinadas valem 1h
+  })
   if (list.length === 0) return null
 
   return (
@@ -30,8 +39,9 @@ export function StudentRequestsSection() {
       <div className="space-y-2">
         {list.map((r) => (
           <Card key={r.id} className="p-3">
-            <div className="flex items-start justify-between gap-2">
-              <div className="min-w-0">
+            <div className="flex items-start gap-3">
+              <Face url={faces.data?.[r.photo_path]} name={r.name} />
+              <div className="min-w-0 flex-1">
                 <p className="truncate font-bold text-text">{r.name}</p>
                 <p className="text-xs font-bold uppercase tracking-[0.08em] text-accent">{gymName(r.gym_id)}</p>
               </div>
@@ -53,13 +63,13 @@ export function StudentRequestsSection() {
         O aluno escolheu você e a academia ao criar a conta. Diga qual aluno da sua lista é esse login, cadastre como novo ou recuse.
         Aprovado, ele aceita o uso de imagem (LGPD) e passa a ver as presenças.
       </p>
-      {approving ? <ApproveSheet request={approving} gymName={gymName(approving.gym_id)} onClose={() => setApproving(null)} /> : null}
+      {approving ? <ApproveSheet request={approving} faceUrl={faces.data?.[approving.photo_path]} gymName={gymName(approving.gym_id)} onClose={() => setApproving(null)} /> : null}
     </Section>
   )
 }
 
 /** Escolhe qual aluno (da academia do pedido, ainda sem conta) é esse login, ou cria um aluno novo. */
-function ApproveSheet({ request, gymName, onClose }: { request: StudentRequest; gymName: string; onClose: () => void }) {
+function ApproveSheet({ request, faceUrl, gymName, onClose }: { request: StudentRequest; faceUrl?: string; gymName: string; onClose: () => void }) {
   const students = useStudents()
   const [search, setSearch] = useState('')
   const [choice, setChoice] = useState<string | 'new' | null>(null)
@@ -83,6 +93,10 @@ function ApproveSheet({ request, gymName, onClose }: { request: StudentRequest; 
 
   return (
     <Sheet open onClose={onClose} title={`Quem é ${request.name.split(/\s+/)[0]}?`}>
+      {faceUrl ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={faceUrl} alt={`Foto de ${request.name}`} className="mx-auto mb-3 size-32 rounded-full object-cover ring-1 ring-line-strong" />
+      ) : null}
       <p className="mb-3 text-sm text-dim">Alunos de {gymName} que ainda não têm conta. Os nomes parecidos aparecem primeiro.</p>
       <button
         type="button"
@@ -121,5 +135,22 @@ function ApproveSheet({ request, gymName, onClose }: { request: StudentRequest; 
         {choice === 'new' ? 'Cadastrar e aprovar' : 'Aprovar acesso'}
       </Button>
     </Sheet>
+  )
+}
+
+/** Foto de rosto enviada no cadastro (toque abre maior). */
+function Face({ url, name }: { url?: string; name: string }) {
+  const [open, setOpen] = useState(false)
+  return (
+    <>
+      <button type="button" onClick={() => url && setOpen(true)} className="flex size-14 shrink-0 items-center justify-center overflow-hidden rounded-full bg-surface-2 ring-1 ring-line-strong">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        {url ? <img src={url} alt={`Foto de ${name}`} className="size-full object-cover" /> : <UserRound className="size-6 text-faint" />}
+      </button>
+      <Sheet open={open} onClose={() => setOpen(false)} title={name}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        {url ? <img src={url} alt={`Foto de ${name}`} className="w-full rounded" /> : null}
+      </Sheet>
+    </>
   )
 }

@@ -676,6 +676,7 @@ export type Database = {
       signup_directory: { Args: never; Returns: Json }
       request_student_access: { Args: { p_gym_id: string; p_name: string; p_phone?: string }; Returns: undefined }
       my_signup_request: { Args: never; Returns: Json }
+      set_signup_photo: { Args: { p_path: string }; Returns: undefined }
       list_student_requests: { Args: never; Returns: Json }
       approve_student_request: { Args: { p_request_id: string; p_student_id?: string }; Returns: string }
       reject_student_request: { Args: { p_request_id: string }; Returns: undefined }
