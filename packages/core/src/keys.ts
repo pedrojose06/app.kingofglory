@@ -24,6 +24,8 @@ export const keys = {
   lessonPlan: (classId: string) => ['lesson-plan', classId] as const,
   plannedClasses: (ids: readonly string[]) => ['lesson-plan', 'planned', [...ids].sort().join(',')] as const,
   classPhotos: (classId: string) => ['photos', classId] as const,
+  photoFaces: (classId: string) => ['photos', classId, 'faces'] as const,
+  faceReferences: (gymId: string) => ['face-references', gymId] as const,
   studentAccess: (studentId: string) => ['student-access', studentId] as const,
   studentPortal: (token: string) => ['student-portal', token] as const,
   myStudentAccount: ['student-portal', 'me', 'account'] as const,

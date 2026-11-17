@@ -3,7 +3,7 @@
 import {
   countPresentByClass, ensureClasses, getPlanTemplate, getGraduationSchedule, listAbsenceStreaks, listClassTurnout, getClass, getLessonPlan, getLessonPlanReminder, getProfile, keys, listClassAttendance, listClassesByDate,
   listClassesRange, listClassPhotos, listGraduations, listGyms, listPendingClasses, listProgress, listRanks, listReminders, listSchedules,
-  listPlannedClassIds, listStudentAttendance, listStudentRequests, listStudents, listWalkInLocations, todayISO, type ClassRow,
+  listPlannedClassIds, listFaceReferences, listPhotoFaces, listStudentAttendance, listStudentRequests, listStudents, listWalkInLocations, todayISO, type ClassRow,
 } from '@kog/core'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
@@ -118,3 +118,15 @@ export function useSave<TArgs, TResult = unknown>(
     onError: toastError,
   })
 }
+
+/** Referências faciais da academia (só alunos com consentimento). Ficam no cache offline para reconhecer sem internet. */
+export const useFaceReferences = (gymId: string, enabled = true) =>
+  useQuery({ queryKey: keys.faceReferences(gymId), queryFn: () => listFaceReferences(db(), gymId), enabled: enabled && !!gymId, staleTime: 10 * 60_000 })
+
+/** Rostos já decididos nas fotos da aula. */
+export const usePhotoFaces = (classId: string, photoIds: readonly string[]) =>
+  useQuery({
+    queryKey: [...keys.photoFaces(classId), [...photoIds].sort().join(',')],
+    queryFn: () => listPhotoFaces(db(), photoIds),
+    enabled: photoIds.length > 0,
+  })

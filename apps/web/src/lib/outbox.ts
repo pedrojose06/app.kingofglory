@@ -64,6 +64,10 @@ function invalidate(queryClient: QueryClient, op: OutboxOp) {
     case 'photo.upload':
       inv(keys.classPhotos(op.meta.class_id))
       break
+    case 'face.decisions':
+      inv(keys.photoFaces(op.classId))
+      inv(keys.faceReferences(op.gymId))
+      break
   }
 }
 

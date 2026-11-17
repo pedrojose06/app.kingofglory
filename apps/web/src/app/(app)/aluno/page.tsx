@@ -280,14 +280,16 @@ export default function StudentPage() {
           {student.notes ? <div className="px-3 py-2.5 text-soft">{student.notes}</div> : null}
           <label className="flex items-center justify-between gap-3 px-3 py-2.5">
             <span>
-              <span className="block text-text">Autorizou uso de imagem</span>
+              <span className="block text-text">Autorizou uso de imagem e reconhecimento facial</span>
               <span className="block text-xs text-dim">{student.image_consent_at
                   ? `${student.account_consent_at ? 'Aceito pelo aluno no app' : 'Aceite registrado'} em ${formatDateBR(student.image_consent_at.slice(0, 10))}`
                   : 'Sem aceite registrado (LGPD)'}</span>
             </span>
             <input type="checkbox" className="size-5 accent-[var(--kog-gold)]" checked={!!student.image_consent_at} onChange={(e) => {
               const next = e.target.checked
-              if (!next && student.profile_id && !window.confirm('Retirar a autorização? A conta do aluno no app fica bloqueada até ele aceitar de novo.')) return
+              if (!next && !window.confirm(
+                `Retirar a autorização? Os dados do rosto do aluno (reconhecimento facial) são apagados${student.profile_id ? ' e a conta dele no app fica bloqueada até ele aceitar de novo' : ''}.`,
+              )) return
               setConsent.mutate(next)
             }} />
           </label>

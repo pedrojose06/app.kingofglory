@@ -4,8 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "next dev",
-    "build": "next build --webpack",
+    "dev": "node scripts/face-assets.mjs && next dev",
+    "build": "node scripts/face-assets.mjs && next build --webpack",
     "start": "next start",
     "typecheck": "tsc --noEmit"
   },
@@ -30,6 +30,7 @@
     "idb-keyval": "^6.3.0",
     "lucide-react": "^1.72.0",
     "next": "^16.4.6",
+    "onnxruntime-web": "1.23.2",
     "react": "^19.3.1",
     "react-dom": "^19.3.1"
   },

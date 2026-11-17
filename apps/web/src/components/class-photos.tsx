@@ -1,14 +1,16 @@
 'use client'
 
-import { deleteClassPhoto, keys, signPhotoUrls, type ClassPhoto, type ClassRow } from '@kog/core'
+import { deleteClassPhoto, keys, overlayAttendance, signPhotoUrls, type ClassPhoto, type ClassRow } from '@kog/core'
 import { Button, EmptyState, Sheet, Spinner } from '@kog/ui'
 import { useQuery } from '@tanstack/react-query'
 import { Camera, Images } from 'lucide-react'
-import { useEffect, useRef, useState, type ChangeEvent } from 'react'
-import { outbox, useOutbox } from '@/lib/outbox'
-import { useClassPhotos, useSave } from '@/lib/queries'
+import { useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react'
+import { FaceReview, type FaceReviewTarget } from '@/components/face-review'
+import { analyzePhoto, faceModelsCached, type AnalyzedPhoto, type FaceProgress } from '@/lib/face/engine'
+import { outbox, useOnline, useOutbox } from '@/lib/outbox'
+import { useClassAttendance, useClassPhotos, useFaceReferences, useProfile, useSave, useStudents } from '@/lib/queries'
 import { db } from '@/lib/supabase'
-import { toastError } from '@/lib/toast'
+import { toast, toastError } from '@/lib/toast'
 
 /** Miniatura de uma foto ainda na fila (lida do IndexedDB). */
 function PendingThumb({ blobKey, failed }: { blobKey: string; failed: boolean }) {
@@ -55,6 +57,36 @@ export function ClassPhotos({ klass }: { klass: ClassRow }) {
   const pending = items.flatMap((i) => (i.op.type === 'photo.upload' && i.op.meta.class_id === klass.id ? [{ id: i.id, blobKey: i.op.blobKey, failed: !!i.error }] : []))
   const remove = useSave((photo: ClassPhoto) => deleteClassPhoto(db(), photo), [keys.classPhotos(klass.id)], () => setOpen(null))
 
+  // ── Presença pelo rosto ──
+  const online = useOnline()
+  const students = useStudents()
+  const profile = useProfile()
+  const attendance = useClassAttendance(klass.id)
+  const statusOf = useMemo(() => overlayAttendance(attendance.data ?? [], items, klass.id), [attendance.data, items, klass.id])
+  // Só entra no reconhecimento quem autorizou o uso de imagem (o banco também garante).
+  const faceStudents = useMemo(
+    () => (students.data ?? []).filter((s) => s.gym_id === klass.gym_id && s.active && s.image_consent_at),
+    [students.data, klass.gym_id],
+  )
+  const refs = useFaceReferences(klass.gym_id, faceStudents.length > 0)
+  const [faceQueue, setFaceQueue] = useState<{ photoId: string; file: File }[]>([])
+  const [review, setReview] = useState<{ target: FaceReviewTarget; progress: FaceProgress | null; result: AnalyzedPhoto | null; error: string | null } | null>(null)
+
+  // Analisa a próxima foto da fila quando a revisão anterior fecha.
+  useEffect(() => {
+    if (review || faceQueue.length === 0) return
+    const [next, ...rest] = faceQueue
+    if (!next) return
+    setFaceQueue(rest)
+    const target = { photoId: next.photoId, classId: klass.id, gymId: klass.gym_id }
+    setReview({ target, progress: null, result: null, error: null })
+    analyzePhoto(next.file, (progress) => setReview((r) => (r && r.target === target ? { ...r, progress } : r)))
+      .then((result) => setReview((r) => (r && r.target === target ? { ...r, result } : r)))
+      .catch((error: unknown) =>
+        setReview((r) => (r && r.target === target ? { ...r, error: (error as Error)?.message || 'Erro desconhecido' } : r)),
+      )
+  }, [review, faceQueue, klass.id, klass.gym_id])
+
   async function onFiles(e: ChangeEvent<HTMLInputElement>) {
     const files = [...(e.target.files ?? [])]
     e.target.value = ''
@@ -62,10 +94,21 @@ export function ClassPhotos({ klass }: { klass: ClassRow }) {
     setBusy(true)
     try {
       const { default: compress } = await import('browser-image-compression')
+      const queued: { photoId: string; file: File }[] = []
       for (const file of files) {
         // ~1600px e até ~500 KB: nítido para ver a turma e leve para o 4G da academia.
         const small = await compress(file, { maxWidthOrHeight: 1600, maxSizeMB: 0.5, fileType: 'image/jpeg', useWebWorker: true })
-        await outbox.addPhoto({ id: crypto.randomUUID(), gym_id: klass.gym_id, class_id: klass.id, taken_at: new Date().toISOString() }, small)
+        const photoId = crypto.randomUUID()
+        await outbox.addPhoto({ id: photoId, gym_id: klass.gym_id, class_id: klass.id, taken_at: new Date().toISOString() }, small)
+        queued.push({ photoId, file })
+      }
+      // Reconhecimento: no próprio celular, com a foto original (mais nítida que a comprimida enviada).
+      if (faceStudents.length === 0) {
+        toast('Foto salva. Para presença pelo rosto, marque "Autorizou uso de imagem" nos alunos.')
+      } else if (online || (await faceModelsCached())) {
+        setFaceQueue((q) => [...q, ...queued])
+      } else {
+        toast('Foto salva. O reconhecimento facial precisa de internet na primeira vez.')
       }
     } catch (error) {
       toastError(error)
@@ -98,6 +141,18 @@ export function ClassPhotos({ klass }: { klass: ClassRow }) {
           {pending.map((p) => <PendingThumb key={p.id} blobKey={p.blobKey} failed={p.failed} />)}
         </div>
       )}
+
+      <FaceReview
+        target={review?.target ?? null}
+        progress={review?.progress ?? null}
+        result={review?.result ?? null}
+        error={review?.error ?? null}
+        students={faceStudents}
+        refs={refs.data ?? []}
+        statusOf={statusOf}
+        autoApproveMin={profile.data?.face_auto_approve_min}
+        onClose={() => setReview(null)}
+      />
 
       <Sheet open={!!open} onClose={() => setOpen(null)} title="Foto do treino">
         {open && urls.data?.[open.storage_path] ? (

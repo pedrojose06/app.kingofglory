@@ -138,12 +138,19 @@ export function ConsentScreen({ name, onAccept, onDecline, busy, error }: { name
       </p>
       <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-soft">
         <li>Fotos dos treinos tiradas pelos professores podem mostrar você.</li>
-        <li>As fotos podem ser usadas para registrar sua presença, inclusive por reconhecimento facial, sempre confirmado pelo professor.</li>
-        <li>As fotos ficam só no app da equipe. Você pode retirar a autorização quando quiser, falando com seu professor.</li>
+        <li>
+          <b>Reconhecimento facial para presença:</b> o celular do professor compara os rostos da foto com uma referência numérica
+          do seu rosto (dado biométrico) e sugere quem está no treino. A presença só é marcada depois que o professor confirma.
+        </li>
+        <li>Guardamos só essa referência numérica, nunca uma cópia extra da foto, e só para registrar presença.</li>
+        <li>
+          As fotos e referências ficam só no app da equipe. Você pode retirar a autorização quando quiser, falando com seu
+          professor: os dados do seu rosto são apagados na hora.
+        </li>
       </ul>
       <label className="mt-4 flex items-start gap-3 rounded-lg border border-line p-3">
         <input type="checkbox" className="mt-0.5 size-5 shrink-0 accent-[var(--kog-gold)]" checked={checked} onChange={(e) => setChecked(e.target.checked)} />
-        <span className="text-sm text-text">Li e autorizo o uso da minha imagem nos termos acima.</span>
+        <span className="text-sm text-text">Li e autorizo o uso da minha imagem e o reconhecimento facial para presença, nos termos acima.</span>
       </label>
       {error ? <p className="mt-3 text-sm text-danger">{error}</p> : null}
       <Button block className="mt-4" disabled={!checked} loading={busy} onPress={onAccept}>Aceitar e continuar</Button>

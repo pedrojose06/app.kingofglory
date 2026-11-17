@@ -6,6 +6,7 @@ import type { Json } from '../database.types'
 import { addWalkIns, markAttendanceBatch, type AttendanceMark } from '../data/attendance'
 import { concludeClass, saveLessonPlan, setClassStatus } from '../data/classes'
 import { uploadClassPhoto, type PhotoUpload } from '../data/photos'
+import { saveFaceDecisions, type FaceDecisionItem } from '../data/faces'
 import type { Attendance, AttendanceStatus, ClassStatus, Db } from '../types'
 
 export type OutboxOp =
@@ -15,6 +16,8 @@ export type OutboxOp =
   | { type: 'walkin.add'; student_ids: string[]; date: string; location: string; credits?: number }
   | { type: 'plan.save'; classId: string; content: Json; updatedAt: string }
   | { type: 'photo.upload'; meta: PhotoUpload; blobKey: string }
+  /** Decisões sobre os rostos de uma foto. Vai depois do upload da foto (a fila é em ordem). */
+  | { type: 'face.decisions'; classId: string; gymId: string; items: FaceDecisionItem[] }
 
 export interface OutboxItem {
   id: string
@@ -88,6 +91,8 @@ export async function executeBatch(db: Db, batch: readonly OutboxItem[], deps: O
       if (!blob) return // arquivo local perdido: nada a enviar
       return uploadClassPhoto(db, op.meta, blob)
     }
+    case 'face.decisions':
+      return saveFaceDecisions(db, op.items)
   }
 }
 
@@ -129,5 +134,9 @@ export function describeOp(op: OutboxOp): string {
       return 'Plano de aula'
     case 'photo.upload':
       return 'Foto do treino'
+    case 'face.decisions': {
+      const n = op.items.filter((i) => i.student_id).length
+      return `Reconhecimento facial — ${n} ${n === 1 ? 'aluno' : 'alunos'}`
+    }
   }
 }
