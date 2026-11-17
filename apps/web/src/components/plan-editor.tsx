@@ -8,6 +8,7 @@ import { EditorContent, useEditor } from '@tiptap/react'
 import Suggestion, { type SuggestionKeyDownProps, type SuggestionProps } from '@tiptap/suggestion'
 import { Plus } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { PlanDuplicateButton } from '@/components/plan-duplicate'
 import { PlanReviewBanner, PlanShareButton } from '@/components/plan-share'
 import { planExtensions } from '@/components/plan-extensions'
 import { Loading } from '@/components/shell'
@@ -81,7 +82,7 @@ const isEmptyDoc = (content: unknown) => !content || typeof content !== 'object'
 
 const BLOCK_BUTTON = 'flex h-9 items-center gap-1 rounded border border-line px-2.5 text-xs font-bold uppercase tracking-[0.1em] text-accent'
 
-export function PlanEditor({ classId }: { classId: string }) {
+export function PlanEditor({ classId, gymId }: { classId: string; gymId: string }) {
   const plan = useLessonPlan(classId)
   const template = usePlanTemplate()
   const items = useOutbox()
@@ -105,6 +106,7 @@ export function PlanEditor({ classId }: { classId: string }) {
     <EditorInner
       key={classId}
       classId={classId}
+      gymId={gymId}
       initial={initial}
       blank={blank}
       pending={!!pendingItem}
@@ -114,11 +116,13 @@ export function PlanEditor({ classId }: { classId: string }) {
   )
 }
 
-function EditorInner({ classId, initial, blank, pending, failed, planUpdatedAt }: { classId: string; initial: Json | null; blank: boolean; pending: boolean; failed: boolean; planUpdatedAt: string | null }) {
+function EditorInner({ classId, gymId, initial, blank, pending, failed, planUpdatedAt }: { classId: string; gymId: string; initial: Json | null; blank: boolean; pending: boolean; failed: boolean; planUpdatedAt: string | null }) {
   const online = useOnline()
   const [dirty, setDirty] = useState(false)
   const timer = useRef<number | undefined>(undefined)
   const latest = useRef<Json | null>(null)
+  // Conteúdo atual (inclusive o que ainda não foi salvo), para duplicar o plano em outra aula.
+  const current = useRef<Json | null>(blank ? null : initial)
 
   const save = () => {
     window.clearTimeout(timer.current)
@@ -151,12 +155,18 @@ function EditorInner({ classId, initial, blank, pending, failed, planUpdatedAt }
       initial={initial}
       onChange={(content) => {
         latest.current = content
+        current.current = planHasContent(content) ? content : null
         setDirty(true)
         window.clearTimeout(timer.current)
         timer.current = window.setTimeout(() => saveRef.current(), 1200)
       }}
       status={<p className={cn('text-xs', failed ? 'text-danger' : 'text-dim')} aria-live="polite">{status}</p>}
-      actions={<PlanShareButton classId={classId} unsynced={pending || dirty} planUpdatedAt={planUpdatedAt} />}
+      actions={
+        <>
+          <PlanDuplicateButton classId={classId} gymId={gymId} getContent={() => current.current} />
+          <PlanShareButton classId={classId} unsynced={pending || dirty} planUpdatedAt={planUpdatedAt} />
+        </>
+      }
       banner={<PlanReviewBanner classId={classId} planUpdatedAt={planUpdatedAt} />}
     />
   )

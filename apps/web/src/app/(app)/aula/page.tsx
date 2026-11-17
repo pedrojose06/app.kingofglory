@@ -120,7 +120,7 @@ export default function ClassPage() {
           )}
         </>
       ) : tab === 'plano' ? (
-        <PlanEditor classId={c.id} />
+        <PlanEditor classId={c.id} gymId={c.gym_id} />
       ) : (
         <ClassPhotos klass={c} />
       )}
