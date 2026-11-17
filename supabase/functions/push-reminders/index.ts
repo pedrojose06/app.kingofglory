@@ -84,7 +84,9 @@ let mailer: { sendMail: (m: Record<string, unknown>) => Promise<unknown> } | nul
 async function getMailer() {
   if (!mailer && smtpHost && smtpUser && smtpPass) {
     const { default: nodemailer } = await import('npm:nodemailer@6.9.16')
-    mailer = nodemailer.createTransport({ host: smtpHost, port: smtpPort, secure: smtpPort === 465, auth: { user: smtpUser, pass: smtpPass } })
+    mailer = nodemailer.createTransport({ host: smtpHost, port: smtpPort, secure: smtpPort === 465, auth: { user: smtpUser, pass: smtpPass },
+      // Servidor lento não pode segurar a função (limite de tempo da Edge Function).
+      connectionTimeout: 10_000, greetingTimeout: 10_000, socketTimeout: 20_000 })
   }
   return mailer
 }
@@ -158,13 +160,14 @@ Deno.serve(async (req) => {
       ...approved.filter((c) => c.subscriptions.length > 0).map((c) => ({ to: c.subscriptions, msg: approvalMessage(c.profile_id, c.gym) })),
     ]
     const totals = { reminders: messages.length, sent: 0, failed: 0, emails: 0 }
-    for (const c of approved) {
-      if (c.email && (await sendEmail(approvalEmail({ to: c.email, name: c.name, gym: c.gym })))) totals.emails++
-    }
     for (const { to, msg } of messages) {
       const result = await sendAll(to, msg)
       totals.sent += result.sent
       totals.failed += result.failed
+    }
+    // E-mail depois do push: um servidor de e-mail lento não atrasa os avisos.
+    for (const c of approved) {
+      if (c.email && (await sendEmail(approvalEmail({ to: c.email, name: c.name, gym: c.gym })))) totals.emails++
     }
     return error ? json({ ...totals, error: error.message }, 500) : json(totals)
   }
