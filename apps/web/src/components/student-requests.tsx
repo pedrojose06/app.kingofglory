@@ -3,7 +3,7 @@
 import { approveStudentRequest, formatDateBR, keys, rejectStudentRequest, signFaceUrls, type StudentRequest } from '@kog/core'
 import { Button, Card, Input, Sheet, cn } from '@kog/ui'
 import { useQuery } from '@tanstack/react-query'
-import { Award, Check, Mail, Phone, Search, UserPlus, UserRound } from 'lucide-react'
+import { Award, Cake, Check, Mail, Phone, Search, UserPlus, UserRound } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { Section } from '@/components/common'
 import { Loading } from '@/components/shell'
@@ -52,6 +52,7 @@ export function StudentRequestsSection() {
             <p className="mt-0.5 flex items-center gap-1.5 text-sm text-soft">
               <Award className="size-3.5 shrink-0" /> {rankLabel(r)}
             </p>
+            {r.birth_date ? <p className="mt-0.5 flex items-center gap-1.5 text-sm text-soft"><Cake className="size-3.5 shrink-0" /> Nascimento: {formatDateBR(r.birth_date)}</p> : null}
             <div className="mt-3 grid grid-cols-2 gap-2">
               <Button variant="ghost" className="text-danger" loading={reject.isPending && reject.variables === r.id}
                 onPress={() => window.confirm(`Recusar o pedido de ${r.name}?`) && reject.mutate(r.id)}>

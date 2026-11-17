@@ -34,6 +34,8 @@ export interface StudentRequest {
   rank_grade: number | null
   rank_track: string | null
   graduated_at: string | null
+  /** Data de nascimento informada no cadastro (opcional). */
+  birth_date: string | null
   created_at: string
 }
 
@@ -77,6 +79,8 @@ export interface StudentSignupInput {
   rankId?: string | null
   /** Data da última graduação (AAAA-MM-DD); obrigatória com rankId. */
   graduatedAt?: string | null
+  /** Data de nascimento (AAAA-MM-DD), opcional. */
+  birthDate?: string | null
 }
 
 /** Metadados do signUp que já criam o pedido no banco (funciona mesmo confirmando o e-mail em outro navegador). */
@@ -87,6 +91,7 @@ export function studentSignupMetadata(input: StudentSignupInput) {
     student_phone: input.phone ?? '',
     student_rank_id: input.rankId ?? '',
     student_graduated_at: input.rankId ? (input.graduatedAt ?? '') : '',
+    student_birth_date: input.birthDate ?? '',
   }
 }
 
@@ -109,6 +114,7 @@ export async function requestStudentAccess(db: Db, input: StudentSignupInput): P
       p_name: input.name,
       p_phone: input.phone ?? '',
       ...(input.rankId ? { p_rank_id: input.rankId, p_graduated_at: input.graduatedAt ?? undefined } : {}),
+      ...(input.birthDate ? { p_birth_date: input.birthDate } : {}),
     }),
   )
 }
