@@ -81,7 +81,7 @@ As migrations em `supabase/migrations` já estão aplicadas no projeto remoto, c
 | `graduation_schedule` | data da próxima graduação da equipe por trilha (adulto e infantil), igual para todas as academias; substitui `gyms.next_graduation_on` |
 | `lesson_plan_share` | compartilhar o plano de aula: `lesson_plan_shares` (link secreto por aula + revisão do mestre), `rotate_lesson_plan_share()`, `shared_lesson_plan(token)` e `review_shared_lesson_plan(token, …)`, chamáveis sem login |
 | `plan_review_push` | push para o professor quando o mestre revisa o plano: `lesson_plan_shares.review_notify_pending`, `claim_plan_review_notifications()` e `wake_push_reminders()` (acorda a Edge Function na hora) |
-| `…future_face_recognition.sql.disabled` | schema previsto da Fase 4 (pgvector), não aplicado |
+| `face_recognition` | Fase 4: `face_embeddings` (pgvector 128, só referências numéricas), `face_detections` (decisão do professor por rosto), trigger de consentimento, apagamento ao retirar o consentimento, `save_face_decisions`, `face_references` e `profiles.face_auto_approve_min` (desligado) |
 
 Para criar uma migration nova e aplicar (com a CLI do Supabase):
 
@@ -121,7 +121,7 @@ pnpm db:types
 ## Como funciona o offline
 
 - **Leitura**: cache do TanStack Query persistido em IndexedDB; as telas abrem com os últimos dados vistos.
-- **Escrita**: presença, presença avulsa, conclusão de chamada, plano de aula e foto vão para uma fila em
+- **Escrita**: presença, presença avulsa, conclusão de chamada, plano de aula, foto e respostas da presença pelo rosto vão para uma fila em
   IndexedDB e são enviadas quando há conexão. Todas as operações são idempotentes no servidor, e em conflito
   de presença vence a marcação mais recente.
 - O selo no topo das telas mostra quantas alterações estão pendentes; Mais › Sincronização lista cada uma.
@@ -286,6 +286,46 @@ libera o acesso: o convidado cadastra a própria academia, alunos e grade, e nã
 - O login do professor não tem mais "Criar conta": professor novo entra pelo convite.
 - Convites abertos podem ser cancelados; a tela lista também os usados e vencidos.
 
+## Presença pelo rosto (reconhecimento facial)
+
+Na aula › **Fotos**, ao subir a foto da turma (câmera ou galeria), o celular procura os rostos e, para cada um,
+pergunta **"Esta pessoa é Fulano de Tal? (87%)"** com o recorte do rosto. Opções: **Confirmar**, **É outro**
+(escolher um aluno da academia; os mais parecidos primeiro) e **Ignorar** (não é aluno, rosto ruim). Rosto sem sugestão
+mostra **"Quem é?"**. Nada vira presença sem a resposta do professor; **Salvar** marca as presenças com `source = 'face'`
+pela mesma fila offline da chamada (quem já estava presente ou atrasado não muda).
+
+- **No aparelho, sem serviço externo**: detecção com **YuNet** (OpenCV Zoo, MIT, 0,2 MB) e vetor do rosto com **SFace**
+  int8 (OpenCV Zoo, Apache-2.0, 9,9 MB, 128 dimensões), rodando em **onnxruntime-web** (MIT, WASM, uma thread) dentro de
+  um Web Worker. A foto original é analisada (mais nítida que a enviada); foto grande é varrida em blocos sobrepostos
+  para achar rostos pequenos do fundo. A lógica pura (blocos, decodificação, alinhamento, comparação, confiança,
+  sugestões) está em `packages/core/src/domain/face.ts`, com testes em `face.test.ts`.
+- **Modelos servidos pelo próprio app**: `apps/web/public/models/` (no repositório) e o runtime em `/ort/<versão>/`,
+  copiado do pacote por `apps/web/scripts/face-assets.mjs` no `dev`/`build`. Não entram no pré-cache (ninguém baixa 11 MB
+  ao instalar); o service worker guarda no primeiro uso (`kog-face-models`) e depois funciona offline. Trocar de modelo
+  é trocar o nome do arquivo e o `FACE_MODEL` (vetores de modelos diferentes não se comparam: exige recadastro).
+- **Aprende com o professor**: no começo ninguém tem referência e todo rosto é "Quem é?". Cada resposta vira
+  referência do aluno (`face_embeddings`): correções sempre; confirmações quando trazem algo novo (cosseno < 0,9 com as
+  que ele já tem). Máximo de 20 por aluno (as mais antigas saem). A nota do aluno é a média das 3 referências mais
+  parecidas; a confiança mostrada é uma curva do cosseno (limiar do SFace, 0,363, ≈ 55%); abaixo de 45% o app não sugere.
+  Cada aluno é sugerido para um rosto só por foto. As referências ficam no cache offline e as novas valem na hora.
+- **O banco guarda só números**: o vetor (128 números) e a decisão de cada rosto (`face_detections`: caixa normalizada,
+  sugestão, confiança, aluno escolhido, tipo de decisão e quem decidiu). O recorte mostrado na revisão existe só na
+  memória do celular; não há cópia extra da foto.
+- **Aprovação automática** (preparada, desligada e sem tela): `profiles.face_auto_approve_min` (nulo = desligado; mínimo
+  50%). Com valor, o rosto acima do limite já abre como "Aprovado automaticamente" e grava `decision = 'auto'`; o
+  professor ainda pode desfazer antes de salvar.
+- **Desempenho**: 1 a 3 s por foto num Android médio (a primeira vez inclui o download, com barra de progresso).
+
+### LGPD (dado biométrico)
+
+- Só alunos com **"Autorizou uso de imagem e reconhecimento facial"** (`students.image_consent_at`) aparecem para
+  escolha e podem ter referência. **O banco garante**: triggers recusam referência ou decisão de aluno sem consentimento
+  ou de outra academia; o aceite do aluno na conta (`accept_image_consent`) cita o reconhecimento facial.
+- **Retirar o consentimento apaga na hora** as referências e as decisões do aluno (trigger `students_forget_face`); as
+  presenças continuam.
+- **RLS**: o professor só vê e grava rostos de alunos e fotos das academias em que dá aula (`can_manage_student`,
+  `can_manage_photo`). Apagar a foto apaga as decisões dela; as referências continuam (sem ligação com a foto).
+
 ## Importação do InClass
 
 Mais › Importar presenças. O arquivo é lido no browser, o app mostra um preview (alunos e aulas que serão
@@ -327,5 +367,5 @@ altere apenas `parseAttendanceExport` em `packages/core/src/domain/import.ts`.
 
 - **Fase 2**: convites de professores (`gym_instructors` já suporta), relatórios, templates (`lesson_templates`).
 - **Fase 3**: app do aluno (`students.profile_id`, policies de leitura das próprias presenças já existem).
-- **Fase 4**: reconhecimento facial via Edge Function (schema em `…future_face_recognition.sql.disabled`).
+- **Fase 4**: reconhecimento facial no celular — feito (ver "Presença pelo rosto"). Próximo passo possível: ligar a aprovação automática com uma tela de ajuste.
 - **Fase 5**: `apps/mobile` com Expo reaproveitando `@kog/core`.
