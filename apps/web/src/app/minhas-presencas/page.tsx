@@ -15,7 +15,7 @@ import { FacePhotoField, getPendingFace, storePendingFace } from '@/components/f
 import { Loading } from '@/components/shell'
 import { InstallPrompt } from '@/components/install-prompt'
 import { ConsentScreen, StudentAuthForm, formatDateTimeBR } from '@/components/student-account'
-import { StudentReminderCard } from '@/components/student-reminders'
+import { NotifyWhenApproved, StudentReminderCard } from '@/components/student-reminders'
 import { useAuth } from '@/lib/auth'
 import { useToday } from '@/lib/queries'
 import { getStoredStudentToken, storeStudentToken } from '@/lib/student-link'
@@ -312,7 +312,7 @@ function PendingAccount({ claimError, onSignOut }: { claimError: string | null; 
         </Card>
       ) : r?.status === 'pending' ? (
         <EmptyState title="Aguardando o professor">
-          {`Seu pedido para ${r.gym_name} foi enviado em ${formatDateBR(r.created_at.slice(0, 10))}. Assim que o professor aprovar, você acessa suas presenças aqui.`}
+          {`Seu pedido para ${r.gym_name} foi enviado em ${formatDateBR(r.created_at.slice(0, 10))}. Assim que o professor aprovar, você acessa suas presenças aqui e recebe um e-mail.`}
         </EmptyState>
       ) : r?.status === 'rejected' ? (
         <EmptyState title="Pedido não aprovado">
@@ -323,6 +323,7 @@ function PendingAccount({ claimError, onSignOut }: { claimError: string | null; 
           Peça acesso escolhendo seu professor e a academia, ou abra neste celular o link que o professor enviou.
         </EmptyState>
       )}
+      {r?.status === 'pending' && !needsPhoto ? <NotifyWhenApproved /> : null}
       <Link href={STUDENT_SIGNUP_PATH} className="mt-4 block">
         <Button variant={r?.status === 'pending' ? 'ghost' : 'gold'} block>
           {r ? 'Trocar professor ou academia' : 'Pedir acesso ao professor'}

@@ -113,3 +113,47 @@ export function StudentReminderCard() {
     </Card>
   )
 }
+
+/**
+ * Enquanto o pedido espera o professor: ativa as notificações deste aparelho para o aviso de aprovação chegar
+ * por push (o e-mail chega de qualquer jeito). Some quando já estão ativadas ou o aparelho não suporta.
+ */
+export function NotifyWhenApproved() {
+  const [push, setPush] = useState<PushState | null>(null)
+  const [busy, setBusy] = useState(false)
+
+  useEffect(() => {
+    getPushState().then(setPush, () => setPush('unsupported'))
+    void syncPushSubscription().catch(() => {})
+  }, [])
+
+  if (push !== 'off' && push !== 'on') return null
+
+  if (push === 'on') {
+    return (
+      <p className="mt-4 flex items-center justify-center gap-2 text-sm text-dim">
+        <BellRing className="size-4 text-accent" /> Você vai receber um aviso neste celular quando for aprovado.
+      </p>
+    )
+  }
+
+  async function enable() {
+    setBusy(true)
+    try {
+      setPush(await enablePush())
+    } catch (error) {
+      toastError(error)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <Card className="mt-4 p-4">
+      <p className="text-sm text-soft">Quer saber na hora em que o professor aprovar? Ative as notificações neste celular.</p>
+      <Button block size="sm" className="mt-3" loading={busy} onPress={enable}>
+        <BellRing className="size-4" /> Avisar quando aprovar
+      </Button>
+    </Card>
+  )
+}

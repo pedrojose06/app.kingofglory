@@ -69,6 +69,16 @@ export function studentClassMessage(profileId: string, classes: OpenClass[]): Pu
   }
 }
 
+/** Pedido de acesso do aluno aprovado; tocar abre a área do aluno. */
+export function approvalMessage(profileId: string, gym: string): PushMessage {
+  return {
+    title: 'Acesso liberado!',
+    body: `O professor aprovou seu acesso (${gym}). Toque para ver suas presenças.`,
+    url: '/minhas-presencas',
+    tag: `kog-approval-${profileId}`,
+  }
+}
+
 export interface PlanReview {
   class_id: string
   /** YYYY-MM-DD */
