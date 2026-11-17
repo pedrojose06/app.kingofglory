@@ -47,6 +47,8 @@ export const walkInInput = z.object({
   location: z.string().trim().min(1, 'Informe o local'),
   /** Quantas presenças vale (ex.: aulão = 2). */
   credits: z.number().int().min(1).max(10).default(1),
+  /** Período (manhã/tarde/noite); vazio = sem período. */
+  period: z.enum(['', 'manha', 'tarde', 'noite']).default(''),
 })
 export type WalkInInput = z.infer<typeof walkInInput>
 

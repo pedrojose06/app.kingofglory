@@ -101,6 +101,7 @@ export type Database = {
           marked_by: string
           marked_at: string
           credits: number
+          walk_in_period: string
         }
         Insert: {
           id?: string
@@ -114,6 +115,7 @@ export type Database = {
           marked_by?: string
           marked_at?: string
           credits?: number
+          walk_in_period?: string
         }
         Update: {
           id?: string
@@ -127,6 +129,7 @@ export type Database = {
           marked_by?: string
           marked_at?: string
           credits?: number
+          walk_in_period?: string
         }
         Relationships: []
       }
@@ -662,6 +665,7 @@ export type Database = {
           p_location: string
           p_credits?: number
           p_source?: Database["public"]["Enums"]["attendance_source"]
+          p_period?: string
         }
         Returns: number
       }

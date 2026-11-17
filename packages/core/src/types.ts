@@ -42,6 +42,17 @@ export type ClassStatus = Enum<'class_status'>
 export const COUNTED_STATUSES: readonly AttendanceStatus[] = ['present', 'late']
 export const isCounted = (s: AttendanceStatus) => s === 'present' || s === 'late'
 
+/** Período da presença avulsa: permite mais de uma avulsa no mesmo dia e local. '' = sem período. */
+export const WALK_IN_PERIODS = ['manha', 'tarde', 'noite'] as const
+export type WalkInPeriod = (typeof WALK_IN_PERIODS)[number]
+export const PERIOD_LABEL: Record<WalkInPeriod, string> = { manha: 'Manhã', tarde: 'Tarde', noite: 'Noite' }
+
+/** Local da avulsa com o período, ex.: "Matriz · manhã". */
+export function walkInLabel(a: { location_label: string | null; walk_in_period?: string | null }): string {
+  const period = PERIOD_LABEL[a.walk_in_period as WalkInPeriod]
+  return [a.location_label ?? 'Outro local', period?.toLowerCase()].filter(Boolean).join(' · ')
+}
+
 export const STATUS_LABEL: Record<AttendanceStatus, string> = {
   present: 'Presente',
   absent: 'Falta',

@@ -1,5 +1,5 @@
 import { toCsv } from '../domain/csv'
-import { STATUS_LABEL, type Db } from '../types'
+import { PERIOD_LABEL, STATUS_LABEL, type Db, type WalkInPeriod } from '../types'
 import { listGyms } from './gyms'
 import { listRanks, listStudents } from './students'
 import { fetchAll } from './util'
@@ -44,7 +44,7 @@ export async function exportAll(db: Db): Promise<ExportFile[]> {
             gym.get(a.gym_id),
             STATUS_LABEL[a.status],
             a.class_id ? gym.get(c?.gym_id ?? a.gym_id) : a.location_label,
-            c ? `${c.title} ${c.start_time?.slice(0, 5) ?? ''}`.trim() : 'avulsa',
+            c ? `${c.title} ${c.start_time?.slice(0, 5) ?? ''}`.trim() : ['avulsa', PERIOD_LABEL[a.walk_in_period as WalkInPeriod]?.toLowerCase()].filter(Boolean).join(' '),
             a.source,
             a.student_id,
             a.class_id,

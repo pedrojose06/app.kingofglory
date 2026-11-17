@@ -3,7 +3,7 @@
 import {
   STUDENT_SIGNUP_PATH, acceptImageConsent, attendanceStats, getMySignupRequest, claimStudentAccount, formatDateBR, getMyStudentAccount, getMyStudentPortal, hasAccountConsent,
   monthsBetween, formatDayShort, formatMonth, formatTime, getStudentPortal, graduationStatus, isCounted,
-  keys, missingLabel, trackOf, uploadSignupPhoto, type StudentPortal,
+  keys, missingLabel, trackOf, uploadSignupPhoto, walkInLabel, type StudentPortal,
 } from '@kog/core'
 import { Badge, Button, Card, EmptyState, Kicker, ProgressBar, RankBand, Title } from '@kog/ui'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -492,7 +492,7 @@ function PortalView({ data, updatedAt, offline, top, bottom, onSignOut }: { data
                 <div key={a.id} className="flex items-center gap-3 px-3 py-2">
                   <span className="w-20 shrink-0 text-sm font-medium text-text">{formatDayShort(a.date)}</span>
                   <span className="min-w-0 flex-1 truncate text-sm text-dim">
-                    {a.class_id ? [formatTime(a.start_time), a.title].filter(Boolean).join(' · ') : a.location_label}
+                    {a.class_id ? [formatTime(a.start_time), a.title].filter(Boolean).join(' · ') : walkInLabel(a)}
                   </span>
                   {(a.credits ?? 1) > 1 ? <Badge tone="gold">Vale {a.credits}</Badge> : null}
                   <StatusBadge status={a.status} />
