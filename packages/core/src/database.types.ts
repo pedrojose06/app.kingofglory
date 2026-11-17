@@ -229,6 +229,79 @@ export type Database = {
         }
         Relationships: []
       }
+      face_embeddings: {
+        Row: {
+          id: string
+          student_id: string
+          /** pgvector como texto: "[0.1,0.2,…]" */
+          embedding: string
+          model: string
+          source_photo_id: string | null
+          created_by: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          student_id: string
+          embedding: string
+          model?: string
+          source_photo_id?: string | null
+          created_by?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          student_id?: string
+          embedding?: string
+          model?: string
+          source_photo_id?: string | null
+          created_by?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
+      face_detections: {
+        Row: {
+          id: string
+          photo_id: string
+          face_index: number
+          bbox: Json
+          suggested_student_id: string | null
+          score: number | null
+          student_id: string | null
+          decision: Database["public"]["Enums"]["face_decision"]
+          embedding_id: string | null
+          decided_by: string | null
+          decided_at: string
+        }
+        Insert: {
+          id?: string
+          photo_id: string
+          face_index: number
+          bbox: Json
+          suggested_student_id?: string | null
+          score?: number | null
+          student_id?: string | null
+          decision: Database["public"]["Enums"]["face_decision"]
+          embedding_id?: string | null
+          decided_by?: string | null
+          decided_at?: string
+        }
+        Update: {
+          id?: string
+          photo_id?: string
+          face_index?: number
+          bbox?: Json
+          suggested_student_id?: string | null
+          score?: number | null
+          student_id?: string | null
+          decision?: Database["public"]["Enums"]["face_decision"]
+          embedding_id?: string | null
+          decided_by?: string | null
+          decided_at?: string
+        }
+        Relationships: []
+      }
       gym_instructors: {
         Row: {
           gym_id: string
@@ -353,6 +426,7 @@ export type Database = {
           role: Database["public"]["Enums"]["profile_role"]
           avatar_url: string | null
           absence_alert_threshold: number
+          face_auto_approve_min: number | null
           created_at: string
         }
         Insert: {
@@ -361,6 +435,7 @@ export type Database = {
           role?: Database["public"]["Enums"]["profile_role"]
           avatar_url?: string | null
           absence_alert_threshold?: number
+          face_auto_approve_min?: number | null
           created_at?: string
         }
         Update: {
@@ -369,6 +444,7 @@ export type Database = {
           role?: Database["public"]["Enums"]["profile_role"]
           avatar_url?: string | null
           absence_alert_threshold?: number
+          face_auto_approve_min?: number | null
           created_at?: string
         }
         Relationships: []
@@ -634,6 +710,11 @@ export type Database = {
       today_sp: { Args: never; Returns: string }
       ensure_classes: { Args: { p_until?: string }; Returns: number }
       mark_attendance_batch: { Args: { p_items: Json }; Returns: number }
+      save_face_decisions: { Args: { p_items: Json; p_max_refs?: number }; Returns: number }
+      face_references: {
+        Args: { p_gym_id: string }
+        Returns: { id: string; student_id: string; embedding: string; model: string; created_at: string }[]
+      }
       add_walk_ins: {
         Args: {
           p_student_ids: string[]
@@ -697,6 +778,7 @@ export type Database = {
       class_status: "scheduled" | "done" | "cancelled"
       attendance_status: "present" | "absent" | "late" | "justified"
       attendance_source: "manual" | "walk_in" | "import" | "face" | "student_checkin"
+      face_decision: "confirmed" | "corrected" | "ignored" | "auto"
     }
     CompositeTypes: {
       [_ in never]: never

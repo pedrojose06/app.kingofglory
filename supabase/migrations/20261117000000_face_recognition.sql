@@ -172,12 +172,14 @@ begin
     v_embedding_id := (v_item ->> 'embedding_id')::uuid;
 
     if v_item ? 'embedding' and jsonb_typeof(v_item -> 'embedding') = 'array' and v_student is not null then
-      insert into public.face_embeddings (id, student_id, embedding, source_photo_id)
+      -- clock_timestamp: várias referências no mesmo lote ficam em ordem (a poda mantém as mais novas).
+      insert into public.face_embeddings (id, student_id, embedding, source_photo_id, created_at)
       values (
         coalesce(v_embedding_id, gen_random_uuid()),
         v_student,
         (v_item ->> 'embedding')::extensions.vector,
-        (v_item ->> 'photo_id')::uuid
+        (v_item ->> 'photo_id')::uuid,
+        clock_timestamp()
       )
       on conflict (id) do nothing
       returning id into v_embedding_id;
