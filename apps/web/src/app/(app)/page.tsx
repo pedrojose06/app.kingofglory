@@ -6,9 +6,9 @@ import { ChevronRight, MapPinPlus, Plus } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useMemo, useState } from 'react'
-import { ClassCard, Section } from '@/components/common'
+import { ClassCard, PlanReviewBadge, Section } from '@/components/common'
 import { Loading, Page } from '@/components/shell'
-import { useClassCounts, useClassesByDate, useClassesRange, useGyms, usePendingClasses, usePlannedClasses, useSave, useSchedules, useToday } from '@/lib/queries'
+import { useClassCounts, useClassesByDate, useClassesRange, useGyms, usePendingClasses, usePlannedClasses, usePlanReviews, useSave, useSchedules, useToday } from '@/lib/queries'
 import { toastError } from '@/lib/toast'
 
 /** Quantos dias à frente aparecem em "Próximas aulas" (para adiantar o plano). */
@@ -22,6 +22,7 @@ export default function TodayPage() {
   const classes = useClassesByDate(today)
   const pending = usePendingClasses()
   const counts = useClassCounts(classes.data)
+  const reviews = usePlanReviews((classes.data ?? []).map((c) => c.id))
   const [extraOpen, setExtraOpen] = useState(false)
 
   const createExtra = useSave(
@@ -58,7 +59,7 @@ export default function TodayPage() {
 
           <div className="space-y-2">
             {(classes.data ?? []).map((c) => (
-              <ClassCard key={c.id} klass={c} gymName={gymName(c.gym_id)} present={counts.data?.[c.id]} href={`/aula?id=${c.id}`} />
+              <ClassCard key={c.id} klass={c} gymName={gymName(c.gym_id)} present={counts.data?.[c.id]} review={reviews.data?.[c.id]} href={`/aula?id=${c.id}`} />
             ))}
             {classes.data?.length === 0 ? (
               <EmptyState title="Sem aulas na grade hoje">Deu aula mesmo assim? Crie uma aula extra.</EmptyState>
@@ -102,7 +103,9 @@ function UpcomingSection({ today, gymName }: { today: string; gymName: (id: stri
     () => (schedules.data && existing.data ? upcomingClasses(schedules.data, existing.data, from, UPCOMING_DAYS) : []),
     [schedules.data, existing.data, from],
   )
-  const planned = usePlannedClasses(items.flatMap((u) => (u.klass ? [u.klass.id] : [])))
+  const classIds = items.flatMap((u) => (u.klass ? [u.klass.id] : []))
+  const planned = usePlannedClasses(classIds)
+  const reviews = usePlanReviews(classIds)
   const [opening, setOpening] = useState<string | null>(null)
 
   async function open(u: UpcomingClass) {
@@ -125,6 +128,7 @@ function UpcomingSection({ today, gymName }: { today: string; gymName: (id: stri
       <div className="space-y-2">
         {items.map((u) => {
           const done = !!u.klass && (planned.data ?? []).includes(u.klass.id)
+          const review = u.klass ? reviews.data?.[u.klass.id] : undefined
           return (
             <button key={u.key} type="button" disabled={opening !== null} onClick={() => open(u)} className="block w-full text-left disabled:opacity-60">
               <Card className="flex items-center gap-3 p-4 active:bg-tint">
@@ -133,7 +137,7 @@ function UpcomingSection({ today, gymName }: { today: string; gymName: (id: stri
                   <p className="truncate font-bold text-text">{gymName(u.gym_id)}</p>
                   <p className="truncate text-sm text-dim">{formatDayShort(u.date)} · {u.title}</p>
                 </div>
-                {opening === u.key ? <Badge>Abrindo…</Badge> : done ? <Badge tone="success">Plano feito</Badge> : <Badge tone="gold">Sem plano</Badge>}
+                {opening === u.key ? <Badge>Abrindo…</Badge> : review ? <PlanReviewBadge status={review} /> : done ? <Badge tone="success">Plano feito</Badge> : <Badge tone="gold">Sem plano</Badge>}
                 <ChevronRight className="size-4 shrink-0 text-faint" />
               </Card>
             </button>

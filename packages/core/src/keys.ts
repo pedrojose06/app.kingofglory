@@ -29,6 +29,7 @@ export const keys = {
   myStudentAccount: ['student-portal', 'me', 'account'] as const,
   myStudentPortal: ['student-portal', 'me'] as const,
   planShare: (classId: string) => ['plan-share', classId] as const,
+  planReviews: (ids: readonly string[]) => ['plan-share', 'reviews', [...ids].sort().join(',')] as const,
   sharedPlan: (token: string) => ['shared-plan', token] as const,
   planTemplate: ['plan-template'] as const,
   instructorInvites: ['instructor-invites'] as const,
