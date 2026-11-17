@@ -3,7 +3,7 @@
 import { approveStudentRequest, formatDateBR, keys, rejectStudentRequest, signFaceUrls, type StudentRequest } from '@kog/core'
 import { Button, Card, Input, Sheet, cn } from '@kog/ui'
 import { useQuery } from '@tanstack/react-query'
-import { Check, Mail, Phone, Search, UserPlus, UserRound } from 'lucide-react'
+import { Award, Check, Mail, Phone, Search, UserPlus, UserRound } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { Section } from '@/components/common'
 import { Loading } from '@/components/shell'
@@ -49,6 +49,9 @@ export function StudentRequestsSection() {
             </div>
             <p className="mt-1.5 flex items-center gap-1.5 truncate text-sm text-soft"><Mail className="size-3.5 shrink-0" /> {r.email}</p>
             {r.phone ? <p className="mt-0.5 flex items-center gap-1.5 text-sm text-soft"><Phone className="size-3.5 shrink-0" /> {r.phone}</p> : null}
+            <p className="mt-0.5 flex items-center gap-1.5 text-sm text-soft">
+              <Award className="size-3.5 shrink-0" /> {rankLabel(r)}
+            </p>
             <div className="mt-3 grid grid-cols-2 gap-2">
               <Button variant="ghost" className="text-danger" loading={reject.isPending && reject.variables === r.id}
                 onPress={() => window.confirm(`Recusar o pedido de ${r.name}?`) && reject.mutate(r.id)}>
@@ -60,6 +63,7 @@ export function StudentRequestsSection() {
         ))}
       </div>
       <p className="mt-2 text-xs text-dim">
+        A graduação é o que o aluno informou; aprovado, ela entra no histórico dele (se ele ainda não tiver nenhuma registrada).
         O aluno escolheu você e a academia ao criar a conta. Diga qual aluno da sua lista é esse login, cadastre como novo ou recuse.
         Aprovado, ele aceita o uso de imagem (LGPD) e passa a ver as presenças.
       </p>
@@ -153,4 +157,10 @@ function Face({ url, name }: { url?: string; name: string }) {
       </Sheet>
     </>
   )
+}
+
+function rankLabel(r: StudentRequest): string {
+  if (!r.rank_name) return 'Sem graduação'
+  const track = r.rank_track === 'infantil' ? ' (infantil)' : ''
+  return `${r.rank_name}${track}${r.graduated_at ? ` · desde ${formatDateBR(r.graduated_at)}` : ''}`
 }

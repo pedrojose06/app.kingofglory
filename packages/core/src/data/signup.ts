@@ -28,7 +28,21 @@ export interface StudentRequest {
   email: string
   gym_id: string
   photo_path: string
+  /** Graduação que o aluno declarou no cadastro (null = sem graduação). */
+  rank_id: string | null
+  rank_name: string | null
+  rank_grade: number | null
+  rank_track: string | null
+  graduated_at: string | null
   created_at: string
+}
+
+/** Grau para o aluno escolher no cadastro (lista pública, sem login). */
+export interface SignupRank {
+  id: string
+  grade: number
+  name: string
+  track: string
 }
 
 export const STUDENT_SIGNUP_PATH = '/cadastro-aluno'
@@ -55,9 +69,31 @@ export async function signFaceUrls(db: Db, paths: string[], expiresInSeconds = 3
   return out
 }
 
+export interface StudentSignupInput {
+  gymId: string
+  name: string
+  phone?: string
+  /** Graduação atual; vazio = sem graduação. */
+  rankId?: string | null
+  /** Data da última graduação (AAAA-MM-DD); obrigatória com rankId. */
+  graduatedAt?: string | null
+}
+
 /** Metadados do signUp que já criam o pedido no banco (funciona mesmo confirmando o e-mail em outro navegador). */
-export function studentSignupMetadata(input: { name: string; gymId: string; phone?: string }) {
-  return { name: input.name, student_gym_id: input.gymId, student_phone: input.phone ?? '' }
+export function studentSignupMetadata(input: StudentSignupInput) {
+  return {
+    name: input.name,
+    student_gym_id: input.gymId,
+    student_phone: input.phone ?? '',
+    student_rank_id: input.rankId ?? '',
+    student_graduated_at: input.rankId ? (input.graduatedAt ?? '') : '',
+  }
+}
+
+/** Graus (adulto e infantil) para o aluno escolher. Funciona sem login. */
+export async function getSignupRanks(db: Db): Promise<SignupRank[]> {
+  const data = unwrap(await db.rpc('signup_ranks'))
+  return (data ?? []) as unknown as SignupRank[]
 }
 
 /** Professores e academias para o aluno escolher. Funciona sem login. */
@@ -66,8 +102,15 @@ export async function getSignupDirectory(db: Db): Promise<DirectoryProfessor[]> 
   return (data ?? []) as unknown as DirectoryProfessor[]
 }
 
-export async function requestStudentAccess(db: Db, input: { gymId: string; name: string; phone?: string }): Promise<void> {
-  unwrap(await db.rpc('request_student_access', { p_gym_id: input.gymId, p_name: input.name, p_phone: input.phone ?? '' }))
+export async function requestStudentAccess(db: Db, input: StudentSignupInput): Promise<void> {
+  unwrap(
+    await db.rpc('request_student_access', {
+      p_gym_id: input.gymId,
+      p_name: input.name,
+      p_phone: input.phone ?? '',
+      ...(input.rankId ? { p_rank_id: input.rankId, p_graduated_at: input.graduatedAt ?? undefined } : {}),
+    }),
+  )
 }
 
 export async function getMySignupRequest(db: Db): Promise<MySignupRequest | null> {
