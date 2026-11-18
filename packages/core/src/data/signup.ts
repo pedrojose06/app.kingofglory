@@ -71,6 +71,21 @@ export async function signFaceUrls(db: Db, paths: string[], expiresInSeconds = 3
   return out
 }
 
+/**
+ * Foto do cadastro de cada aluno com conta (academias do professor), já com URL assinada: id do aluno → URL.
+ * A URL vale `expiresInSeconds` (padrão 7 dias, o mesmo tempo do cache offline).
+ */
+export async function listStudentPhotoUrls(db: Db, expiresInSeconds = 7 * 24 * 3600): Promise<Record<string, string>> {
+  const rows = unwrap(await db.rpc('student_face_photos'))
+  const urls = await signFaceUrls(db, rows.map((r) => r.photo_path), expiresInSeconds)
+  const out: Record<string, string> = {}
+  for (const r of rows) {
+    const url = urls[r.photo_path]
+    if (url) out[r.student_id] = url
+  }
+  return out
+}
+
 export interface StudentSignupInput {
   gymId: string
   name: string

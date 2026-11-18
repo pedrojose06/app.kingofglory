@@ -7,11 +7,11 @@ import {
 import { Badge, Button, Card, Chip, DateInput, EmptyState, Field, Input, ProgressBar, RankBand, Select, Sheet } from '@kog/ui'
 import { Pencil } from 'lucide-react'
 import { useMemo, useState } from 'react'
-import { Section, StatusBadge, studentSince, useParam } from '@/components/common'
+import { Section, StatusBadge, StudentAvatar, studentSince, useParam } from '@/components/common'
 import { Loading, Page } from '@/components/shell'
 import { StudentAccessSection } from '@/components/student-access'
 import { StudentForm } from '@/components/student-form'
-import { useGraduationSchedule, useGraduations, useGyms, useProgress, useRanks, useSave, useStudentAttendance, useStudents, useToday } from '@/lib/queries'
+import { useGraduationSchedule, useGraduations, useGyms, useProgress, useRanks, useSave, useStudentAttendance, useStudentPhotos, useStudents, useToday } from '@/lib/queries'
 import { db } from '@/lib/supabase'
 import { toast } from '@/lib/toast'
 
@@ -25,6 +25,8 @@ export default function StudentPage() {
   const schedule = useGraduationSchedule()
   const attendance = useStudentAttendance(id)
   const graduations = useGraduations(id)
+  const photos = useStudentPhotos()
+  const [photoOpen, setPhotoOpen] = useState(false)
   const [editOpen, setEditOpen] = useState(false)
   const [gradOpen, setGradOpen] = useState(false)
   const [gradRank, setGradRank] = useState('')
@@ -81,6 +83,7 @@ export default function StudentPage() {
   const openingPresent = student.opening_present ?? 0
   const openingAbsent = student.opening_absent ?? 0
   const shown = showAll ? rows : rows.slice(0, 12)
+  const photoUrl = photos.data?.[student.id]
   const lastGraduated = progress.data?.find((p) => p.student_id === id)?.last_graduated_at
   const openingFrom = student.opening_from ?? student.opening_until
   const openingExcluded = openingPresent > 0 && !!lastGraduated && !!openingFrom && lastGraduated >= openingFrom
@@ -92,6 +95,17 @@ export default function StudentPage() {
       back
       actions={<Button variant="ghost" size="sm" onPress={() => setEditOpen(true)} aria-label="Editar aluno"><Pencil className="size-4" /></Button>}
     >
+      {photoUrl ? (
+        <>
+          <button type="button" onClick={() => setPhotoOpen(true)} aria-label={`Ver foto de ${student.name}`} className="mx-auto mb-4 block">
+            <StudentAvatar url={photoUrl} name={student.name} className="size-28 text-2xl ring-2 ring-line-strong" />
+          </button>
+          <Sheet open={photoOpen} onClose={() => setPhotoOpen(false)} title={student.name}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={photoUrl} alt={`Foto de ${student.name}`} className="w-full rounded" />
+          </Sheet>
+        </>
+      ) : null}
       <Card className="p-4">
         <div className="flex items-center gap-3">
           <div className="min-w-0 flex-1">

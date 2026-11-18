@@ -5,7 +5,7 @@ import { Badge, Card, Chip, cn } from '@kog/ui'
 import { Check, ChevronRight } from 'lucide-react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
-import type { ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 
 export const useParam = (name: string) => useSearchParams().get(name) ?? ''
 
@@ -67,7 +67,7 @@ export function ClassCard({ klass, gymName, present, href, showDate, review }: {
 }
 
 /** Linha grande e tocável com marca de seleção — usada em chamada e presença avulsa. */
-export function CheckRow({ checked, onPress, title, subtitle, trailing, tone = 'success' }: { checked: boolean; onPress: () => void; title: string; subtitle?: ReactNode; trailing?: ReactNode; tone?: 'success' | 'warning' | 'neutral' }) {
+export function CheckRow({ checked, onPress, title, subtitle, leading, trailing, tone = 'success' }: { checked: boolean; onPress: () => void; title: string; subtitle?: ReactNode; leading?: ReactNode; trailing?: ReactNode; tone?: 'success' | 'warning' | 'neutral' }) {
   const toneCls = tone === 'warning' ? 'border-warning bg-warning text-ink' : tone === 'neutral' ? 'border-dim bg-dim text-bg' : 'border-success bg-success text-bg'
   return (
     <div className={cn('flex items-stretch rounded-lg border', checked ? 'border-line-strong bg-surface' : 'border-line')}>
@@ -75,6 +75,7 @@ export function CheckRow({ checked, onPress, title, subtitle, trailing, tone = '
         <span className={cn('flex size-7 shrink-0 items-center justify-center rounded border-2', checked ? toneCls : 'border-line-strong')}>
           {checked ? <Check className="size-4" strokeWidth={3} /> : null}
         </span>
+        {leading}
         <span className="min-w-0 flex-1">
           <span className="block truncate font-medium text-text">{title}</span>
           {subtitle ? <span className="block truncate text-xs text-dim">{subtitle}</span> : null}
@@ -94,5 +95,27 @@ export function Section({ title, children, action }: { title: string; children: 
       </div>
       {children}
     </section>
+  )
+}
+
+const initials = (name: string) =>
+  name.trim().split(/\s+/).filter(Boolean).map((w) => w[0]).filter((_, i, a) => i === 0 || i === a.length - 1).join('').toUpperCase()
+
+/**
+ * Foto do aluno (a do cadastro dele, quando tem conta); sem foto, as iniciais. Se a URL não abrir (expirada ou
+ * offline), volta para as iniciais.
+ */
+export function StudentAvatar({ url, name, className }: { url?: string; name: string; className?: string }) {
+  const [failed, setFailed] = useState<string>()
+  const showPhoto = !!url && failed !== url
+  return (
+    <span className={cn('flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-surface-2 text-xs font-bold text-dim ring-1 ring-line', className)}>
+      {showPhoto ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={url} alt="" loading="lazy" onError={() => setFailed(url)} className="size-full object-cover" />
+      ) : (
+        initials(name)
+      )}
+    </span>
   )
 }

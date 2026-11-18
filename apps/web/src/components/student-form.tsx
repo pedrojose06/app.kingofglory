@@ -6,7 +6,8 @@ import {
 } from '@kog/core'
 import { Button, Chip, DateInput, Field, Input, Select, Sheet, Textarea } from '@kog/ui'
 import { useEffect, useState } from 'react'
-import { useSave } from '@/lib/queries'
+import { StudentAvatar } from '@/components/common'
+import { useSave, useStudentPhotos } from '@/lib/queries'
 import { db } from '@/lib/supabase'
 import { toast } from '@/lib/toast'
 
@@ -27,6 +28,8 @@ export interface StudentFormProps {
 }
 
 export function StudentForm({ open, onClose, gyms, ranks, student, defaultGymId, defaultName, onCreated, createdMessage }: StudentFormProps) {
+  const photos = useStudentPhotos()
+  const photoUrl = student ? photos.data?.[student.id] : undefined
   const [name, setName] = useState('')
   const [gymId, setGymId] = useState('')
   const [phone, setPhone] = useState('')
@@ -87,6 +90,12 @@ export function StudentForm({ open, onClose, gyms, ranks, student, defaultGymId,
           save.mutate(false)
         }}
       >
+        {photoUrl && student ? (
+          <div className="flex items-center gap-3">
+            <StudentAvatar url={photoUrl} name={student.name} className="size-16 text-lg" />
+            <p className="text-xs text-dim">Foto e nome que o aluno informou no cadastro dele.</p>
+          </div>
+        ) : null}
         <Field label="Nome">
           <Input value={name} onChange={(e) => setName(e.target.value)} autoCapitalize="words" autoFocus={!student} required />
         </Field>

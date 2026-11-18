@@ -6,11 +6,11 @@ import {
 import { Button, EmptyState, Input, Sheet } from '@kog/ui'
 import { MoreVertical, Search, UserPlus } from 'lucide-react'
 import { useMemo, useState } from 'react'
-import { CheckRow } from '@/components/common'
+import { CheckRow, StudentAvatar } from '@/components/common'
 import { Loading } from '@/components/shell'
 import { StudentForm } from '@/components/student-form'
 import { outbox, useOutbox } from '@/lib/outbox'
-import { useClassAttendance, useGyms, useRanks, useStudents } from '@/lib/queries'
+import { useClassAttendance, useGyms, useRanks, useStudentPhotos, useStudents } from '@/lib/queries'
 
 const STATUSES: AttendanceStatus[] = ['present', 'late', 'justified', 'absent']
 
@@ -23,6 +23,7 @@ export function RollCall({ klass }: { klass: ClassRow }) {
   const [formOpen, setFormOpen] = useState(false)
   const gyms = useGyms()
   const ranks = useRanks()
+  const photos = useStudentPhotos()
   // Aluno novo cadastrado durante a chamada entra sempre na academia da aula.
   const classGyms = useMemo(() => (gyms.data ?? []).filter((g) => g.id === klass.gym_id), [gyms.data, klass.gym_id])
 
@@ -108,6 +109,7 @@ export function RollCall({ klass }: { klass: ClassRow }) {
                 tone={st === 'late' ? 'warning' : st === 'justified' ? 'neutral' : 'success'}
                 onPress={() => toggle(s)}
                 title={s.name}
+                leading={<StudentAvatar url={photos.data?.[s.id]} name={s.name} />}
                 subtitle={st && st !== 'present' ? STATUS_LABEL[st] : !s.active ? 'Inativo' : undefined}
                 trailing={
                   <button type="button" onClick={() => setMenuFor(s)} aria-label={`Mais opções para ${s.name}`} className="flex w-11 items-center justify-center text-faint">

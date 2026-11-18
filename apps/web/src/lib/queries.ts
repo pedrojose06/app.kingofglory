@@ -3,7 +3,7 @@
 import {
   countPresentByClass, ensureClasses, getPlanTemplate, getGraduationSchedule, listAbsenceStreaks, listClassTurnout, getClass, getLessonPlan, getLessonPlanReminder, getProfile, keys, listClassAttendance, listClassesByDate,
   listClassesRange, listClassPhotos, listGraduations, listGyms, listPendingClasses, listProgress, listRanks, listReminders, listSchedules,
-  listPlannedClassIds, listPlanReviews, listFaceReferences, listPhotoFaces, listStudentAttendance, listStudentRequests, listStudents, listWalkInLocations, todayISO, type ClassRow,
+  listPlannedClassIds, listPlanReviews, listFaceReferences, listPhotoFaces, listStudentAttendance, listStudentPhotoUrls, listStudentRequests, listStudents, listWalkInLocations, todayISO, type ClassRow,
 } from '@kog/core'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
@@ -37,6 +37,9 @@ export const usePlanReminder = () => useQuery({ queryKey: keys.planReminder, que
 export const useAbsenceStreaks = () => useQuery({ queryKey: keys.absenceStreaks, queryFn: () => listAbsenceStreaks(db()) })
 export const useClassTurnout = () => useQuery({ queryKey: keys.classTurnout, queryFn: () => listClassTurnout(db()) })
 export const useStudents = () => useQuery({ queryKey: keys.students, queryFn: () => listStudents(db()) })
+/** Fotos do cadastro dos alunos com conta: id do aluno → URL assinada (vale 7 dias; renova a cada hora). */
+export const useStudentPhotos = () =>
+  useQuery({ queryKey: keys.studentPhotos, queryFn: () => listStudentPhotoUrls(db()), staleTime: 60 * 60_000 })
 export const useRanks = () => useQuery({ queryKey: keys.ranks, queryFn: () => listRanks(db()), staleTime: 5 * 60_000 })
 export const useGraduationSchedule = () =>
   useQuery({ queryKey: keys.graduationSchedule, queryFn: () => getGraduationSchedule(db()), staleTime: 5 * 60_000 })

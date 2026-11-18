@@ -5,16 +5,17 @@ import { Button, Card, Chip, EmptyState, Input, RankBand } from '@kog/ui'
 import { Award, ChevronRight, Plus, Search } from 'lucide-react'
 import Link from 'next/link'
 import { useMemo, useState } from 'react'
-import { GymChips } from '@/components/common'
+import { GymChips, StudentAvatar } from '@/components/common'
 import { Loading, Page } from '@/components/shell'
 import { StudentForm } from '@/components/student-form'
-import { useGyms, useProgress, useRanks, useStudents } from '@/lib/queries'
+import { useGyms, useProgress, useRanks, useStudentPhotos, useStudents } from '@/lib/queries'
 
 export default function StudentsPage() {
   const gyms = useGyms()
   const students = useStudents()
   const ranks = useRanks()
   const progress = useProgress()
+  const photos = useStudentPhotos()
   const [gymId, setGymId] = useState<string | null>(null)
   const [search, setSearch] = useState('')
   const [showInactive, setShowInactive] = useState(false)
@@ -71,6 +72,7 @@ export default function StudentsPage() {
             return (
               <li key={s.id}>
                 <Link href={`/aluno?id=${s.id}`} className="flex min-h-14 items-center gap-3 rounded-lg border border-line px-3 py-2 active:bg-tint">
+                  <StudentAvatar url={photos.data?.[s.id]} name={s.name} />
                   <span className="min-w-0 flex-1">
                     <span className="block truncate font-medium text-text">{s.name}</span>
                     <span className="block truncate text-xs text-dim">
