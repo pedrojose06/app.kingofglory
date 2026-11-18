@@ -45,6 +45,7 @@ export default function StudentSignupPage() {
   const [photoMissing, setPhotoMissing] = useState(false)
   const [rankId, setRankId] = useState('') // vazio = sem graduação
   const [graduatedAt, setGraduatedAt] = useState('')
+  const [birthDate, setBirthDate] = useState('') // opcional
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [password2, setPassword2] = useState('')
@@ -68,6 +69,7 @@ export default function StudentSignupPage() {
     if (!gymId) return setMessage({ text: 'Escolha a academia.', error: true })
     if (rankId && !graduatedAt) return setMessage({ text: 'Informe a data da sua última graduação.', error: true })
     if (rankId && graduatedAt > todayISO()) return setMessage({ text: 'A data da última graduação não pode ser no futuro.', error: true })
+    if (birthDate && (birthDate > todayISO() || birthDate < '1900-01-01')) return setMessage({ text: 'Confira a data de nascimento.', error: true })
     if (!photo) {
       setPhotoMissing(true)
       return setMessage({ text: 'Tire uma foto do seu rosto.', error: true })
@@ -78,7 +80,7 @@ export default function StudentSignupPage() {
     setExisting(false)
     try {
       if (session) {
-        await requestStudentAccess(db(), { gymId, name, phone, rankId: rankId || null, graduatedAt: rankId ? graduatedAt : null })
+        await requestStudentAccess(db(), { gymId, name, phone, rankId: rankId || null, graduatedAt: rankId ? graduatedAt : null, birthDate: birthDate || null })
         await sendPhoto(session.user.id, photo)
         await queryClient.invalidateQueries({ queryKey: keys.mySignupRequest })
         router.replace(STUDENT_PORTAL_PATH)
@@ -87,7 +89,7 @@ export default function StudentSignupPage() {
       const { data, error } = await db().auth.signUp({
         email,
         password,
-        options: { data: studentSignupMetadata({ name, gymId, phone, rankId: rankId || null, graduatedAt: rankId ? graduatedAt : null }), emailRedirectTo: `${window.location.origin}${STUDENT_PORTAL_PATH}` },
+        options: { data: studentSignupMetadata({ name, gymId, phone, rankId: rankId || null, graduatedAt: rankId ? graduatedAt : null, birthDate: birthDate || null }), emailRedirectTo: `${window.location.origin}${STUDENT_PORTAL_PATH}` },
       })
       if (error) throw error
       // E-mail já cadastrado: o Supabase responde "ok" sem criar nada nem mandar e-mail (identities vazio).
@@ -198,6 +200,9 @@ export default function StudentSignupPage() {
               </Field>
               <Field label="Foto do rosto" hint="Obrigatória. De frente, sem boné nem óculos escuros, para o professor saber quem é você.">
                 <FacePhotoField value={photo} onChange={(b) => { setPhoto(b); setPhotoMissing(false) }} invalid={photoMissing} />
+              </Field>
+              <Field label="Data de nascimento (opcional)" hint="Para a equipe saber do seu aniversário.">
+                <DateInput value={birthDate} onChange={(e) => setBirthDate(e.target.value)} min="1900-01-01" max={todayISO()} autoComplete="bday" />
               </Field>
               <div className="grid grid-cols-2 gap-2">
                 <Field label="Graduação atual">
