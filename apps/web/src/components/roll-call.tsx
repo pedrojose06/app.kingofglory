@@ -92,6 +92,10 @@ export function RollCall({ klass }: { klass: ClassRow }) {
         <Button variant="ghost" size="sm" onPress={markAll}>Marcar todos</Button>
       </div>
 
+      <Button variant="ghost" className="mb-3 w-full" onPress={() => setFormOpen(true)}>
+        <UserPlus className="size-4" /> Aluno novo nesta aula
+      </Button>
+
       {roster.length > 8 ? (
         <div className="relative mb-3">
           <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-faint" />
@@ -123,9 +127,6 @@ export function RollCall({ klass }: { klass: ClassRow }) {
       </ul>
       {visible.length === 0 ? <p className="py-4 text-center text-sm text-dim">Nenhum aluno com esse nome.</p> : null}
 
-      <Button variant="ghost" className="mt-3 w-full" onPress={() => setFormOpen(true)}>
-        <UserPlus className="size-4" /> Aluno novo nesta aula
-      </Button>
       {newStudentForm}
 
       <Sheet open={!!menuFor} onClose={() => setMenuFor(null)} title={menuFor?.name ?? ''}>
