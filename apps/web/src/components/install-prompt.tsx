@@ -1,6 +1,6 @@
 'use client'
 
-import { Button } from '@kog/ui'
+import { Button, cn } from '@kog/ui'
 import { Download, Share, SquarePlus, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
 
@@ -50,7 +50,7 @@ function recentlyDismissed() {
 }
 
 /** Convite para instalar o app na tela inicial. Some se já estiver instalado ou se foi fechado há pouco. */
-export function InstallPrompt() {
+export function InstallPrompt({ bottomNav = true }: { bottomNav?: boolean } = {}) {
   const [mode, setMode] = useState<'native' | 'ios' | null>(null)
 
   useEffect(() => {
@@ -87,7 +87,11 @@ export function InstallPrompt() {
     <div
       role="dialog"
       aria-label="Instalar o app"
-      className="fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-40 px-3 pb-2"
+      className={cn(
+        'fixed inset-x-0 z-40 px-3 pb-2',
+        // Sem a barra de navegação (área do aluno), fica colado ao rodapé.
+        bottomNav ? 'bottom-[calc(4rem+env(safe-area-inset-bottom))]' : 'bottom-[env(safe-area-inset-bottom)]',
+      )}
     >
       <div className="mx-auto flex max-w-xl items-start gap-3 rounded-lg border border-line-strong bg-bg p-3 shadow-lg">
         <img src="/icons/icon-192.png" alt="" className="size-10 shrink-0 rounded-lg" />

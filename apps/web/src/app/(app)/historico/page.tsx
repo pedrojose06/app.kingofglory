@@ -6,7 +6,7 @@ import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { useState } from 'react'
 import { ClassCard, GymChips } from '@/components/common'
 import { Loading, Page } from '@/components/shell'
-import { useClassCounts, useClassesRange, useGyms, useToday } from '@/lib/queries'
+import { useClassCounts, useClassesRange, useGyms, usePlanReviews, useToday } from '@/lib/queries'
 
 function shiftMonth(ym: string, delta: number): string {
   const d = parseISODate(`${ym}-01`)
@@ -24,6 +24,7 @@ export default function HistoryPage() {
   const to = addDays(`${shiftMonth(month, 1)}-01`, -1)
   const classes = useClassesRange(gymId, from, to)
   const counts = useClassCounts(classes.data)
+  const reviews = usePlanReviews((classes.data ?? []).map((c) => c.id))
   const gymName = (id: string) => gyms.data?.find((g) => g.id === id)?.name ?? 'Academia'
   const list = (classes.data ?? []).filter((c) => c.date <= today)
   const total = list.reduce((sum, c) => sum + (counts.data?.[c.id] ?? 0), 0)
@@ -48,7 +49,7 @@ export default function HistoryPage() {
       ) : (
         <div className="space-y-2">
           {list.map((c) => (
-            <ClassCard key={c.id} klass={c} gymName={gymName(c.gym_id)} present={counts.data?.[c.id]} href={`/aula?id=${c.id}`} showDate />
+            <ClassCard key={c.id} klass={c} gymName={gymName(c.gym_id)} present={counts.data?.[c.id]} review={reviews.data?.[c.id]} href={`/aula?id=${c.id}`} showDate />
           ))}
         </div>
       )}

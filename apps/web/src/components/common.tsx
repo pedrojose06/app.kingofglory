@@ -1,6 +1,6 @@
 'use client'
 
-import { formatDayShort, formatTime, STATUS_LABEL, type AttendanceStatus, type ClassRow, type Gym, type Student } from '@kog/core'
+import { formatDayShort, formatTime, PLAN_REVIEW_LABEL, STATUS_LABEL, type AttendanceStatus, type PlanReviewStatus, type ClassRow, type Gym, type Student } from '@kog/core'
 import { Badge, Card, Chip, cn } from '@kog/ui'
 import { Check, ChevronRight } from 'lucide-react'
 import Link from 'next/link'
@@ -38,7 +38,12 @@ export function StatusBadge({ status }: { status: AttendanceStatus }) {
   return <Badge tone={STATUS_TONE[status]}>{STATUS_LABEL[status]}</Badge>
 }
 
-export function ClassCard({ klass, gymName, present, href, showDate }: { klass: ClassRow; gymName: string; present?: number; href: string; showDate?: boolean }) {
+/** Selo da revisão do mestre no plano compartilhado. */
+export function PlanReviewBadge({ status }: { status: PlanReviewStatus }) {
+  return <Badge tone={status === 'approved' ? 'success' : 'warning'}>{PLAN_REVIEW_LABEL[status]}</Badge>
+}
+
+export function ClassCard({ klass, gymName, present, href, showDate, review }: { klass: ClassRow; gymName: string; present?: number; href: string; showDate?: boolean; review?: PlanReviewStatus }) {
   return (
     <Link href={href} className="block">
       <Card className="flex items-center gap-3 p-4 active:bg-tint">
@@ -51,7 +56,10 @@ export function ClassCard({ klass, gymName, present, href, showDate }: { klass: 
             {present != null && present > 0 ? ` · ${present} presentes` : ''}
           </p>
         </div>
-        {klass.status === 'done' ? <Badge tone="success">Concluída</Badge> : klass.status === 'cancelled' ? <Badge>Cancelada</Badge> : <Badge tone="gold">Em aberto</Badge>}
+        <div className="flex shrink-0 flex-col items-end gap-1">
+          {klass.status === 'done' ? <Badge tone="success">Concluída</Badge> : klass.status === 'cancelled' ? <Badge>Cancelada</Badge> : <Badge tone="gold">Em aberto</Badge>}
+          {review ? <PlanReviewBadge status={review} /> : null}
+        </div>
         <ChevronRight className="size-4 shrink-0 text-faint" />
       </Card>
     </Link>

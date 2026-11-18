@@ -3,7 +3,7 @@
 import {
   countPresentByClass, ensureClasses, getPlanTemplate, getGraduationSchedule, listAbsenceStreaks, listClassTurnout, getClass, getLessonPlan, getLessonPlanReminder, getProfile, keys, listClassAttendance, listClassesByDate,
   listClassesRange, listClassPhotos, listGraduations, listGyms, listPendingClasses, listProgress, listRanks, listReminders, listSchedules,
-  listPlannedClassIds, listFaceReferences, listPhotoFaces, listStudentAttendance, listStudentRequests, listStudents, listWalkInLocations, todayISO, type ClassRow,
+  listPlannedClassIds, listPlanReviews, listFaceReferences, listPhotoFaces, listStudentAttendance, listStudentRequests, listStudents, listWalkInLocations, todayISO, type ClassRow,
 } from '@kog/core'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
@@ -72,6 +72,10 @@ export const useClassCounts = (classes: readonly ClassRow[] | undefined) => {
 /** Ids das aulas que já têm plano com texto. */
 export const usePlannedClasses = (classIds: readonly string[]) =>
   useQuery({ queryKey: keys.plannedClasses(classIds), queryFn: () => listPlannedClassIds(db(), classIds), enabled: classIds.length > 0 })
+
+/** Revisão do mestre (aprovado / ajustes pedidos) das aulas com plano compartilhado. */
+export const usePlanReviews = (classIds: readonly string[]) =>
+  useQuery({ queryKey: keys.planReviews(classIds), queryFn: () => listPlanReviews(db(), classIds), enabled: classIds.length > 0 })
 
 /** Aula por id; aproveita o que já está em cache nas listas para abrir instantaneamente (e offline). */
 export const useClass = (id: string) => {

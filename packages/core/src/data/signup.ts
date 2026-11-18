@@ -17,6 +17,8 @@ export interface MySignupRequest {
   gym_name: string
   name: string
   created_at: string
+  /** Foto de rosto já enviada. Sem ela o pedido não chega ao professor. */
+  has_photo: boolean
 }
 
 export interface StudentRequest {
@@ -25,14 +27,73 @@ export interface StudentRequest {
   phone: string | null
   email: string
   gym_id: string
+  photo_path: string
+  /** Graduação que o aluno declarou no cadastro (null = sem graduação). */
+  rank_id: string | null
+  rank_name: string | null
+  rank_grade: number | null
+  rank_track: string | null
+  graduated_at: string | null
   created_at: string
+}
+
+/** Grau para o aluno escolher no cadastro (lista pública, sem login). */
+export interface SignupRank {
+  id: string
+  grade: number
+  name: string
+  track: string
 }
 
 export const STUDENT_SIGNUP_PATH = '/cadastro-aluno'
 
+/** Bucket privado da foto de rosto do cadastro; caminho `{profile_id}/face.jpg`. */
+export const FACE_BUCKET = 'student-faces'
+export const facePath = (profileId: string) => `${profileId}/face.jpg`
+
+/** Envia a foto de rosto da conta logada e a liga ao pedido de acesso (que já deve existir). */
+export async function uploadSignupPhoto(db: Db, profileId: string, file: Blob): Promise<void> {
+  const path = facePath(profileId)
+  const up = await db.storage.from(FACE_BUCKET).upload(path, file, { contentType: 'image/jpeg', upsert: true })
+  if (up.error) throw up.error
+  unwrap(await db.rpc('set_signup_photo', { p_path: path }))
+}
+
+/** URLs assinadas das fotos de rosto (o professor só consegue as dos pedidos das academias dele). */
+export async function signFaceUrls(db: Db, paths: string[], expiresInSeconds = 3600): Promise<Record<string, string>> {
+  if (paths.length === 0) return {}
+  const { data, error } = await db.storage.from(FACE_BUCKET).createSignedUrls(paths, expiresInSeconds)
+  if (error) throw error
+  const out: Record<string, string> = {}
+  for (const item of data ?? []) if (item.path && item.signedUrl) out[item.path] = item.signedUrl
+  return out
+}
+
+export interface StudentSignupInput {
+  gymId: string
+  name: string
+  phone?: string
+  /** Graduação atual; vazio = sem graduação. */
+  rankId?: string | null
+  /** Data da última graduação (AAAA-MM-DD); obrigatória com rankId. */
+  graduatedAt?: string | null
+}
+
 /** Metadados do signUp que já criam o pedido no banco (funciona mesmo confirmando o e-mail em outro navegador). */
-export function studentSignupMetadata(input: { name: string; gymId: string; phone?: string }) {
-  return { name: input.name, student_gym_id: input.gymId, student_phone: input.phone ?? '' }
+export function studentSignupMetadata(input: StudentSignupInput) {
+  return {
+    name: input.name,
+    student_gym_id: input.gymId,
+    student_phone: input.phone ?? '',
+    student_rank_id: input.rankId ?? '',
+    student_graduated_at: input.rankId ? (input.graduatedAt ?? '') : '',
+  }
+}
+
+/** Graus (adulto e infantil) para o aluno escolher. Funciona sem login. */
+export async function getSignupRanks(db: Db): Promise<SignupRank[]> {
+  const data = unwrap(await db.rpc('signup_ranks'))
+  return (data ?? []) as unknown as SignupRank[]
 }
 
 /** Professores e academias para o aluno escolher. Funciona sem login. */
@@ -41,8 +102,15 @@ export async function getSignupDirectory(db: Db): Promise<DirectoryProfessor[]> 
   return (data ?? []) as unknown as DirectoryProfessor[]
 }
 
-export async function requestStudentAccess(db: Db, input: { gymId: string; name: string; phone?: string }): Promise<void> {
-  unwrap(await db.rpc('request_student_access', { p_gym_id: input.gymId, p_name: input.name, p_phone: input.phone ?? '' }))
+export async function requestStudentAccess(db: Db, input: StudentSignupInput): Promise<void> {
+  unwrap(
+    await db.rpc('request_student_access', {
+      p_gym_id: input.gymId,
+      p_name: input.name,
+      p_phone: input.phone ?? '',
+      ...(input.rankId ? { p_rank_id: input.rankId, p_graduated_at: input.graduatedAt ?? undefined } : {}),
+    }),
+  )
 }
 
 export async function getMySignupRequest(db: Db): Promise<MySignupRequest | null> {

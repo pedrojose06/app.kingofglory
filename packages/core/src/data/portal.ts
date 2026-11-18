@@ -22,6 +22,8 @@ export interface PortalAttendance {
   start_time: string | null
   /** Local da presença avulsa. */
   location_label: string | null
+  /** Período da avulsa (manha/tarde/noite). Ausente em dados antigos do cache. */
+  walk_in_period?: string
   /** Quantas presenças vale (ex.: aulão = 2). Ausente em dados antigos do cache. */
   credits?: number
 }

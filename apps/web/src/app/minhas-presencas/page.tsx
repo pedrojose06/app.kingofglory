@@ -3,7 +3,7 @@
 import {
   STUDENT_SIGNUP_PATH, acceptImageConsent, attendanceStats, getMySignupRequest, claimStudentAccount, formatDateBR, getMyStudentAccount, getMyStudentPortal, hasAccountConsent,
   monthsBetween, formatDayShort, formatMonth, formatTime, getStudentPortal, graduationStatus, isCounted,
-  keys, missingLabel, trackOf, type StudentPortal,
+  keys, missingLabel, trackOf, uploadSignupPhoto, walkInLabel, type StudentPortal,
 } from '@kog/core'
 import { Badge, Button, Card, EmptyState, Kicker, ProgressBar, RankBand, Title } from '@kog/ui'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -11,8 +11,11 @@ import { LogOut, UserPlus } from 'lucide-react'
 import Link from 'next/link'
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { Section, StatusBadge, studentSince } from '@/components/common'
+import { FacePhotoField, getPendingFace, storePendingFace } from '@/components/face-photo'
 import { Loading } from '@/components/shell'
+import { InstallPrompt } from '@/components/install-prompt'
 import { ConsentScreen, StudentAuthForm, formatDateTimeBR } from '@/components/student-account'
+import { NotifyWhenApproved, StudentReminderCard } from '@/components/student-reminders'
 import { useAuth } from '@/lib/auth'
 import { useToday } from '@/lib/queries'
 import { getStoredStudentToken, storeStudentToken } from '@/lib/student-link'
@@ -50,6 +53,7 @@ function Shell({ children }: { children: ReactNode }) {
   return (
     <main className="mx-auto max-w-xl px-4 pt-[calc(env(safe-area-inset-top)+1.25rem)] pb-[calc(env(safe-area-inset-bottom)+2.5rem)]">
       {children}
+      <InstallPrompt bottomNav={false} />
       {/* Só para quem não está logado: logado como aluno, o login do professor mandaria de volta para cá. */}
       {!session ? (
         <p className="mt-10 text-center text-xs text-faint">
@@ -251,7 +255,10 @@ function AccountMode({ token, onLeave }: { token: string | null; onLeave: (notic
         offline={portal.isError}
         onSignOut={() => void signOut()}
         bottom={
-          <Button variant="ghost" block className="mt-8" onPress={() => void signOut()}><LogOut className="size-4" /> Sair da conta</Button>
+          <>
+            <StudentReminderCard />
+            <Button variant="ghost" block className="mt-8" onPress={() => void signOut()}><LogOut className="size-4" /> Sair da conta</Button>
+          </>
         }
       />
     </Shell>
@@ -261,7 +268,26 @@ function AccountMode({ token, onLeave }: { token: string | null; onLeave: (notic
 /** Conta sem aluno ligado: mostra o pedido ao professor (aguardando/recusado) ou como pedir acesso. */
 function PendingAccount({ claimError, onSignOut }: { claimError: string | null; onSignOut: () => void }) {
   const queryClient = useQueryClient()
+  const { session } = useAuth()
   const request = useQuery({ queryKey: keys.mySignupRequest, queryFn: () => getMySignupRequest(db()), networkMode: 'online', refetchInterval: 60_000 })
+  const [photo, setPhoto] = useState<Blob | null>(null)
+  const sendPhoto = useMutation({
+    mutationFn: (blob: Blob) => uploadSignupPhoto(db(), session!.user.id, blob),
+    onSuccess: async () => {
+      await storePendingFace(null)
+      await queryClient.invalidateQueries({ queryKey: keys.mySignupRequest })
+    },
+  })
+  const needsPhoto = request.data?.status === 'pending' && !request.data.has_photo
+  // Foto tirada no cadastro (antes de confirmar o e-mail) e guardada neste aparelho: envia sozinha.
+  const autoSent = useRef(false)
+  useEffect(() => {
+    if (!needsPhoto || !session || autoSent.current) return
+    autoSent.current = true
+    void getPendingFace().then((blob) => {
+      if (blob) sendPhoto.mutate(blob)
+    })
+  }, [needsPhoto, session, sendPhoto])
   // Aprovado: a conta já está ligada; recarrega para seguir ao aceite LGPD.
   useEffect(() => {
     if (request.data?.status === 'approved') void queryClient.invalidateQueries({ queryKey: keys.myStudentAccount })
@@ -272,9 +298,21 @@ function PendingAccount({ claimError, onSignOut }: { claimError: string | null; 
     <Shell>
       <Brand />
       {claimError ? <Card className="mb-4 border-warning p-3 text-sm text-text">{claimError}</Card> : null}
-      {r?.status === 'pending' ? (
+      {needsPhoto ? (
+        <Card className="p-4">
+          <p className="font-bold text-text">Falta sua foto</p>
+          <p className="mt-1 mb-4 text-sm text-soft">
+            {`Para o pedido de ${r!.gym_name} chegar ao professor, envie uma foto do seu rosto (de frente, sem boné nem óculos escuros).`}
+          </p>
+          <FacePhotoField value={photo} onChange={setPhoto} />
+          {sendPhoto.isError ? <p className="mt-3 text-sm text-danger">{errorMessage(sendPhoto.error)}</p> : null}
+          <Button block size="lg" className="mt-4" disabled={!photo} loading={sendPhoto.isPending} onPress={() => photo && sendPhoto.mutate(photo)}>
+            Enviar foto
+          </Button>
+        </Card>
+      ) : r?.status === 'pending' ? (
         <EmptyState title="Aguardando o professor">
-          {`Seu pedido para ${r.gym_name} foi enviado em ${formatDateBR(r.created_at.slice(0, 10))}. Assim que o professor aprovar, você acessa suas presenças aqui.`}
+          {`Seu pedido para ${r.gym_name} foi enviado em ${formatDateBR(r.created_at.slice(0, 10))}. Assim que o professor aprovar, você acessa suas presenças aqui e recebe um e-mail.`}
         </EmptyState>
       ) : r?.status === 'rejected' ? (
         <EmptyState title="Pedido não aprovado">
@@ -285,6 +323,7 @@ function PendingAccount({ claimError, onSignOut }: { claimError: string | null; 
           Peça acesso escolhendo seu professor e a academia, ou abra neste celular o link que o professor enviou.
         </EmptyState>
       )}
+      {r?.status === 'pending' && !needsPhoto ? <NotifyWhenApproved /> : null}
       <Link href={STUDENT_SIGNUP_PATH} className="mt-4 block">
         <Button variant={r?.status === 'pending' ? 'ghost' : 'gold'} block>
           {r ? 'Trocar professor ou academia' : 'Pedir acesso ao professor'}
@@ -460,7 +499,7 @@ function PortalView({ data, updatedAt, offline, top, bottom, onSignOut }: { data
                 <div key={a.id} className="flex items-center gap-3 px-3 py-2">
                   <span className="w-20 shrink-0 text-sm font-medium text-text">{formatDayShort(a.date)}</span>
                   <span className="min-w-0 flex-1 truncate text-sm text-dim">
-                    {a.class_id ? [formatTime(a.start_time), a.title].filter(Boolean).join(' · ') : a.location_label}
+                    {a.class_id ? [formatTime(a.start_time), a.title].filter(Boolean).join(' · ') : walkInLabel(a)}
                   </span>
                   {(a.credits ?? 1) > 1 ? <Badge tone="gold">Vale {a.credits}</Badge> : null}
                   <StatusBadge status={a.status} />

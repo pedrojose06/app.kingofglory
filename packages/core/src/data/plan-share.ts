@@ -1,6 +1,6 @@
 import type { Json } from '../database.types'
 import type { ClassStatus, Db } from '../types'
-import { unwrap } from './util'
+import { chunk, unwrap } from './util'
 
 /**
  * Compartilhar o plano de aula: link secreto por aula (`lesson_plan_shares.token`). O mestre abre sem login,
@@ -54,6 +54,18 @@ export async function getPlanShare(db: Db, classId: string): Promise<PlanShare |
       .maybeSingle(),
   )
   return row as PlanShare | null
+}
+
+/** Revisão do mestre por aula (só as aulas com plano compartilhado e já revisado). */
+export async function listPlanReviews(db: Db, classIds: readonly string[]): Promise<Record<string, PlanReviewStatus>> {
+  const reviews: Record<string, PlanReviewStatus> = {}
+  for (const ids of chunk(classIds, 100)) {
+    const rows = unwrap(
+      await db.from('lesson_plan_shares').select('class_id, review_status').in('class_id', ids).not('review_status', 'is', null),
+    )
+    for (const r of rows) if (r.review_status) reviews[r.class_id] = r.review_status as PlanReviewStatus
+  }
+  return reviews
 }
 
 /** Gera o link do plano ou troca o atual (o antigo para de funcionar e a revisão zera). Devolve o token novo. */

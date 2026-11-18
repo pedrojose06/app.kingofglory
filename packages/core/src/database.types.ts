@@ -37,6 +37,30 @@ export type Database = {
         }
         Relationships: []
       }
+      student_class_reminders: {
+        Row: {
+          profile_id: string
+          enabled: boolean
+          lead_minutes: number
+          last_sent_on: string | null
+          created_at: string
+        }
+        Insert: {
+          profile_id?: string
+          enabled?: boolean
+          lead_minutes?: number
+          last_sent_on?: string | null
+          created_at?: string
+        }
+        Update: {
+          profile_id?: string
+          enabled?: boolean
+          lead_minutes?: number
+          last_sent_on?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
       lesson_plan_reminders: {
         Row: {
           profile_id: string
@@ -101,6 +125,7 @@ export type Database = {
           marked_by: string
           marked_at: string
           credits: number
+          walk_in_period: string
         }
         Insert: {
           id?: string
@@ -114,6 +139,7 @@ export type Database = {
           marked_by?: string
           marked_at?: string
           credits?: number
+          walk_in_period?: string
         }
         Update: {
           id?: string
@@ -127,6 +153,7 @@ export type Database = {
           marked_by?: string
           marked_at?: string
           credits?: number
+          walk_in_period?: string
         }
         Relationships: []
       }
@@ -743,6 +770,7 @@ export type Database = {
           p_location: string
           p_credits?: number
           p_source?: Database["public"]["Enums"]["attendance_source"]
+          p_period?: string
         }
         Returns: number
       }
@@ -755,8 +783,10 @@ export type Database = {
       instructor_invite_info: { Args: { p_token: string }; Returns: Json }
       accept_instructor_invite: { Args: { p_token: string }; Returns: undefined }
       signup_directory: { Args: never; Returns: Json }
-      request_student_access: { Args: { p_gym_id: string; p_name: string; p_phone?: string }; Returns: undefined }
+      signup_ranks: { Args: never; Returns: Json }
+      request_student_access: { Args: { p_gym_id: string; p_name: string; p_phone?: string; p_rank_id?: string; p_graduated_at?: string }; Returns: undefined }
       my_signup_request: { Args: never; Returns: Json }
+      set_signup_photo: { Args: { p_path: string }; Returns: undefined }
       list_student_requests: { Args: never; Returns: Json }
       approve_student_request: { Args: { p_request_id: string; p_student_id?: string }; Returns: string }
       reject_student_request: { Args: { p_request_id: string }; Returns: undefined }

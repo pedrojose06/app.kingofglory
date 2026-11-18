@@ -28,9 +28,10 @@ export default function AppLayout({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!ready || session) return
-    // Aparelho do aluno (link da área do aluno guardado): o app instalado abre nas presenças dele.
+    // Sem login, o endereço do app abre na área do aluno (que tem o link "Sou professor"). Com o link do aluno
+    // guardado no aparelho, o app instalado abre direto nas presenças dele.
     const studentToken = getStoredStudentToken()
-    router.replace(studentToken ? `${STUDENT_PORTAL_PATH}#${studentToken}` : '/login-professor')
+    router.replace(studentToken ? `${STUDENT_PORTAL_PATH}#${studentToken}` : STUDENT_PORTAL_PATH)
   }, [ready, session, router])
 
   useEffect(() => {
