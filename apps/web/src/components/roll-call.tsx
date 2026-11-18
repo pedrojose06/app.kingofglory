@@ -4,12 +4,13 @@ import {
   isCounted, normalizeName, overlayAttendance, STATUS_LABEL, type AttendanceStatus, type ClassRow, type Student,
 } from '@kog/core'
 import { Button, EmptyState, Input, Sheet } from '@kog/ui'
-import { MoreVertical, Search } from 'lucide-react'
+import { MoreVertical, Search, UserPlus } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { CheckRow } from '@/components/common'
 import { Loading } from '@/components/shell'
+import { StudentForm } from '@/components/student-form'
 import { outbox, useOutbox } from '@/lib/outbox'
-import { useClassAttendance, useStudents } from '@/lib/queries'
+import { useClassAttendance, useGyms, useRanks, useStudents } from '@/lib/queries'
 
 const STATUSES: AttendanceStatus[] = ['present', 'late', 'justified', 'absent']
 
@@ -19,6 +20,11 @@ export function RollCall({ klass }: { klass: ClassRow }) {
   const items = useOutbox()
   const [search, setSearch] = useState('')
   const [menuFor, setMenuFor] = useState<Student | null>(null)
+  const [formOpen, setFormOpen] = useState(false)
+  const gyms = useGyms()
+  const ranks = useRanks()
+  // Aluno novo cadastrado durante a chamada entra sempre na academia da aula.
+  const classGyms = useMemo(() => (gyms.data ?? []).filter((g) => g.id === klass.gym_id), [gyms.data, klass.gym_id])
 
   const statusOf = useMemo(() => overlayAttendance(attendance.data ?? [], items, klass.id), [attendance.data, items, klass.id])
 
@@ -50,7 +56,30 @@ export function RollCall({ klass }: { klass: ClassRow }) {
   }
 
   if (students.isPending || (attendance.isPending && attendance.fetchStatus !== 'paused')) return <Loading />
-  if (roster.length === 0) return <EmptyState title="Nenhum aluno ativo nesta academia">Cadastre alunos na aba Alunos.</EmptyState>
+  // Cadastro rápido pelo professor (sem foto); o aluno já entra presente nesta aula.
+  const newStudentForm = (
+    <StudentForm
+      open={formOpen}
+      onClose={() => setFormOpen(false)}
+      gyms={classGyms}
+      ranks={ranks.data ?? []}
+      defaultGymId={klass.gym_id}
+      defaultName={visible.length === 0 ? search.trim() : undefined}
+      onCreated={(s) => mark(s.id, 'present')}
+      createdMessage="Aluno cadastrado e marcado presente"
+    />
+  )
+
+  if (roster.length === 0) {
+    return (
+      <>
+        <EmptyState title="Nenhum aluno ativo nesta academia" action={<Button onPress={() => setFormOpen(true)}><UserPlus className="size-4" /> Cadastrar aluno</Button>}>
+          Cadastre os alunos desta aula; eles já entram presentes.
+        </EmptyState>
+        {newStudentForm}
+      </>
+    )
+  }
 
   return (
     <div>
@@ -90,6 +119,12 @@ export function RollCall({ klass }: { klass: ClassRow }) {
           )
         })}
       </ul>
+      {visible.length === 0 ? <p className="py-4 text-center text-sm text-dim">Nenhum aluno com esse nome.</p> : null}
+
+      <Button variant="ghost" className="mt-3 w-full" onPress={() => setFormOpen(true)}>
+        <UserPlus className="size-4" /> Aluno novo nesta aula
+      </Button>
+      {newStudentForm}
 
       <Sheet open={!!menuFor} onClose={() => setMenuFor(null)} title={menuFor?.name ?? ''}>
         <div className="grid grid-cols-2 gap-2">

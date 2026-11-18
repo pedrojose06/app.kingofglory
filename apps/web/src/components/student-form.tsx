@@ -18,9 +18,15 @@ export interface StudentFormProps {
   /** Edição quando informado; senão, cadastro. */
   student?: Student
   defaultGymId?: string | null
+  /** Nome inicial no cadastro (ex.: o que foi digitado na busca da chamada). */
+  defaultName?: string
+  /** Chamado após cadastrar (não na edição), também no "Salvar e novo". */
+  onCreated?: (student: Student) => void
+  /** Texto do aviso após cadastrar. */
+  createdMessage?: string
 }
 
-export function StudentForm({ open, onClose, gyms, ranks, student, defaultGymId }: StudentFormProps) {
+export function StudentForm({ open, onClose, gyms, ranks, student, defaultGymId, defaultName, onCreated, createdMessage }: StudentFormProps) {
   const [name, setName] = useState('')
   const [gymId, setGymId] = useState('')
   const [phone, setPhone] = useState('')
@@ -34,7 +40,7 @@ export function StudentForm({ open, onClose, gyms, ranks, student, defaultGymId 
 
   useEffect(() => {
     if (!open) return
-    setName(student?.name ?? '')
+    setName(student?.name ?? defaultName ?? '')
     setGymId(student?.gym_id ?? defaultGymId ?? gyms[0]?.id ?? '')
     setPhone(student?.phone ?? '')
     setBirth(student?.birth_date ?? '')
@@ -44,7 +50,7 @@ export function StudentForm({ open, onClose, gyms, ranks, student, defaultGymId 
     setTrack(trackOf(student))
     setRankId('')
     setGraduatedAt('')
-  }, [open, student, defaultGymId, gyms])
+  }, [open, student, defaultGymId, defaultName, gyms])
 
   const save = useSave(
     async (keepOpen: boolean) => {
@@ -56,12 +62,13 @@ export function StudentForm({ open, onClose, gyms, ranks, student, defaultGymId 
       } else {
         const created = await createStudent(db(), parsed.data)
         if (rankId) await addGraduation(db(), { student_id: created.id, rank_id: rankId, graduated_at: graduatedAt })
+        onCreated?.(created)
       }
       return keepOpen
     },
     [keys.students, keys.progress],
     (keepOpen) => {
-      toast(student ? 'Aluno atualizado' : 'Aluno cadastrado')
+      toast(student ? 'Aluno atualizado' : (createdMessage ?? 'Aluno cadastrado'))
       if (keepOpen) {
         setName('')
         setPhone('')
