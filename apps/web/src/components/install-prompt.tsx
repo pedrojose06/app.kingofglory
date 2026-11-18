@@ -1,7 +1,7 @@
 'use client'
 
 import { Button, cn } from '@kog/ui'
-import { Download, Share, SquarePlus, X } from 'lucide-react'
+import { Copy, Download, MoreVertical, Share, SquarePlus, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
 
 interface BeforeInstallPromptEvent extends Event {
@@ -34,10 +34,29 @@ function isStandalone() {
   )
 }
 
-function isIosSafari() {
+function isIos() {
   const ua = navigator.userAgent
-  const ios = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
-  return ios && /Safari/.test(ua) && !/CriOS|FxiOS|EdgiOS|OPiOS/.test(ua)
+  return /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+}
+
+// Navegador embutido de outro app (Instagram, Facebook, TikTok, WebView do Android...): não instala PWA.
+function isInAppBrowser() {
+  return /FBAN|FBAV|FB_IAB|Instagram|Line\/|TikTok|musical_ly|Snapchat|; wv\)/i.test(navigator.userAgent)
+}
+
+type Mode = 'native' | 'ios' | 'android' | 'inapp'
+
+/**
+ * O botão "Instalar" só existe quando o navegador dispara o beforeinstallprompt (Chrome/Edge no Android),
+ * e o Chrome só faz isso depois de ~30 s de uso e um toque na tela. Enquanto isso (e nos navegadores que
+ * nunca disparam), mostra como instalar pelo menu do navegador.
+ */
+function detectMode(): Mode | null {
+  if (deferred) return 'native'
+  if (isInAppBrowser()) return 'inapp'
+  if (isIos()) return 'ios'
+  if (/Android/i.test(navigator.userAgent)) return 'android'
+  return null
 }
 
 function recentlyDismissed() {
@@ -51,12 +70,13 @@ function recentlyDismissed() {
 
 /** Convite para instalar o app na tela inicial. Some se já estiver instalado ou se foi fechado há pouco. */
 export function InstallPrompt({ bottomNav = true }: { bottomNav?: boolean } = {}) {
-  const [mode, setMode] = useState<'native' | 'ios' | null>(null)
+  const [mode, setMode] = useState<Mode | null>(null)
+  const [copied, setCopied] = useState(false)
 
   useEffect(() => {
     const update = () => {
       if (isStandalone() || recentlyDismissed()) return setMode(null)
-      setMode(deferred ? 'native' : isIosSafari() ? 'ios' : null)
+      setMode(detectMode())
     }
     update()
     listeners.add(update)
@@ -83,6 +103,13 @@ export function InstallPrompt({ bottomNav = true }: { bottomNav?: boolean } = {}
     else setMode(null)
   }
 
+  const copyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(window.location.href)
+      setCopied(true)
+    } catch {}
+  }
+
   return (
     <div
       role="dialog"
@@ -99,16 +126,31 @@ export function InstallPrompt({ bottomNav = true }: { bottomNav?: boolean } = {}
           <p className="text-sm font-bold text-text">Instale o KOG Presença</p>
           {mode === 'native' ? (
             <p className="text-xs text-dim">Abre direto da tela inicial, em tela cheia, e funciona sem internet.</p>
-          ) : (
+          ) : mode === 'ios' ? (
             <p className="text-xs text-dim">
               Toque em <Share className="inline size-3.5 -translate-y-px text-accent" aria-label="Compartilhar" /> e depois em{' '}
               <strong className="text-soft">Adicionar à Tela de Início</strong>{' '}
               <SquarePlus className="inline size-3.5 -translate-y-px text-accent" aria-hidden />
             </p>
+          ) : mode === 'android' ? (
+            <p className="text-xs text-dim">
+              Toque em <MoreVertical className="inline size-3.5 -translate-y-px text-accent" aria-label="menu do navegador" /> no
+              canto da tela e depois em <strong className="text-soft">Instalar app</strong> ou{' '}
+              <strong className="text-soft">Adicionar à tela inicial</strong>.
+            </p>
+          ) : (
+            <p className="text-xs text-dim">
+              Este navegador (de dentro de outro app) não instala. Toque em <strong className="text-soft">⋯</strong> e em{' '}
+              <strong className="text-soft">Abrir no navegador</strong>, ou copie o link e cole no Chrome ou no Safari.
+            </p>
           )}
           {mode === 'native' ? (
             <Button size="sm" className="mt-2" onPress={install}>
               <Download className="size-4" /> Instalar
+            </Button>
+          ) : mode === 'inapp' ? (
+            <Button size="sm" variant="ghost" className="mt-2" onPress={copyLink}>
+              <Copy className="size-4" /> {copied ? 'Link copiado' : 'Copiar link'}
             </Button>
           ) : null}
         </div>
