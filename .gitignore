@@ -16,3 +16,6 @@ apps/web/public/swe-worker-*.js.map
 next-env.d.ts
 .DS_Store
 apps/web/public/ort/
+
+# Gerado pelo `next dev` (regras para assistentes de código)
+apps/web/AGENTS.md
