@@ -1,12 +1,13 @@
 'use client'
 
-import { deleteClassPhoto, keys, overlayAttendance, signPhotoUrls, type ClassPhoto, type ClassRow } from '@kog/core'
+import { deleteClassPhoto, keys, overlayAttendance, signPhotoUrls, type ClassPhoto, type ClassRow, type StoredReference } from '@kog/core'
 import { Button, EmptyState, Sheet, Spinner } from '@kog/ui'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Camera, Images } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react'
 import { FaceReview, type FaceReviewTarget } from '@/components/face-review'
 import { analyzePhoto, faceModelsCached, type AnalyzedPhoto, type FaceProgress } from '@/lib/face/engine'
+import { bootstrapSignupReferences } from '@/lib/face/signup-refs'
 import { outbox, useOnline, useOutbox } from '@/lib/outbox'
 import { useClassAttendance, useClassPhotos, useFaceReferences, useProfile, useSave, useStudents } from '@/lib/queries'
 import { db } from '@/lib/supabase'
@@ -59,6 +60,7 @@ export function ClassPhotos({ klass }: { klass: ClassRow }) {
 
   // ── Presença pelo rosto ──
   const online = useOnline()
+  const queryClient = useQueryClient()
   const students = useStudents()
   const profile = useProfile()
   const attendance = useClassAttendance(klass.id)
@@ -80,12 +82,21 @@ export function ClassPhotos({ klass }: { klass: ClassRow }) {
     setFaceQueue(rest)
     const target = { photoId: next.photoId, classId: klass.id, gymId: klass.gym_id }
     setReview({ target, progress: null, result: null, error: null })
-    analyzePhoto(next.file, (progress) => setReview((r) => (r && r.target === target ? { ...r, progress } : r)))
+    const onProgress = (progress: FaceProgress) => setReview((r) => (r && r.target === target ? { ...r, progress } : r))
+    // Antes da foto da turma: a foto do cadastro de quem ainda não tem referência vira a primeira (precisa de internet).
+    const signup = navigator.onLine ? bootstrapSignupReferences(klass.gym_id, onProgress) : Promise.resolve([])
+    signup
+      .then((added) => {
+        if (added.length > 0) {
+          queryClient.setQueryData<StoredReference[]>(keys.faceReferences(klass.gym_id), (old) => [...(old ?? []), ...added])
+        }
+        return analyzePhoto(next.file, onProgress)
+      })
       .then((result) => setReview((r) => (r && r.target === target ? { ...r, result } : r)))
       .catch((error: unknown) =>
         setReview((r) => (r && r.target === target ? { ...r, error: (error as Error)?.message || 'Erro desconhecido' } : r)),
       )
-  }, [review, faceQueue, klass.id, klass.gym_id])
+  }, [review, faceQueue, klass.id, klass.gym_id, queryClient])
 
   async function onFiles(e: ChangeEvent<HTMLInputElement>) {
     const files = [...(e.target.files ?? [])]

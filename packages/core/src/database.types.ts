@@ -263,6 +263,7 @@ export type Database = {
           /** pgvector como texto: "[0.1,0.2,…]" */
           embedding: string
           model: string
+          source: string
           source_photo_id: string | null
           created_by: string | null
           created_at: string
@@ -272,6 +273,7 @@ export type Database = {
           student_id: string
           embedding: string
           model?: string
+          source?: string
           source_photo_id?: string | null
           created_by?: string | null
           created_at?: string
@@ -281,6 +283,7 @@ export type Database = {
           student_id?: string
           embedding?: string
           model?: string
+          source?: string
           source_photo_id?: string | null
           created_by?: string | null
           created_at?: string
@@ -738,6 +741,8 @@ export type Database = {
       ensure_classes: { Args: { p_until?: string }; Returns: number }
       mark_attendance_batch: { Args: { p_items: Json }; Returns: number }
       save_face_decisions: { Args: { p_items: Json; p_max_refs?: number }; Returns: number }
+      face_signup_photos: { Args: { p_gym_id: string }; Returns: { student_id: string; photo_path: string }[] }
+      add_signup_face_reference: { Args: { p_student_id: string; p_id: string; p_embedding: Json }; Returns: boolean }
       face_references: {
         Args: { p_gym_id: string }
         Returns: { id: string; student_id: string; embedding: string; model: string; created_at: string }[]

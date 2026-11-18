@@ -82,6 +82,7 @@ As migrations em `supabase/migrations` já estão aplicadas no projeto remoto, c
 | `lesson_plan_share` | compartilhar o plano de aula: `lesson_plan_shares` (link secreto por aula + revisão do mestre), `rotate_lesson_plan_share()`, `shared_lesson_plan(token)` e `review_shared_lesson_plan(token, …)`, chamáveis sem login |
 | `plan_review_push` | push para o professor quando o mestre revisa o plano: `lesson_plan_shares.review_notify_pending`, `claim_plan_review_notifications()` e `wake_push_reminders()` (acorda a Edge Function na hora) |
 | `face_recognition` | Fase 4: `face_embeddings` (pgvector 128, só referências numéricas), `face_detections` (decisão do professor por rosto), trigger de consentimento, apagamento ao retirar o consentimento, `save_face_decisions`, `face_references` e `profiles.face_auto_approve_min` (desligado) |
+| `face_signup_reference` | foto do cadastro do aluno como primeira referência: `face_embeddings.source` (`class_photo`/`signup_photo`, uma do cadastro por aluno, fora da poda), `face_signup_photos(gym)` e `add_signup_face_reference` |
 
 Para criar uma migration nova e aplicar (com a CLI do Supabase):
 
@@ -303,7 +304,12 @@ pela mesma fila offline da chamada (quem já estava presente ou atrasado não mu
   copiado do pacote por `apps/web/scripts/face-assets.mjs` no `dev`/`build`. Não entram no pré-cache (ninguém baixa 11 MB
   ao instalar); o service worker guarda no primeiro uso (`kog-face-models`) e depois funciona offline. Trocar de modelo
   é trocar o nome do arquivo e o `FACE_MODEL` (vetores de modelos diferentes não se comparam: exige recadastro).
-- **Aprende com o professor**: no começo ninguém tem referência e todo rosto é "Quem é?". Cada resposta vira
+- **Foto do cadastro**: aluno que se cadastrou com foto de rosto (cadastro sem link) e aceitou o termo já chega com uma
+  referência. Antes de analisar a foto da turma, com internet, o celular do professor baixa as fotos de cadastro de quem
+  ainda não tem essa referência, acha o maior rosto (selfie numa moldura maior, para o detector) e grava só o vetor
+  (`source = 'signup_photo'`, uma por aluno, nunca podada). Foto sem rosto encontrado não é tentada de novo naquele
+  aparelho (`localStorage`). Código em `apps/web/src/lib/face/signup-refs.ts`.
+- **Aprende com o professor**: sem foto de cadastro, o aluno começa sem referência e o rosto dele é "Quem é?". Cada resposta vira
   referência do aluno (`face_embeddings`): correções sempre; confirmações quando trazem algo novo (cosseno < 0,9 com as
   que ele já tem). Máximo de 20 por aluno (as mais antigas saem). A nota do aluno é a média das 3 referências mais
   parecidas; a confiança mostrada é uma curva do cosseno (limiar do SFace, 0,363, ≈ 55%); abaixo de 45% o app não sugere.

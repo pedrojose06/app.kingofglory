@@ -45,6 +45,7 @@ const STAGE_LABEL: Record<FaceProgress['stage'], string> = {
   download: 'Baixando o reconhecimento facial (só na primeira vez)',
   detect: 'Procurando rostos na foto',
   embed: 'Lendo os rostos',
+  signup: 'Lendo as fotos do cadastro dos alunos',
 }
 
 export function FaceReview({ target, progress, result, error, students, refs, statusOf, autoApproveMin, onClose }: Props) {

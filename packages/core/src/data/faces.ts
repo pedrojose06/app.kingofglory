@@ -46,3 +46,15 @@ export async function saveFaceDecisions(db: Db, items: readonly FaceDecisionItem
     unwrap(await db.rpc('save_face_decisions', { p_items: part as unknown as Json, p_max_refs: MAX_REFS_PER_STUDENT }))
   }
 }
+
+/** Alunos da academia com consentimento e foto do cadastro que ainda não viraram referência. */
+export async function listSignupFacePhotos(db: Db, gymId: string): Promise<{ student_id: string; photo_path: string }[]> {
+  return unwrap(await db.rpc('face_signup_photos', { p_gym_id: gymId }))
+}
+
+/** Grava a referência calculada da foto do cadastro (uma por aluno; repetir não duplica). */
+export async function addSignupFaceReference(db: Db, input: { student_id: string; id: string; embedding: number[] }): Promise<boolean> {
+  return unwrap(
+    await db.rpc('add_signup_face_reference', { p_student_id: input.student_id, p_id: input.id, p_embedding: input.embedding as unknown as Json }),
+  )
+}

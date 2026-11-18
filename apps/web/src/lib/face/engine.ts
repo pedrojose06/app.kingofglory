@@ -19,7 +19,7 @@ const ALL_ASSETS = [FACE_ASSETS.detector, FACE_ASSETS.embedder, `${FACE_ASSETS.o
 /** Lado maior da foto analisada: rostos pequenos do fundo ainda aparecem, sem estourar a memória do celular. */
 const MAX_SIDE = 2560
 
-export type FaceProgress = { stage: 'download' | 'detect' | 'embed'; done: number; total: number }
+export type FaceProgress = { stage: 'download' | 'detect' | 'embed' | 'signup'; done: number; total: number }
 
 /** Os modelos já estão guardados no aparelho (dá para reconhecer offline)? */
 export async function faceModelsCached(): Promise<boolean> {
@@ -74,22 +74,29 @@ export interface AnalyzedPhoto {
   canvas: HTMLCanvasElement
 }
 
-/** Decodifica a foto (respeitando a orientação da câmera), reduzida a MAX_SIDE. */
-async function decode(file: Blob): Promise<HTMLCanvasElement> {
+/**
+ * Decodifica a foto (respeitando a orientação da câmera), reduzida a MAX_SIDE. `pad` > 1 centraliza a foto numa
+ * moldura preta maior: numa selfie o rosto ocupa a foto toda e o detector acha melhor com folga em volta.
+ */
+async function decode(file: Blob, pad = 1): Promise<HTMLCanvasElement> {
   const bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' })
-  const k = Math.min(1, MAX_SIDE / Math.max(bitmap.width, bitmap.height))
+  const k = Math.min(1, MAX_SIDE / (Math.max(bitmap.width, bitmap.height) * pad))
+  const w = Math.round(bitmap.width * k)
+  const h = Math.round(bitmap.height * k)
   const canvas = document.createElement('canvas')
-  canvas.width = Math.round(bitmap.width * k)
-  canvas.height = Math.round(bitmap.height * k)
+  canvas.width = Math.round(w * pad)
+  canvas.height = Math.round(h * pad)
   const ctx = canvas.getContext('2d', { willReadFrequently: true })
   if (!ctx) throw new Error('Este navegador não consegue ler a foto')
-  ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height)
+  ctx.fillStyle = '#000'
+  ctx.fillRect(0, 0, canvas.width, canvas.height)
+  ctx.drawImage(bitmap, Math.round((canvas.width - w) / 2), Math.round((canvas.height - h) / 2), w, h)
   bitmap.close()
   return canvas
 }
 
-export async function analyzePhoto(file: Blob, onProgress?: (p: FaceProgress) => void): Promise<AnalyzedPhoto> {
-  const canvas = await decode(file)
+export async function analyzePhoto(file: Blob, onProgress?: (p: FaceProgress) => void, opts: { pad?: number } = {}): Promise<AnalyzedPhoto> {
+  const canvas = await decode(file, opts.pad)
   const { width, height } = canvas
   const pixels = canvas.getContext('2d')!.getImageData(0, 0, width, height)
   const buffer = pixels.data.buffer as ArrayBuffer
