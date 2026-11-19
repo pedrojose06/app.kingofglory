@@ -351,12 +351,12 @@ describe('próximas aulas e plano antecipado', () => {
 })
 
 describe('planShareText', () => {
-  it('inclui data, horário e academia', () => {
-    expect(planShareText({ gymName: 'Centro', date: '2026-11-19', startTime: '19:00:00' })).toBe(
-      'Mestre, segue o plano de aula do treino de quinta, 19 de novembro, às 19:00, na academia Centro, para aprovação:',
+  it('usa "hoje" no dia da aula e o dia da semana nos outros dias', () => {
+    expect(planShareText({ gymName: 'Panobianco', date: '2026-11-19' }, '2026-11-19')).toBe(
+      'Mestre, segue o plano de aula de hoje (19/11) na Panobianco para aprovação:',
     )
-    expect(planShareText({ gymName: 'Centro', date: '2026-11-19', startTime: null })).toBe(
-      'Mestre, segue o plano de aula do treino de quinta, 19 de novembro, na academia Centro, para aprovação:',
+    expect(planShareText({ gymName: 'Panobianco', date: '2026-11-20' }, '2026-11-19')).toBe(
+      'Mestre, segue o plano de aula de sexta (20/11) na Panobianco para aprovação:',
     )
   })
 })

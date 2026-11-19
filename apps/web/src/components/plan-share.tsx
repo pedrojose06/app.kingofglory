@@ -7,7 +7,7 @@ import { Badge, Button, cn, Sheet } from '@kog/ui'
 import { useQuery } from '@tanstack/react-query'
 import { CheckCircle2, Copy, Link2, MessageCircle, MessageSquareWarning, Send, Share2 } from 'lucide-react'
 import { useState } from 'react'
-import { useSave } from '@/lib/queries'
+import { useSave, useToday } from '@/lib/queries'
 import { db } from '@/lib/supabase'
 import { toast, toastError } from '@/lib/toast'
 
@@ -48,7 +48,8 @@ function ShareSheet({
   const revoke = useSave(() => revokePlanShare(db(), classId), invalidate, () => toast('Link desativado'))
 
   const url = share.data ? sharedPlanUrl(window.location.origin, share.data.token) : ''
-  const text = planShareText(context)
+  const today = useToday()
+  const text = planShareText(context, today)
   const message = `${text} ${url}`
   const canNativeShare = typeof navigator !== 'undefined' && typeof navigator.share === 'function'
 

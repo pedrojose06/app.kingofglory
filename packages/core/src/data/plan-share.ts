@@ -1,6 +1,6 @@
 import type { Json } from '../database.types'
 import type { ClassStatus, Db } from '../types'
-import { formatDayLong, formatTime } from '../dates'
+import { weekdayOf, WEEKDAYS } from '../dates'
 import { chunk, unwrap } from './util'
 
 /**
@@ -117,14 +117,14 @@ export function sharedPlanUrl(origin: string, token: string): string {
 export interface PlanShareContext {
   gymName: string
   date: string
-  startTime: string | null
 }
 
 /**
- * Texto que acompanha o link: "Mestre, segue o plano de aula do treino de quinta, 20 de novembro, às 19:00,
- * na academia X, para aprovação:".
+ * Texto que acompanha o link: "Mestre, segue o plano de aula de hoje (19/11) na Panobianco para aprovação:".
+ * Em outro dia, troca "hoje" pelo dia da semana: "de sexta (20/11)".
  */
-export function planShareText(ctx: PlanShareContext): string {
-  const time = ctx.startTime ? `, às ${formatTime(ctx.startTime)}` : ''
-  return `Mestre, segue o plano de aula do treino de ${formatDayLong(ctx.date)}${time}, na academia ${ctx.gymName}, para aprovação:`
+export function planShareText(ctx: PlanShareContext, today: string): string {
+  const [, m, d] = ctx.date.split('-')
+  const day = ctx.date === today ? 'hoje' : WEEKDAYS[weekdayOf(ctx.date)]!.toLowerCase()
+  return `Mestre, segue o plano de aula de ${day} (${d}/${m}) na ${ctx.gymName} para aprovação:`
 }
