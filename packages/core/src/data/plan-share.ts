@@ -1,5 +1,6 @@
 import type { Json } from '../database.types'
 import type { ClassStatus, Db } from '../types'
+import { formatDayLong, formatTime } from '../dates'
 import { chunk, unwrap } from './util'
 
 /**
@@ -110,4 +111,20 @@ export const SHARED_PLAN_PATH = '/plano'
 /** Link que o mestre recebe. O token vai no fragmento (#), que não é enviado ao servidor nem fica em logs. */
 export function sharedPlanUrl(origin: string, token: string): string {
   return `${origin}${SHARED_PLAN_PATH}#${token}`
+}
+
+/** Dados da aula que vão na mensagem de compartilhamento. */
+export interface PlanShareContext {
+  gymName: string
+  date: string
+  startTime: string | null
+}
+
+/**
+ * Texto que acompanha o link: "Mestre, segue o plano de aula do treino de quinta, 20 de novembro, às 19:00,
+ * na academia X, para aprovação:".
+ */
+export function planShareText(ctx: PlanShareContext): string {
+  const time = ctx.startTime ? `, às ${formatTime(ctx.startTime)}` : ''
+  return `Mestre, segue o plano de aula do treino de ${formatDayLong(ctx.date)}${time}, na academia ${ctx.gymName}, para aprovação:`
 }

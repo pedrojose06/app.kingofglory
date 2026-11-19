@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { planShareText } from './data/plan-share'
 import {
   absenceAlerts, addDays, analyzeTurnout, buildImportPlan, diffReminders, enqueue, formatDayLong, graduationStatus, missingLabel, monthsBetween, nextBatch, overlayAttendance,
   overlayClassStatus, parseAttendanceExport, planHasContent, upcomingClasses, parseCsv, parseDateLoose, toCsv, toReminderPlan, todayISO, weekdayOf, welchT, attendanceStats,
@@ -346,5 +347,16 @@ describe('próximas aulas e plano antecipado', () => {
     expect(planHasContent({ type: 'doc', content: [{ type: 'paragraph' }] })).toBe(false)
     expect(planHasContent({ type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text: '  ' }] }] })).toBe(false)
     expect(planHasContent({ type: 'doc', content: [{ type: 'bulletList', content: [{ type: 'listItem', content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Jab' }] }] }] }] })).toBe(true)
+  })
+})
+
+describe('planShareText', () => {
+  it('inclui data, horário e academia', () => {
+    expect(planShareText({ gymName: 'Centro', date: '2026-11-19', startTime: '19:00:00' })).toBe(
+      'Mestre, segue o plano de aula do treino de quinta, 19 de novembro, às 19:00, na academia Centro, para aprovação:',
+    )
+    expect(planShareText({ gymName: 'Centro', date: '2026-11-19', startTime: null })).toBe(
+      'Mestre, segue o plano de aula do treino de quinta, 19 de novembro, na academia Centro, para aprovação:',
+    )
   })
 })

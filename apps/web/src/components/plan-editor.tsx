@@ -1,6 +1,6 @@
 'use client'
 
-import { DEFAULT_PLAN_TEMPLATE, planHasContent, type Json } from '@kog/core'
+import { DEFAULT_PLAN_TEMPLATE, planHasContent, type Json, type PlanShareContext } from '@kog/core'
 import { cn, Sheet } from '@kog/ui'
 import { Placeholder } from '@tiptap/extensions'
 import { Extension, type Editor, type Range } from '@tiptap/core'
@@ -82,7 +82,7 @@ const isEmptyDoc = (content: unknown) => !content || typeof content !== 'object'
 
 const BLOCK_BUTTON = 'flex h-9 items-center gap-1 rounded border border-line px-2.5 text-xs font-bold uppercase tracking-[0.1em] text-accent'
 
-export function PlanEditor({ classId, gymId }: { classId: string; gymId: string }) {
+export function PlanEditor({ classId, gymId, shareContext }: { classId: string; gymId: string; shareContext: PlanShareContext }) {
   const plan = useLessonPlan(classId)
   const template = usePlanTemplate()
   const items = useOutbox()
@@ -107,6 +107,7 @@ export function PlanEditor({ classId, gymId }: { classId: string; gymId: string 
       key={classId}
       classId={classId}
       gymId={gymId}
+      shareContext={shareContext}
       initial={initial}
       blank={blank}
       pending={!!pendingItem}
@@ -116,7 +117,7 @@ export function PlanEditor({ classId, gymId }: { classId: string; gymId: string 
   )
 }
 
-function EditorInner({ classId, gymId, initial, blank, pending, failed, planUpdatedAt }: { classId: string; gymId: string; initial: Json | null; blank: boolean; pending: boolean; failed: boolean; planUpdatedAt: string | null }) {
+function EditorInner({ classId, gymId, shareContext, initial, blank, pending, failed, planUpdatedAt }: { classId: string; gymId: string; shareContext: PlanShareContext; initial: Json | null; blank: boolean; pending: boolean; failed: boolean; planUpdatedAt: string | null }) {
   const online = useOnline()
   const [dirty, setDirty] = useState(false)
   const timer = useRef<number | undefined>(undefined)
@@ -164,7 +165,7 @@ function EditorInner({ classId, gymId, initial, blank, pending, failed, planUpda
       actions={
         <>
           <PlanDuplicateButton classId={classId} gymId={gymId} getContent={() => current.current} />
-          <PlanShareButton classId={classId} unsynced={pending || dirty} planUpdatedAt={planUpdatedAt} />
+          <PlanShareButton classId={classId} unsynced={pending || dirty} planUpdatedAt={planUpdatedAt} context={shareContext} />
         </>
       }
       banner={<PlanReviewBanner classId={classId} planUpdatedAt={planUpdatedAt} />}

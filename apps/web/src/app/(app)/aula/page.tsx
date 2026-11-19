@@ -120,7 +120,7 @@ export default function ClassPage() {
           )}
         </>
       ) : tab === 'plano' ? (
-        <PlanEditor classId={c.id} gymId={c.gym_id} />
+        <PlanEditor classId={c.id} gymId={c.gym_id} shareContext={{ gymName, date: c.date, startTime: c.start_time }} />
       ) : (
         <ClassPhotos klass={c} />
       )}

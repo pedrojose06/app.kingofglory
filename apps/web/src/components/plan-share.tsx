@@ -1,7 +1,7 @@
 'use client'
 
 import {
-  editedAfterReview, formatDateBR, formatStamp, getPlanShare, keys, PLAN_REVIEW_LABEL, revokePlanShare, rotatePlanShare, sharedPlanUrl,
+  editedAfterReview, formatDateBR, formatStamp, getPlanShare, keys, PLAN_REVIEW_LABEL, planShareText, type PlanShareContext, revokePlanShare, rotatePlanShare, sharedPlanUrl,
 } from '@kog/core'
 import { Badge, Button, cn, Sheet } from '@kog/ui'
 import { useQuery } from '@tanstack/react-query'
@@ -16,7 +16,9 @@ const usePlanShare = (classId: string) =>
 
 
 /** Botão "Compartilhar" do plano (como no Notion): gera um link para o mestre ler e aprovar sem login. */
-export function PlanShareButton({ classId, unsynced, planUpdatedAt }: { classId: string; unsynced: boolean; planUpdatedAt: string | null }) {
+export function PlanShareButton({
+  classId, unsynced, planUpdatedAt, context,
+}: { classId: string; unsynced: boolean; planUpdatedAt: string | null; context: PlanShareContext }) {
   const [open, setOpen] = useState(false)
   const share = usePlanShare(classId)
   const status = share.data?.review_status
@@ -31,26 +33,29 @@ export function PlanShareButton({ classId, unsynced, planUpdatedAt }: { classId:
         {status === 'approved' ? <CheckCircle2 className="size-4 text-success" /> : <Share2 className="size-4" />} Compartilhar
       </button>
       <Sheet open={open} onClose={() => setOpen(false)} title="Compartilhar plano">
-        <ShareSheet classId={classId} unsynced={unsynced} planUpdatedAt={planUpdatedAt} />
+        <ShareSheet classId={classId} unsynced={unsynced} planUpdatedAt={planUpdatedAt} context={context} />
       </Sheet>
     </>
   )
 }
 
-function ShareSheet({ classId, unsynced, planUpdatedAt }: { classId: string; unsynced: boolean; planUpdatedAt: string | null }) {
+function ShareSheet({
+  classId, unsynced, planUpdatedAt, context,
+}: { classId: string; unsynced: boolean; planUpdatedAt: string | null; context: PlanShareContext }) {
   const share = usePlanShare(classId)
   const invalidate = [keys.planShare(classId)] as const
   const rotate = useSave(() => rotatePlanShare(db(), classId), invalidate, () => toast('Link do plano gerado'))
   const revoke = useSave(() => revokePlanShare(db(), classId), invalidate, () => toast('Link desativado'))
 
   const url = share.data ? sharedPlanUrl(window.location.origin, share.data.token) : ''
-  const message = `Mestre, segue o plano de aula para aprovação: ${url}`
+  const text = planShareText(context)
+  const message = `${text} ${url}`
   const canNativeShare = typeof navigator !== 'undefined' && typeof navigator.share === 'function'
 
   async function copy() {
     try {
-      await navigator.clipboard.writeText(url)
-      toast('Link copiado')
+      await navigator.clipboard.writeText(message)
+      toast('Mensagem copiada')
     } catch (error) {
       toastError(error)
     }
@@ -58,7 +63,7 @@ function ShareSheet({ classId, unsynced, planUpdatedAt }: { classId: string; uns
 
   async function nativeShare() {
     try {
-      await navigator.share({ title: 'Plano de aula', text: 'Mestre, segue o plano de aula para aprovação:', url })
+      await navigator.share({ title: 'Plano de aula', text, url })
     } catch (error) {
       if ((error as Error)?.name !== 'AbortError') toastError(error)
     }
@@ -104,7 +109,7 @@ function ShareSheet({ classId, unsynced, planUpdatedAt }: { classId: string; uns
               </a>
             )}
             <Button variant="ghost" onPress={() => void copy()}>
-              <Copy className="size-4" /> Copiar link
+              <Copy className="size-4" /> Copiar
             </Button>
           </div>
           <div className="flex justify-between">
