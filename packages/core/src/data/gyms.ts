@@ -48,6 +48,15 @@ export async function updateSchedule(
   )
 }
 
+/**
+ * Corrige a data de início do horário. Mais cedo: as aulas desde a nova data passam a ser geradas (entram em
+ * Pendências). Mais tarde: as aulas vazias (sem chamada, presença, foto ou plano) antes da nova data são removidas.
+ * Devolve quantas aulas foram removidas.
+ */
+export async function setScheduleStart(db: Db, id: string, startsOn: string): Promise<number> {
+  return unwrap(await db.rpc('set_schedule_start', { p_schedule_id: id, p_starts_on: startsOn })) ?? 0
+}
+
 /** Encerra o horário: as aulas já dadas (e suas presenças) continuam existindo. */
 export async function endSchedule(db: Db, id: string, today: string): Promise<void> {
   unwrap(await db.from('class_schedules').update({ active: false, ends_on: today }).eq('id', id))
