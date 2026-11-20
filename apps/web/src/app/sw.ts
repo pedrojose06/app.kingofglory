@@ -21,6 +21,8 @@ const serwist = new Serwist({
     // Dados e fotos do Supabase nunca passam pelo cache do SW: o cache de dados é do TanStack Query
     // (persistido em IndexedDB) e as escritas offline vão para a fila.
     { matcher: ({ url }) => url.hostname.endsWith('.supabase.co'), handler: new NetworkOnly() },
+    // Rotas do servidor (ex.: termo do responsável, com dado de menor) nunca vão para o cache.
+    { matcher: ({ url, sameOrigin }) => sameOrigin && url.pathname.startsWith('/api/'), method: 'POST', handler: new NetworkOnly() },
     // Reconhecimento facial: modelos e runtime (~11 MB) baixados no primeiro uso e guardados para funcionar offline.
     // Os nomes têm versão (sface-2021dec…, /ort/1.23.2/), então trocar de versão é trocar de arquivo.
     {

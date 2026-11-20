@@ -1,17 +1,18 @@
 'use client'
 
 import {
-  addGraduation, attendanceStats, deleteGraduation, firstIssue, formatDateBR, formatMonth, graduationInput, graduationStatus,
-  keys, missingLabel, ranksOfTrack, setImageConsent, trackOf, updateStudent, walkInLabel, type Graduation,
+  addGraduation, attendanceStats, birthDatePending, deleteGraduation, firstIssue, formatDateBR, formatMonth, graduationInput, graduationStatus,
+  guardianTermStatus, keys, missingLabel, ranksOfTrack, setImageConsent, trackOf, updateStudent, walkInLabel, type Graduation,
 } from '@kog/core'
 import { Badge, Button, Card, Chip, DateInput, EmptyState, Field, Input, ProgressBar, RankBand, Select, Sheet } from '@kog/ui'
 import { Pencil } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { Section, StatusBadge, StudentAvatar, studentSince, useParam } from '@/components/common'
 import { Loading, Page } from '@/components/shell'
+import { GuardianTermSection } from '@/components/guardian-term'
 import { StudentAccessSection } from '@/components/student-access'
 import { StudentForm } from '@/components/student-form'
-import { useGraduationSchedule, useGraduations, useGyms, useProgress, useRanks, useSave, useStudentAttendance, useStudentPhotos, useStudents, useToday } from '@/lib/queries'
+import { useGraduationSchedule, useGraduations, useGuardianConsents, useGyms, useProgress, useRanks, useSave, useStudentAttendance, useStudentPhotos, useStudents, useToday } from '@/lib/queries'
 import { db } from '@/lib/supabase'
 import { toast } from '@/lib/toast'
 
@@ -26,6 +27,7 @@ export default function StudentPage() {
   const attendance = useStudentAttendance(id)
   const graduations = useGraduations(id)
   const photos = useStudentPhotos()
+  const consents = useGuardianConsents()
   const [photoOpen, setPhotoOpen] = useState(false)
   const [editOpen, setEditOpen] = useState(false)
   const [gradOpen, setGradOpen] = useState(false)
@@ -87,6 +89,10 @@ export default function StudentPage() {
   const lastGraduated = progress.data?.find((p) => p.student_id === id)?.last_graduated_at
   const openingFrom = student.opening_from ?? student.opening_until
   const openingExcluded = openingPresent > 0 && !!lastGraduated && !!openingFrom && lastGraduated >= openingFrom
+  const consent = consents.data?.find((c) => c.student_id === student.id)
+  const termStatus = guardianTermStatus(student, consent, today)
+  // Menor sem termo enviado: o banco recusa o uso de imagem.
+  const consentLocked = termStatus === 'pendente' && !student.image_consent_at
 
   return (
     <Page
@@ -105,6 +111,15 @@ export default function StudentPage() {
             <img src={photoUrl} alt={`Foto de ${student.name}`} className="w-full rounded" />
           </Sheet>
         </>
+      ) : null}
+      {birthDatePending(student) ? (
+        <Card className="mb-4 flex items-center gap-3 border-warning p-3">
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-bold text-text">Data de nascimento pendente</p>
+            <p className="text-xs text-dim">Agora é obrigatória: mostra se o aluno é menor e precisa do termo do responsável.</p>
+          </div>
+          <Button size="sm" onPress={() => setEditOpen(true)}>Preencher</Button>
+        </Card>
       ) : null}
       <Card className="p-4">
         <div className="flex items-center gap-3">
@@ -285,21 +300,28 @@ export default function StudentPage() {
         )}
       </Section>
 
+      <GuardianTermSection student={student} consent={consent} />
+
       <StudentAccessSection student={student} />
 
       <Section title="Cadastro">
         <Card className="divide-y divide-line text-sm">
           {student.phone ? <div className="flex justify-between px-3 py-2.5"><span className="text-dim">Telefone</span><a href={`tel:${student.phone}`} className="font-medium text-accent">{student.phone}</a></div> : null}
-          {student.birth_date ? <div className="flex justify-between px-3 py-2.5"><span className="text-dim">Nascimento</span><span className="text-text">{formatDateBR(student.birth_date)}</span></div> : null}
+          <div className="flex items-center justify-between px-3 py-2.5">
+            <span className="text-dim">Nascimento</span>
+            {student.birth_date
+              ? <span className="text-text">{formatDateBR(student.birth_date)}</span>
+              : <button type="button" onClick={() => setEditOpen(true)}><Badge tone="warning">Data pendente</Badge></button>}
+          </div>
           {student.notes ? <div className="px-3 py-2.5 text-soft">{student.notes}</div> : null}
-          <label className="flex items-center justify-between gap-3 px-3 py-2.5">
+          <label className={`flex items-center justify-between gap-3 px-3 py-2.5${consentLocked ? ' opacity-60' : ''}`}>
             <span>
               <span className="block text-text">Autorizou uso de imagem e reconhecimento facial</span>
               <span className="block text-xs text-dim">{student.image_consent_at
                   ? `${student.account_consent_at ? 'Aceito pelo aluno no app' : 'Aceite registrado'} em ${formatDateBR(student.image_consent_at.slice(0, 10))}`
-                  : 'Sem aceite registrado (LGPD)'}</span>
+                  : consentLocked ? 'Menor de idade: só depois do termo do responsável enviado' : 'Sem aceite registrado (LGPD)'}</span>
             </span>
-            <input type="checkbox" className="size-5 accent-[var(--kog-gold)]" checked={!!student.image_consent_at} onChange={(e) => {
+            <input type="checkbox" className="size-5 accent-[var(--kog-gold)]" checked={!!student.image_consent_at} disabled={consentLocked} onChange={(e) => {
               const next = e.target.checked
               if (!next && !window.confirm(
                 `Retirar a autorização? Os dados do rosto do aluno (reconhecimento facial) são apagados${student.profile_id ? ' e a conta dele no app fica bloqueada até ele aceitar de novo' : ''}.`,

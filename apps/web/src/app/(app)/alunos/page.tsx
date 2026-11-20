@@ -1,11 +1,12 @@
 'use client'
 
 import { normalizeName, ranksOfTrack, trackOf } from '@kog/core'
-import { Button, Card, Chip, EmptyState, Input, RankBand } from '@kog/ui'
+import { Badge, Button, Card, Chip, EmptyState, Input, RankBand } from '@kog/ui'
 import { Award, ChevronRight, Plus, Search } from 'lucide-react'
 import Link from 'next/link'
 import { useMemo, useState } from 'react'
 import { GymChips, StudentAvatar } from '@/components/common'
+import { GuardianTermBadge, useGuardianTermStatus } from '@/components/guardian-term'
 import { Loading, Page } from '@/components/shell'
 import { StudentForm } from '@/components/student-form'
 import { useGyms, useProgress, useRanks, useStudentPhotos, useStudents } from '@/lib/queries'
@@ -20,6 +21,7 @@ export default function StudentsPage() {
   const [search, setSearch] = useState('')
   const [showInactive, setShowInactive] = useState(false)
   const [formOpen, setFormOpen] = useState(false)
+  const termStatus = useGuardianTermStatus()
 
   const progressOf = useMemo(() => new Map((progress.data ?? []).map((p) => [p.student_id, p])), [progress.data])
   const rankOf = useMemo(() => new Map((ranks.data ?? []).map((r) => [r.id, r])), [ranks.data])
@@ -69,12 +71,19 @@ export default function StudentsPage() {
           {visible.map((s) => {
             const p = progressOf.get(s.id)
             const rank = (p?.current_rank_id ? rankOf.get(p.current_rank_id) : undefined) ?? white[trackOf(s)]
+            const term = termStatus(s)
             return (
               <li key={s.id}>
                 <Link href={`/aluno?id=${s.id}`} className="flex min-h-14 items-center gap-3 rounded-lg border border-line px-3 py-2 active:bg-tint">
                   <StudentAvatar url={photos.data?.[s.id]} name={s.name} />
                   <span className="min-w-0 flex-1">
                     <span className="block truncate font-medium text-text">{s.name}</span>
+                    {!s.birth_date || term === 'pendente' ? (
+                      <span className="mt-0.5 flex gap-1">
+                        {!s.birth_date ? <Badge tone="warning">Data pendente</Badge> : null}
+                        {term === 'pendente' ? <GuardianTermBadge status={term} /> : null}
+                      </span>
+                    ) : null}
                     <span className="block truncate text-xs text-dim">
                       {rank ? `${rank.grade}º grau${trackOf(rank) === 'infantil' ? ' infantil' : ''} · ` : ''}
                       {p?.last_graduated_at ? `${p.attendance_since} treinos desde a graduação · ${p.attendance_total} no total` : `${p?.attendance_total ?? 0} treinos`}

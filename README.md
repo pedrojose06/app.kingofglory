@@ -83,6 +83,7 @@ As migrations em `supabase/migrations` já estão aplicadas no projeto remoto, c
 | `plan_review_push` | push para o professor quando o mestre revisa o plano: `lesson_plan_shares.review_notify_pending`, `claim_plan_review_notifications()` e `wake_push_reminders()` (acorda a Edge Function na hora) |
 | `face_recognition` | Fase 4: `face_embeddings` (pgvector 128, só referências numéricas), `face_detections` (decisão do professor por rosto), trigger de consentimento, apagamento ao retirar o consentimento, `save_face_decisions`, `face_references` e `profiles.face_auto_approve_min` (desligado) |
 | `face_signup_reference` | foto do cadastro do aluno como primeira referência: `face_embeddings.source` (`class_photo`/`signup_photo`, uma do cadastro por aluno, fora da poda), `face_signup_photos(gym)` e `add_signup_face_reference` |
+| `guardian_consents` | termo do responsável do aluno menor: `is_minor(nascimento, hoje)`, data de nascimento validada (não futura, não pode ser apagada), `student_guardian_consents` (`pendente`/`enviado`), bucket privado `guardian-consents`, `set_guardian_consent_file` e uso de imagem de menor só com o termo enviado |
 
 Para criar uma migration nova e aplicar (com a CLI do Supabase):
 
@@ -331,6 +332,26 @@ pela mesma fila offline da chamada (quem já estava presente ou atrasado não mu
   presenças continuam.
 - **RLS**: o professor só vê e grava rostos de alunos e fotos das academias em que dá aula (`can_manage_student`,
   `can_manage_photo`). Apagar a foto apaga as decisões dela; as referências continuam (sem ligação com a foto).
+
+## Termo do responsável (aluno menor de 18 anos)
+
+A **data de nascimento** é obrigatória no cadastro do aluno (válida, não futura). Alunos cadastrados antes, sem data,
+continuam funcionando: aparecem com o selo **Data pendente** na lista e a ficha pede o preenchimento.
+
+- **Idade**: `isMinor(birthDate, today)` em `packages/core/src/domain/age.ts` (dia civil de São Paulo; faz 18 no dia do
+  aniversário; nascido em 29/02 faz 18 em 01/03 em ano não bissexto). O banco usa a mesma regra em `public.is_minor`.
+- **Cadastro**: com a data de um menor, o formulário mostra a etapa do termo: **Baixar termo** (PDF A4 de uma página,
+  já com nome e nascimento) e o envio do termo assinado (PDF, JPG ou PNG, até 10 MB). Dá para salvar sem o termo: o aluno
+  fica com **Termo pendente** e o professor envia depois, na ficha (card "Termo do responsável", que também permite
+  ver e substituir o arquivo). Maior de idade: nada muda.
+- **PDF**: gerado no servidor por `POST /api/termo-responsavel` (pdf-lib, sem serviço externo), só para professor logado.
+  Nome e data vão no corpo, nada é guardado e a resposta é `no-store`. Texto em `GUARDIAN_TERM` (`@kog/core`).
+- **Arquivo**: bucket privado `guardian-consents` (`{aluno}/{id}.{pdf|jpg|png}`). Só os professores das academias do
+  aluno (`can_manage_student`) enviam e abrem, e só por URL assinada de 60 segundos.
+- **Uso de imagem e reconhecimento facial**: para menor, só valem com o termo enviado. O banco recusa marcar
+  "Autorizou uso de imagem" (e o aceite do próprio aluno na conta) sem o termo; quem vira menor ao preencher a data perde o
+  aceite anterior e os dados do rosto são apagados. Recusar não impede o aluno de treinar: presença e chamada seguem iguais.
+- No cadastro sem link (`/cadastro-aluno`) a data também é obrigatória; o menor é avisado de que o professor vai pedir o termo.
 
 ## Importação do InClass
 

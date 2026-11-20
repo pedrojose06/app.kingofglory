@@ -1,6 +1,12 @@
 import { z } from 'zod'
+import { birthDateIssue } from './domain/age'
 
 const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Data inválida')
+/** Data de nascimento obrigatória: válida, não futura e a partir de 1900. */
+const birthDate = z.string({ error: 'Informe a data de nascimento' }).superRefine((v, ctx) => {
+  const issue = birthDateIssue(v)
+  if (issue) ctx.addIssue({ code: 'custom', message: issue })
+})
 const optionalText = z
   .string()
   .trim()
@@ -18,7 +24,7 @@ export const studentInput = z.object({
   gym_id: z.uuid('Escolha a academia'),
   name: z.string().trim().min(2, 'Informe o nome'),
   phone: optionalText,
-  birth_date: isoDate.nullable().optional(),
+  birth_date: birthDate,
   notes: optionalText,
   started_on: isoDate.optional(),
   opening_after_grad: z.number().int().min(0).max(5000).nullable().optional(),
