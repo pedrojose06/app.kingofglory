@@ -61,6 +61,20 @@ export async function uploadSignupPhoto(db: Db, profileId: string, file: Blob): 
   unwrap(await db.rpc('set_signup_photo', { p_path: path }))
 }
 
+/** Caminho da foto enviada sem login, no cadastro (antes de confirmar o e-mail). */
+export const pendingFacePath = (profileId: string, token: string) => `${profileId}/signup-${token}.jpg`
+
+/**
+ * Envia a foto de rosto logo após o signUp, sem sessão (e-mail ainda não confirmado). `token` é o código secreto de
+ * uso único mandado nos metadados do signUp (`photoToken`); vale por 24 horas.
+ */
+export async function uploadPendingSignupPhoto(db: Db, profileId: string, token: string, file: Blob): Promise<void> {
+  const path = pendingFacePath(profileId, token)
+  const up = await db.storage.from(FACE_BUCKET).upload(path, file, { contentType: 'image/jpeg', upsert: false })
+  if (up.error) throw up.error
+  unwrap(await db.rpc('set_pending_signup_photo', { p_profile_id: profileId, p_token: token }))
+}
+
 /** URLs assinadas das fotos de rosto (o professor só consegue as dos pedidos das academias dele). */
 export async function signFaceUrls(db: Db, paths: string[], expiresInSeconds = 3600): Promise<Record<string, string>> {
   if (paths.length === 0) return {}
@@ -94,8 +108,10 @@ export interface StudentSignupInput {
   rankId?: string | null
   /** Data da última graduação (AAAA-MM-DD); obrigatória com rankId. */
   graduatedAt?: string | null
-  /** Data de nascimento (AAAA-MM-DD), opcional. */
+  /** Data de nascimento (AAAA-MM-DD). */
   birthDate?: string | null
+  /** Código secreto (32+ hex) para enviar a foto sem login logo após o cadastro. */
+  photoToken?: string
 }
 
 /** Metadados do signUp que já criam o pedido no banco (funciona mesmo confirmando o e-mail em outro navegador). */
@@ -107,6 +123,7 @@ export function studentSignupMetadata(input: StudentSignupInput) {
     student_rank_id: input.rankId ?? '',
     student_graduated_at: input.rankId ? (input.graduatedAt ?? '') : '',
     student_birth_date: input.birthDate ?? '',
+    ...(input.photoToken ? { student_photo_token: input.photoToken } : {}),
   }
 }
 

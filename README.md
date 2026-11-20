@@ -85,6 +85,7 @@ As migrations em `supabase/migrations` já estão aplicadas no projeto remoto, c
 | `face_signup_reference` | foto do cadastro do aluno como primeira referência: `face_embeddings.source` (`class_photo`/`signup_photo`, uma do cadastro por aluno, fora da poda), `face_signup_photos(gym)` e `add_signup_face_reference` |
 | `guardian_consents` | termo do responsável do aluno menor: `is_minor(nascimento, hoje)`, data de nascimento validada (não futura, não pode ser apagada), `student_guardian_consents` (`pendente`/`enviado`), bucket privado `guardian-consents`, `set_guardian_consent_file` e uso de imagem de menor só com o termo enviado |
 | `guardian_consent_review` | termo enviado pelo próprio aluno menor (`submit_guardian_consent_file`, status `em_analise`) e conferência do professor (`review_guardian_consent`: aprova informando se o responsável autorizou a imagem, ou recusa com motivo); `my_student_account` traz nascimento, `minor` e o termo; `accept_image_consent` não libera a imagem do menor sozinho |
+| `signup_photo_without_confirmation` | foto de rosto do cadastro salva já no cadastro, antes de confirmar o e-mail: código secreto de uso único no signUp (`photo_upload_token`), envio sem login para `{profile_id}/signup-{código}.jpg` por até 24 h e `set_pending_signup_photo` |
 
 Para criar uma migration nova e aplicar (com a CLI do Supabase):
 
@@ -276,6 +277,9 @@ em que treina e cria a conta (nome, WhatsApp opcional, e-mail e senha). A conta 
 - Aprovado, no primeiro acesso o aluno passa pelo aceite LGPD, como no fluxo do link.
 - Enquanto espera, o aluno vê "Aguardando o professor"; recusado, pode escolher outro professor ou academia.
 - O pedido é gravado já no cadastro (metadado do signUp), então funciona mesmo confirmando o e-mail em outro navegador.
+- A foto de rosto também sobe já no cadastro, mesmo sem confirmar o e-mail: o app manda um código secreto de uso único
+  no signUp e envia a foto sem login (vale 24 h). O pedido já aparece para o professor com a foto. Sem sinal no momento,
+  a foto fica no aparelho e sobe no primeiro acesso.
 - O cadastro deixa claro que o e-mail é o login e pede a senha duas vezes. E-mail que já tem conta: o Supabase não
   avisa nem manda e-mail; o app detecta e pede para entrar com ele e usar "Pedir acesso ao professor".
 
