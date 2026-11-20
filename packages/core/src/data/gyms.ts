@@ -22,6 +22,17 @@ export async function updateGym(db: Db, id: string, input: GymInput): Promise<vo
   unwrap(await db.from('gyms').update({ name: input.name, address: input.address ?? null }).eq('id', id))
 }
 
+/** Desde quando o professor dá aula em cada academia: id da academia → data (ou null se não informada). */
+export async function listMyGymStarts(db: Db, userId: string): Promise<Record<string, string | null>> {
+  const rows = unwrap(await db.from('gym_instructors').select('gym_id, started_on').eq('profile_id', userId))
+  return Object.fromEntries(rows.map((r) => [r.gym_id, r.started_on]))
+}
+
+/** Corrige a data em que o próprio professor começou a dar aula na academia. Não mexe na grade nem nas aulas. */
+export async function setMyGymStart(db: Db, gymId: string, startedOn: string | null): Promise<void> {
+  unwrap(await db.rpc('set_my_gym_start', { p_gym_id: gymId, p_started_on: startedOn }))
+}
+
 export async function listSchedules(db: Db): Promise<ClassSchedule[]> {
   return unwrap(
     await db.from('class_schedules').select('*').eq('active', true).order('weekday').order('start_time'),

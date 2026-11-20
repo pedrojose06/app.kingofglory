@@ -2,7 +2,7 @@
 
 import {
   countPresentByClass, ensureClasses, getPlanTemplate, getGraduationSchedule, listAbsenceStreaks, listClassTurnout, getClass, getLessonPlan, getLessonPlanReminder, getProfile, keys, listClassAttendance, listClassesByDate,
-  listClassesRange, listClassPhotos, listGuardianConsents, listGraduations, listGyms, listPendingClasses, listProgress, listRanks, listReminders, listSchedules,
+  listClassesRange, listClassPhotos, listGuardianConsents, listGraduations, listGyms, listMyGymStarts, listPendingClasses, listProgress, listRanks, listReminders, listSchedules,
   listPlannedClassIds, listPlanReviews, listFaceReferences, listPhotoFaces, listStudentAttendance, listStudentPhotoUrls, listStudentRequests, listStudents, listWalkInLocations, todayISO, type ClassRow,
 } from '@kog/core'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -31,6 +31,11 @@ export const useProfile = () => {
   return useQuery({ queryKey: keys.profile, queryFn: () => getProfile(db(), userId), enabled: !!userId })
 }
 export const useGyms = () => useQuery({ queryKey: keys.gyms, queryFn: () => listGyms(db()) })
+/** Desde quando o professor logado dá aula em cada academia. */
+export const useMyGymStarts = () => {
+  const userId = useUserId()
+  return useQuery({ queryKey: keys.myGymStarts, queryFn: () => listMyGymStarts(db(), userId), enabled: !!userId })
+}
 export const useSchedules = () => useQuery({ queryKey: keys.schedules, queryFn: () => listSchedules(db()) })
 export const useReminders = () => useQuery({ queryKey: keys.reminders, queryFn: () => listReminders(db()) })
 export const usePlanReminder = () => useQuery({ queryKey: keys.planReminder, queryFn: () => getLessonPlanReminder(db()) })

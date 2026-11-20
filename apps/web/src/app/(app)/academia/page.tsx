@@ -1,7 +1,7 @@
 'use client'
 
 import {
-  createSchedule, endSchedule, firstIssue, formatDateBR, formatTime, gymInput, keys, scheduleEditInput, scheduleInput, setScheduleStart, updateGym,
+  createSchedule, endSchedule, firstIssue, formatDateBR, formatTime, gymInput, keys, scheduleEditInput, scheduleInput, setMyGymStart, setScheduleStart, updateGym,
   updateSchedule, WEEKDAYS,
   WEEKDAYS_SHORT, type ClassSchedule,
 } from '@kog/core'
@@ -10,7 +10,7 @@ import { Plus } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Section, useParam } from '@/components/common'
 import { Loading, Page } from '@/components/shell'
-import { useGyms, useSave, useSchedules, useToday } from '@/lib/queries'
+import { useGyms, useMyGymStarts, useSave, useSchedules, useToday } from '@/lib/queries'
 import { db } from '@/lib/supabase'
 import { toast } from '@/lib/toast'
 
@@ -19,9 +19,12 @@ export default function GymPage() {
   const today = useToday()
   const gyms = useGyms()
   const schedules = useSchedules()
+  const myStarts = useMyGymStarts()
   const gym = gyms.data?.find((g) => g.id === id)
+  const savedStart = myStarts.data?.[id] ?? ''
   const [name, setName] = useState('')
   const [address, setAddress] = useState('')
+  const [teachingSince, setTeachingSince] = useState('')
   const [open, setOpen] = useState(false)
   const [days, setDays] = useState<number[]>([2, 4])
   const [time, setTime] = useState('19:00')
@@ -38,12 +41,14 @@ export default function GymPage() {
     setName(gym?.name ?? '')
     setAddress(gym?.address ?? '')
   }, [gym?.name, gym?.address])
+  useEffect(() => setTeachingSince(savedStart), [savedStart])
 
   const saveGym = useSave(
     async () => {
       const parsed = gymInput.safeParse({ name, address })
       if (!parsed.success) throw new Error(firstIssue(parsed.error))
-      await updateGym(db(), id, parsed.data)
+      if (name !== gym?.name || address !== (gym?.address ?? '')) await updateGym(db(), id, parsed.data)
+      if (teachingSince !== savedStart) await setMyGymStart(db(), id, teachingSince || null)
     },
     [keys.gyms],
     () => toast('Academia atualizada'),
@@ -103,13 +108,16 @@ export default function GymPage() {
   }
 
   const grade = (schedules.data ?? []).filter((s) => s.gym_id === id)
-  const dirty = name !== gym.name || address !== (gym.address ?? '')
+  const dirty = name !== gym.name || address !== (gym.address ?? '') || teachingSince !== savedStart
 
   return (
     <Page title={gym.name} kicker="Academia" back="/academias">
       <div className="space-y-3">
         <Field label="Nome"><Input value={name} onChange={(e) => setName(e.target.value)} /></Field>
         <Field label="Endereço"><Input value={address} onChange={(e) => setAddress(e.target.value)} /></Field>
+        <Field label="Dou aula aqui desde" hint="Quando você começou a dar aula nesta academia. Não muda a grade nem as aulas.">
+          <DateInput value={teachingSince} min="2000-01-01" max={today} onChange={(e) => setTeachingSince(e.target.value)} />
+        </Field>
         {dirty ? <Button block loading={saveGym.isPending} onPress={() => saveGym.mutate()}>Salvar alterações</Button> : null}
       </div>
 
