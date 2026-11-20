@@ -1,15 +1,16 @@
 'use client'
 
 import {
-  addGraduation, createStudent, firstIssue, keys, RANK_TRACKS, ranksOfTrack, studentInput, TRACK_LABEL, trackOf, updateStudent,
-  type Gym, type Rank, type RankTrack, type Student,
+  addGraduation, birthDateIssue, createStudent, firstIssue, guardianTermStatus, isMinor, keys, RANK_TRACKS, ranksOfTrack, studentInput, TRACK_LABEL,
+  trackOf, updateStudent, uploadGuardianConsent, type Gym, type Rank, type RankTrack, type Student,
 } from '@kog/core'
 import { Button, Chip, DateInput, Field, Input, Select, Sheet, Textarea } from '@kog/ui'
 import { useEffect, useState } from 'react'
 import { StudentAvatar } from '@/components/common'
-import { useSave, useStudentPhotos } from '@/lib/queries'
+import { GuardianTermStep } from '@/components/guardian-term'
+import { useGuardianConsents, useSave, useStudentPhotos, useToday } from '@/lib/queries'
 import { db } from '@/lib/supabase'
-import { toast } from '@/lib/toast'
+import { errorMessage, toast } from '@/lib/toast'
 
 export interface StudentFormProps {
   open: boolean
@@ -29,6 +30,8 @@ export interface StudentFormProps {
 
 export function StudentForm({ open, onClose, gyms, ranks, student, defaultGymId, defaultName, onCreated, createdMessage }: StudentFormProps) {
   const photos = useStudentPhotos()
+  const consents = useGuardianConsents()
+  const today = useToday()
   const photoUrl = student ? photos.data?.[student.id] : undefined
   const [name, setName] = useState('')
   const [gymId, setGymId] = useState('')
@@ -40,6 +43,7 @@ export function StudentForm({ open, onClose, gyms, ranks, student, defaultGymId,
   const [track, setTrack] = useState<RankTrack>('adulto')
   const [rankId, setRankId] = useState('')
   const [graduatedAt, setGraduatedAt] = useState('')
+  const [termFile, setTermFile] = useState<File | null>(null)
 
   useEffect(() => {
     if (!open) return
@@ -53,33 +57,54 @@ export function StudentForm({ open, onClose, gyms, ranks, student, defaultGymId,
     setTrack(trackOf(student))
     setRankId('')
     setGraduatedAt('')
+    setTermFile(null)
   }, [open, student, defaultGymId, defaultName, gyms])
 
   const save = useSave(
     async (keepOpen: boolean) => {
-      const parsed = studentInput.safeParse({ gym_id: gymId, name, phone, birth_date: birth || null, notes, track, started_on: startedOn || undefined, ...(student && (student.opening_present ?? 0) > 0 ? { opening_after_grad: afterGrad === '' ? null : Number(afterGrad) } : {}) })
+      const parsed = studentInput.safeParse({ gym_id: gymId, name, phone, birth_date: birth, notes, track, started_on: startedOn || undefined, ...(student && (student.opening_present ?? 0) > 0 ? { opening_after_grad: afterGrad === '' ? null : Number(afterGrad) } : {}) })
       if (!parsed.success) throw new Error(firstIssue(parsed.error))
       if (rankId && !graduatedAt) throw new Error('Informe a data da última graduação')
+      let studentId: string
       if (student) {
         await updateStudent(db(), student.id, parsed.data)
+        studentId = student.id
       } else {
         const created = await createStudent(db(), parsed.data)
         if (rankId) await addGraduation(db(), { student_id: created.id, rank_id: rankId, graduated_at: graduatedAt })
         onCreated?.(created)
+        studentId = created.id
       }
-      return keepOpen
+      // O aluno já está salvo: falha no envio do termo não desfaz o cadastro (fica "Termo pendente").
+      let termError: string | null = null
+      if (showTerm && termFile) {
+        try {
+          await uploadGuardianConsent(db(), { studentId, fileId: crypto.randomUUID(), file: termFile })
+        } catch (error) {
+          termError = errorMessage(error)
+        }
+      }
+      return { keepOpen, termPending: showTerm && (!termFile || !!termError), termError }
     },
     [keys.students, keys.progress],
-    (keepOpen) => {
-      toast(student ? 'Aluno atualizado' : (createdMessage ?? 'Aluno cadastrado'))
+    ({ keepOpen, termPending, termError }) => {
+      if (termError) toast(`Aluno salvo, mas o termo não foi enviado (${termError}). Envie pela ficha do aluno.`, 'error')
+      else toast(`${student ? 'Aluno atualizado' : (createdMessage ?? 'Aluno cadastrado')}${termPending ? ' · Termo pendente' : ''}`)
       if (keepOpen) {
         setName('')
         setPhone('')
         setBirth('')
         setNotes('')
+        setTermFile(null)
       } else onClose()
     },
   )
+
+  // Etapa extra: só depois de uma data completa e válida de menor de 18 (o seletor nativo entrega a data inteira).
+  const minor = !birthDateIssue(birth, today) && isMinor(birth, today)
+  const termSent = !!student && guardianTermStatus(student, consents.data?.find((c) => c.student_id === student.id), today) === 'enviado'
+  const showTerm = minor && !termSent
+  const birthPending = !!student && !student.birth_date
 
   return (
     <Sheet open={open} onClose={onClose} title={student ? 'Editar aluno' : 'Novo aluno'}>
@@ -110,10 +135,11 @@ export function StudentForm({ open, onClose, gyms, ranks, student, defaultGymId,
           <Field label="Telefone">
             <Input value={phone} onChange={(e) => setPhone(e.target.value)} type="tel" inputMode="tel" />
           </Field>
-          <Field label="Nascimento" hint={track === 'infantil' ? 'Obrigatório na graduação infantil (é por idade).' : undefined}>
-            <DateInput value={birth} onChange={(e) => setBirth(e.target.value)} />
+          <Field label="Nascimento" hint={birthPending && !birth ? 'Data pendente: preencha para salvar.' : undefined}>
+            <DateInput value={birth} max={today} onChange={(e) => setBirth(e.target.value)} />
           </Field>
         </div>
+        {showTerm ? <GuardianTermStep name={name} birthDate={birth} file={termFile} onFileChange={setTermFile} /> : null}
         <Field label="Início" hint="Base do intervalo mínimo enquanto o aluno não tem graduação. Vazio = hoje.">
           <DateInput value={startedOn} onChange={(e) => setStartedOn(e.target.value)} />
         </Field>

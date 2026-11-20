@@ -638,6 +638,39 @@ export type Database = {
         }
         Relationships: []
       }
+      student_guardian_consents: {
+        Row: {
+          id: string
+          student_id: string
+          file_path: string | null
+          status: string
+          uploaded_at: string | null
+          uploaded_by: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          student_id: string
+          file_path?: string | null
+          status?: string
+          uploaded_at?: string | null
+          uploaded_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          student_id?: string
+          file_path?: string | null
+          status?: string
+          uploaded_at?: string | null
+          uploaded_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       students: {
         Row: {
           id: string
@@ -793,6 +826,8 @@ export type Database = {
       request_student_access: { Args: { p_gym_id: string; p_name: string; p_phone?: string; p_rank_id?: string; p_graduated_at?: string; p_birth_date?: string }; Returns: undefined }
       my_signup_request: { Args: never; Returns: Json }
       set_signup_photo: { Args: { p_path: string }; Returns: undefined }
+      set_guardian_consent_file: { Args: { p_student_id: string; p_path: string }; Returns: string | null }
+      is_minor: { Args: { p_birth: string; p_today: string }; Returns: boolean }
       list_student_requests: { Args: never; Returns: Json }
       approve_student_request: { Args: { p_request_id: string; p_student_id?: string }; Returns: string }
       reject_student_request: { Args: { p_request_id: string }; Returns: undefined }

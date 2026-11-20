@@ -2,7 +2,7 @@
 
 import {
   countPresentByClass, ensureClasses, getPlanTemplate, getGraduationSchedule, listAbsenceStreaks, listClassTurnout, getClass, getLessonPlan, getLessonPlanReminder, getProfile, keys, listClassAttendance, listClassesByDate,
-  listClassesRange, listClassPhotos, listGraduations, listGyms, listPendingClasses, listProgress, listRanks, listReminders, listSchedules,
+  listClassesRange, listClassPhotos, listGuardianConsents, listGraduations, listGyms, listPendingClasses, listProgress, listRanks, listReminders, listSchedules,
   listPlannedClassIds, listPlanReviews, listFaceReferences, listPhotoFaces, listStudentAttendance, listStudentPhotoUrls, listStudentRequests, listStudents, listWalkInLocations, todayISO, type ClassRow,
 } from '@kog/core'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -37,6 +37,8 @@ export const usePlanReminder = () => useQuery({ queryKey: keys.planReminder, que
 export const useAbsenceStreaks = () => useQuery({ queryKey: keys.absenceStreaks, queryFn: () => listAbsenceStreaks(db()) })
 export const useClassTurnout = () => useQuery({ queryKey: keys.classTurnout, queryFn: () => listClassTurnout(db()) })
 export const useStudents = () => useQuery({ queryKey: keys.students, queryFn: () => listStudents(db()) })
+/** Termos do responsável dos alunos menores (só o registro; o arquivo abre por URL assinada). */
+export const useGuardianConsents = () => useQuery({ queryKey: keys.guardianConsents, queryFn: () => listGuardianConsents(db()) })
 /** Fotos do cadastro dos alunos com conta: id do aluno → URL assinada (vale 7 dias; renova a cada hora). */
 export const useStudentPhotos = () =>
   useQuery({ queryKey: keys.studentPhotos, queryFn: () => listStudentPhotoUrls(db()), staleTime: 60 * 60_000 })
