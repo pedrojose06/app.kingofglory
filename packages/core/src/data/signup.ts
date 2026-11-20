@@ -112,6 +112,8 @@ export interface StudentSignupInput {
   birthDate?: string | null
   /** Código secreto (32+ hex) para enviar a foto sem login logo após o cadastro. */
   photoToken?: string
+  /** Autorizou uso de imagem e reconhecimento facial no cadastro (só vale para maior de idade). */
+  imageConsent?: boolean
 }
 
 /** Metadados do signUp que já criam o pedido no banco (funciona mesmo confirmando o e-mail em outro navegador). */
@@ -124,6 +126,7 @@ export function studentSignupMetadata(input: StudentSignupInput) {
     student_graduated_at: input.rankId ? (input.graduatedAt ?? '') : '',
     student_birth_date: input.birthDate ?? '',
     ...(input.photoToken ? { student_photo_token: input.photoToken } : {}),
+    ...(input.imageConsent ? { student_image_consent: 'true' } : {}),
   }
 }
 
@@ -149,6 +152,11 @@ export async function requestStudentAccess(db: Db, input: StudentSignupInput): P
       ...(input.birthDate ? { p_birth_date: input.birthDate } : {}),
     }),
   )
+}
+
+/** Autorização de uso de imagem dada no cadastro pela conta logada (vai para o aluno quando o professor aprovar). */
+export async function setMySignupImageConsent(db: Db): Promise<void> {
+  unwrap(await db.rpc('set_my_signup_image_consent'))
 }
 
 export async function getMySignupRequest(db: Db): Promise<MySignupRequest | null> {

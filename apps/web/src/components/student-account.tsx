@@ -124,6 +124,24 @@ export function StudentAuthForm({
   )
 }
 
+/** O que o aluno autoriza no uso de imagem (cadastro e primeiro acesso). */
+export function ImageConsentTerms({ className }: { className?: string }) {
+  return (
+    <ul className={`list-disc space-y-1 pl-5 text-sm text-soft ${className ?? ''}`}>
+      <li>Fotos dos treinos tiradas pelos professores podem mostrar você.</li>
+      <li>
+        <b>Reconhecimento facial para presença:</b> o celular do professor compara os rostos da foto com uma referência numérica
+        do seu rosto (dado biométrico) e sugere quem está no treino. A presença só é marcada depois que o professor confirma.
+      </li>
+      <li>Guardamos só essa referência numérica, nunca uma cópia extra da foto, e só para registrar presença.</li>
+      <li>
+        As fotos e referências ficam só no app da equipe. Você pode retirar a autorização quando quiser, falando com seu
+        professor: os dados do seu rosto são apagados na hora.
+      </li>
+    </ul>
+  )
+}
+
 /** Aceite de uso de imagem no primeiro acesso da conta. Sem aceite, a conta não acessa nada. */
 export function ConsentScreen({ name, onAccept, onDecline, busy, error }: { name: string; onAccept: () => void; onDecline: () => void; busy: boolean; error?: string }) {
   const [checked, setChecked] = useState(false)
@@ -136,18 +154,7 @@ export function ConsentScreen({ name, onAccept, onDecline, busy, error }: { name
         Oi, {first}! Para usar sua conta no app da King of Glory, precisamos da sua autorização para usar sua imagem, conforme a
         Lei Geral de Proteção de Dados (LGPD).
       </p>
-      <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-soft">
-        <li>Fotos dos treinos tiradas pelos professores podem mostrar você.</li>
-        <li>
-          <b>Reconhecimento facial para presença:</b> o celular do professor compara os rostos da foto com uma referência numérica
-          do seu rosto (dado biométrico) e sugere quem está no treino. A presença só é marcada depois que o professor confirma.
-        </li>
-        <li>Guardamos só essa referência numérica, nunca uma cópia extra da foto, e só para registrar presença.</li>
-        <li>
-          As fotos e referências ficam só no app da equipe. Você pode retirar a autorização quando quiser, falando com seu
-          professor: os dados do seu rosto são apagados na hora.
-        </li>
-      </ul>
+      <ImageConsentTerms className="mt-3" />
       <label className="mt-4 flex items-start gap-3 rounded-lg border border-line p-3">
         <input type="checkbox" className="mt-0.5 size-5 shrink-0 accent-[var(--kog-gold)]" checked={checked} onChange={(e) => setChecked(e.target.checked)} />
         <span className="text-sm text-text">Li e autorizo o uso da minha imagem e o reconhecimento facial para presença, nos termos acima.</span>
