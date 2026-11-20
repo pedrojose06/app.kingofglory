@@ -1,7 +1,7 @@
 'use client'
 
 import {
-  createSchedule, endSchedule, firstIssue, formatDateBR, formatTime, gymInput, keys, scheduleEditInput, scheduleInput, updateGym,
+  createSchedule, endSchedule, firstIssue, formatDateBR, formatTime, gymInput, keys, scheduleEditInput, scheduleInput, setScheduleStart, updateGym,
   updateSchedule, WEEKDAYS,
   WEEKDAYS_SHORT, type ClassSchedule,
 } from '@kog/core'
@@ -32,6 +32,7 @@ export default function GymPage() {
   const [editing, setEditing] = useState<ClassSchedule | null>(null)
   const [editTime, setEditTime] = useState('')
   const [editTitle, setEditTitle] = useState('')
+  const [editStartsOn, setEditStartsOn] = useState('')
 
   useEffect(() => {
     setName(gym?.name ?? '')
@@ -69,18 +70,27 @@ export default function GymPage() {
       if (!editing) return
       const parsed = scheduleEditInput.safeParse({ start_time: editTime, title: editTitle })
       if (!parsed.success) throw new Error(firstIssue(parsed.error))
+      const startChanged = !!editStartsOn && editStartsOn !== editing.starts_on
+      if (startChanged && editStartsOn > editing.starts_on && !window.confirm(
+        `Começar em ${formatDateBR(editStartsOn)}? As aulas antes dessa data que não têm chamada, presença, foto nem plano saem da lista.`,
+      )) return null
+      // A data primeiro: se ela for recusada, nada mais muda.
+      const removed = startChanged ? await setScheduleStart(db(), editing.id, editStartsOn) : 0
       await updateSchedule(db(), editing.id, parsed.data, today)
+      return { removed }
     },
     [keys.schedules, ['classes']],
-    () => {
+    (result) => {
+      if (!result) return
       setEditing(null)
-      toast('Horário atualizado')
+      toast(result.removed > 0 ? `Horário atualizado · ${result.removed} ${result.removed === 1 ? 'aula removida' : 'aulas removidas'}` : 'Horário atualizado')
     },
   )
   const openEdit = (s: ClassSchedule) => {
     setEditing(s)
     setEditTime(formatTime(s.start_time))
     setEditTitle(s.title)
+    setEditStartsOn(s.starts_on)
   }
 
   if (gyms.isPending) return <Loading />
@@ -130,7 +140,10 @@ export default function GymPage() {
             <Field label="Horário"><TimeInput value={editTime} onChange={(e) => setEditTime(e.target.value)} /></Field>
             <Field label="Nome da aula"><Input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} /></Field>
           </div>
-          <p className="text-xs text-dim">Vale para as próximas aulas. As aulas já dadas e as presenças continuam como estão.</p>
+          <Field label="A partir de" hint="Corrija se a data de início foi cadastrada errada. Mais cedo: as aulas desde a nova data entram em Pendências. Mais tarde: as aulas vazias antes dela saem da lista.">
+            <DateInput value={editStartsOn} max={editing?.ends_on ?? undefined} onChange={(e) => setEditStartsOn(e.target.value)} />
+          </Field>
+          <p className="text-xs text-dim">Horário e nome valem para as próximas aulas. As aulas já dadas e as presenças continuam como estão.</p>
           <Button block loading={saveEdit.isPending} onPress={() => saveEdit.mutate()}>Salvar</Button>
           <Button
             block
