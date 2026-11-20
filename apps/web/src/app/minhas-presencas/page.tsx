@@ -7,7 +7,7 @@ import {
 } from '@kog/core'
 import { Badge, Button, Card, EmptyState, Kicker, ProgressBar, RankBand, Title } from '@kog/ui'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { LogOut, UserPlus } from 'lucide-react'
+import { ChevronLeft, LogOut, UserPlus } from 'lucide-react'
 import Link from 'next/link'
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { Section, StatusBadge, studentSince } from '@/components/common'
@@ -17,7 +17,7 @@ import { InstallPrompt } from '@/components/install-prompt'
 import { ConsentScreen, StudentAuthForm, formatDateTimeBR } from '@/components/student-account'
 import { NotifyWhenApproved, StudentReminderCard } from '@/components/student-reminders'
 import { useAuth } from '@/lib/auth'
-import { useToday } from '@/lib/queries'
+import { useProfile, useToday } from '@/lib/queries'
 import { getStoredStudentToken, storeStudentToken } from '@/lib/student-link'
 import { db, isConfigured } from '@/lib/supabase'
 import { errorMessage } from '@/lib/toast'
@@ -50,8 +50,15 @@ export default function StudentPortalPage() {
 
 function Shell({ children }: { children: ReactNode }) {
   const { session } = useAuth()
+  const profile = useProfile()
   return (
     <main className="mx-auto max-w-xl px-4 pt-[calc(env(safe-area-inset-top)+1.25rem)] pb-[calc(env(safe-area-inset-bottom)+2.5rem)]">
+      {/* Professor que também é aluno: volta para o app do professor. */}
+      {session && profile.data?.role === 'instructor' ? (
+        <Link href="/" className="mb-4 flex items-center gap-1 text-sm font-medium text-accent">
+          <ChevronLeft className="size-4" /> Área do professor
+        </Link>
+      ) : null}
       {children}
       <InstallPrompt bottomNav={false} />
       {/* Só para quem não está logado: logado como aluno, o login do professor mandaria de volta para cá. */}
