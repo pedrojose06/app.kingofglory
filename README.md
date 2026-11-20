@@ -87,6 +87,7 @@ As migrations em `supabase/migrations` já estão aplicadas no projeto remoto, c
 | `guardian_consent_review` | termo enviado pelo próprio aluno menor (`submit_guardian_consent_file`, status `em_analise`) e conferência do professor (`review_guardian_consent`: aprova informando se o responsável autorizou a imagem, ou recusa com motivo); `my_student_account` traz nascimento, `minor` e o termo; `accept_image_consent` não libera a imagem do menor sozinho |
 | `signup_photo_without_confirmation` | foto de rosto do cadastro salva já no cadastro, antes de confirmar o e-mail: código secreto de uso único no signUp (`photo_upload_token`), envio sem login para `{profile_id}/signup-{código}.jpg` por até 24 h e `set_pending_signup_photo` |
 | `schedule_start_date` | `set_schedule_start`: corrigir a data de início de um horário da grade (aulas vazias antes da nova data são removidas) |
+| `signup_image_consent` | autorização de uso de imagem no cadastro sem link (`student_signup_requests.image_consent_at`), levada ao aluno na aprovação (maior de idade) |
 
 Para criar uma migration nova e aplicar (com a CLI do Supabase):
 
@@ -275,7 +276,9 @@ em que treina e cria a conta (nome, WhatsApp opcional, e-mail e senha). A conta 
 - O professor vê os pedidos em **Pendências** (somam no número da aba) e, para cada um,
   diz **qual aluno da lista é esse login** (nomes parecidos primeiro), **cadastra como aluno novo** ou **recusa**.
   Qualquer professor que dá aula na academia escolhida pode decidir.
-- Aprovado, no primeiro acesso o aluno passa pelo aceite LGPD, como no fluxo do link.
+- O aluno maior de idade autoriza o uso de imagem já no cadastro (obrigatório para usar a conta). Aprovado, a autorização
+  vai para o aluno e ele entra direto, sem a tela de aceite. Menor de idade: vale o termo do responsável.
+- Pedido sem autorização no cadastro (feito antes dela existir): no primeiro acesso o aluno passa pelo aceite LGPD.
 - Enquanto espera, o aluno vê "Aguardando o professor"; recusado, pode escolher outro professor ou academia.
 - O pedido é gravado já no cadastro (metadado do signUp), então funciona mesmo confirmando o e-mail em outro navegador.
 - A foto de rosto também sobe já no cadastro, mesmo sem confirmar o e-mail: o app manda um código secreto de uso único

@@ -841,6 +841,7 @@ export type Database = {
       request_student_access: { Args: { p_gym_id: string; p_name: string; p_phone?: string; p_rank_id?: string; p_graduated_at?: string; p_birth_date?: string }; Returns: undefined }
       my_signup_request: { Args: never; Returns: Json }
       set_signup_photo: { Args: { p_path: string }; Returns: undefined }
+      set_my_signup_image_consent: { Args: never; Returns: undefined }
       set_schedule_start: { Args: { p_schedule_id: string; p_starts_on: string }; Returns: number }
       set_my_gym_start: { Args: { p_gym_id: string; p_started_on: string | null }; Returns: undefined }
       set_pending_signup_photo: { Args: { p_profile_id: string; p_token: string }; Returns: undefined }

@@ -1,7 +1,7 @@
 'use client'
 
 import {
-  RANK_TRACKS, STUDENT_PORTAL_PATH, birthDateIssue, isMinor, TRACK_LABEL, getProfile, getSignupDirectory, getSignupRanks, keys, requestStudentAccess, studentSignupMetadata, uploadPendingSignupPhoto,
+  RANK_TRACKS, STUDENT_PORTAL_PATH, birthDateIssue, isMinor, TRACK_LABEL, getProfile, getSignupDirectory, getSignupRanks, keys, requestStudentAccess, setMySignupImageConsent, studentSignupMetadata, uploadPendingSignupPhoto,
   todayISO, trackOf, uploadSignupPhoto, type DirectoryProfessor,
 } from '@kog/core'
 import { Button, Card, Chip, DateInput, EmptyState, Field, Input, Kicker, Select, cn } from '@kog/ui'
@@ -12,6 +12,7 @@ import { useRouter } from 'next/navigation'
 import { useMemo, useState, type FormEvent } from 'react'
 import { FacePhotoField, storePendingFace } from '@/components/face-photo'
 import { InstallPrompt } from '@/components/install-prompt'
+import { ImageConsentTerms } from '@/components/student-account'
 import { Loading } from '@/components/shell'
 import { useAuth } from '@/lib/auth'
 import { db, isConfigured } from '@/lib/supabase'
@@ -46,6 +47,7 @@ export default function StudentSignupPage() {
   const [rankId, setRankId] = useState('') // vazio = sem graduação
   const [graduatedAt, setGraduatedAt] = useState('')
   const [birthDate, setBirthDate] = useState('')
+  const [imageConsent, setImageConsent] = useState(false)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [password2, setPassword2] = useState('')
@@ -71,6 +73,7 @@ export default function StudentSignupPage() {
     if (rankId && graduatedAt > todayISO()) return setMessage({ text: 'A data da última graduação não pode ser no futuro.', error: true })
     const birthIssue = birthDateIssue(birthDate)
     if (birthIssue) return setMessage({ text: `${birthIssue}.`, error: true })
+    if (!minor && !imageConsent) return setMessage({ text: 'Marque a autorização de uso de imagem para usar a conta.', error: true })
     if (!photo) {
       setPhotoMissing(true)
       return setMessage({ text: 'Tire uma foto do seu rosto.', error: true })
@@ -82,6 +85,7 @@ export default function StudentSignupPage() {
     try {
       if (session) {
         await requestStudentAccess(db(), { gymId, name, phone, rankId: rankId || null, graduatedAt: rankId ? graduatedAt : null, birthDate })
+        if (!minor) await setMySignupImageConsent(db())
         await sendPhoto(session.user.id, photo)
         await queryClient.invalidateQueries({ queryKey: keys.mySignupRequest })
         router.replace(STUDENT_PORTAL_PATH)
@@ -92,7 +96,7 @@ export default function StudentSignupPage() {
       const { data, error } = await db().auth.signUp({
         email,
         password,
-        options: { data: studentSignupMetadata({ name, gymId, phone, rankId: rankId || null, graduatedAt: rankId ? graduatedAt : null, birthDate, photoToken }), emailRedirectTo: `${window.location.origin}${STUDENT_PORTAL_PATH}` },
+        options: { data: studentSignupMetadata({ name, gymId, phone, rankId: rankId || null, graduatedAt: rankId ? graduatedAt : null, birthDate, photoToken, imageConsent: !minor && imageConsent }), emailRedirectTo: `${window.location.origin}${STUDENT_PORTAL_PATH}` },
       })
       if (error) throw error
       // E-mail já cadastrado: o Supabase responde "ok" sem criar nada nem mandar e-mail (identities vazio).
@@ -138,6 +142,7 @@ export default function StudentSignupPage() {
   }
 
   const isProfessor = profile.data?.role === 'instructor'
+  const minor = !birthDateIssue(birthDate) && isMinor(birthDate)
 
   return (
     <main className="mx-auto max-w-sm px-5 pt-[calc(env(safe-area-inset-top)+1.5rem)] pb-[calc(env(safe-area-inset-bottom)+2.5rem)]">
@@ -241,6 +246,24 @@ export default function StudentSignupPage() {
               <Field label="WhatsApp (opcional)">
                 <Input type="tel" inputMode="tel" value={phone} onChange={(e) => setPhone(e.target.value)} autoComplete="tel" />
               </Field>
+              <Card className="p-3">
+                <p className="text-sm font-bold text-text">Uso de imagem (LGPD)</p>
+                {minor ? (
+                  <p className="mt-1 text-sm text-soft">
+                    Como você é menor de 18 anos, quem autoriza o uso da sua imagem é o seu responsável, no termo que o app vai
+                    pedir depois da aprovação do professor.
+                  </p>
+                ) : (
+                  <>
+                    <ImageConsentTerms className="mt-2" />
+                    <label className="mt-3 flex items-start gap-3 rounded-lg border border-line p-3">
+                      <input type="checkbox" className="mt-0.5 size-5 shrink-0 accent-[var(--kog-gold)]" checked={imageConsent} onChange={(e) => setImageConsent(e.target.checked)} />
+                      <span className="text-sm text-text">Li e autorizo o uso da minha imagem e o reconhecimento facial para presença, nos termos acima.</span>
+                    </label>
+                    <p className="mt-2 text-xs text-dim">Obrigatório para usar a conta. Você pode retirar quando quiser, falando com seu professor.</p>
+                  </>
+                )}
+              </Card>
               {!session ? (
                 <>
                   <Field label="E-mail (será seu login)" hint="É com este e-mail e a senha abaixo que você vai entrar no app.">
