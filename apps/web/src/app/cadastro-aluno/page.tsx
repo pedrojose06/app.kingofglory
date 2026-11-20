@@ -1,7 +1,7 @@
 'use client'
 
 import {
-  RANK_TRACKS, STUDENT_PORTAL_PATH, birthDateIssue, isMinor, TRACK_LABEL, getProfile, getSignupDirectory, getSignupRanks, keys, requestStudentAccess, studentSignupMetadata,
+  RANK_TRACKS, STUDENT_PORTAL_PATH, birthDateIssue, isMinor, TRACK_LABEL, getProfile, getSignupDirectory, getSignupRanks, keys, requestStudentAccess, studentSignupMetadata, uploadPendingSignupPhoto,
   todayISO, trackOf, uploadSignupPhoto, type DirectoryProfessor,
 } from '@kog/core'
 import { Button, Card, Chip, DateInput, EmptyState, Field, Input, Kicker, Select, cn } from '@kog/ui'
@@ -87,10 +87,12 @@ export default function StudentSignupPage() {
         router.replace(STUDENT_PORTAL_PATH)
         return
       }
+      // Código de uso único para a foto subir já agora, mesmo sem sessão (antes de confirmar o e-mail).
+      const photoToken = crypto.randomUUID().replace(/-/g, '') + crypto.randomUUID().replace(/-/g, '')
       const { data, error } = await db().auth.signUp({
         email,
         password,
-        options: { data: studentSignupMetadata({ name, gymId, phone, rankId: rankId || null, graduatedAt: rankId ? graduatedAt : null, birthDate }), emailRedirectTo: `${window.location.origin}${STUDENT_PORTAL_PATH}` },
+        options: { data: studentSignupMetadata({ name, gymId, phone, rankId: rankId || null, graduatedAt: rankId ? graduatedAt : null, birthDate, photoToken }), emailRedirectTo: `${window.location.origin}${STUDENT_PORTAL_PATH}` },
       })
       if (error) throw error
       // E-mail já cadastrado: o Supabase responde "ok" sem criar nada nem mandar e-mail (identities vazio).
@@ -103,8 +105,17 @@ export default function StudentSignupPage() {
         router.replace(STUDENT_PORTAL_PATH)
         return
       }
-      // Sem sessão até confirmar o e-mail: a foto sobe no primeiro acesso.
+      // Sem sessão até confirmar o e-mail: a foto sobe já, com o código do cadastro. Se falhar (sem sinal), fica no
+      // aparelho e sobe no primeiro acesso.
       await storePendingFace(photo)
+      if (data.user) {
+        try {
+          await uploadPendingSignupPhoto(db(), data.user.id, photoToken, photo)
+          await storePendingFace(null)
+        } catch {
+          // Fica no aparelho; a área do aluno envia no primeiro acesso.
+        }
+      }
       setMessage({ text: `Conta criada! Confirme pelo link que enviamos para ${email}. Depois é só aguardar o professor aprovar.`, error: false })
     } catch (error) {
       const text = errorMessage(error)
