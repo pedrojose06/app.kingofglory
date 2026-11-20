@@ -6,7 +6,7 @@ import {
 } from '@kog/core'
 import { Button, Card, Chip, DateInput, EmptyState, Field, Input, Kicker, Select, cn } from '@kog/ui'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Check, LogOut, Search } from 'lucide-react'
+import { Check, Search } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useMemo, useState, type FormEvent } from 'react'
@@ -138,15 +138,14 @@ export default function StudentSignupPage() {
 
       {!ready || (session && profile.isPending) ? (
         <Loading />
-      ) : isProfessor ? (
-        <div className="mt-8">
-          <EmptyState title="Você está logado como professor">Para criar uma conta de aluno, saia e use outro e-mail.</EmptyState>
-          <Button variant="ghost" block className="mt-4" onPress={() => void db().auth.signOut().then(() => queryClient.clear())}>
-            <LogOut className="size-4" /> Sair
-          </Button>
-        </div>
       ) : (
         <form onSubmit={submit} className="mt-6 space-y-5">
+          {isProfessor ? (
+            <Card className="border-warning p-3 text-sm text-text">
+              Você é professor e também pode ser aluno com esta conta. O pedido precisa ser aprovado por outro professor da
+              academia onde você treina (você não vê o seu próprio pedido).
+            </Card>
+          ) : null}
           <section>
             <p className="kicker mb-2">1. Seu professor</p>
             {professor ? (
