@@ -78,10 +78,10 @@ export default function StudentsPage() {
                   <StudentAvatar url={photos.data?.[s.id]} name={s.name} />
                   <span className="min-w-0 flex-1">
                     <span className="block truncate font-medium text-text">{s.name}</span>
-                    {!s.birth_date || term === 'pendente' ? (
+                    {!s.birth_date || term === 'pendente' || term === 'em_analise' ? (
                       <span className="mt-0.5 flex gap-1">
                         {!s.birth_date ? <Badge tone="warning">Data pendente</Badge> : null}
-                        {term === 'pendente' ? <GuardianTermBadge status={term} /> : null}
+                        {term === 'pendente' || term === 'em_analise' ? <GuardianTermBadge status={term} /> : null}
                       </span>
                     ) : null}
                     <span className="block truncate text-xs text-dim">

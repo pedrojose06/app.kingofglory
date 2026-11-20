@@ -14,6 +14,7 @@ import { Section, StatusBadge, studentSince } from '@/components/common'
 import { FacePhotoField, getPendingFace, storePendingFace } from '@/components/face-photo'
 import { Loading } from '@/components/shell'
 import { InstallPrompt } from '@/components/install-prompt'
+import { StudentGuardianScreen } from '@/components/guardian-term'
 import { ConsentScreen, StudentAuthForm, formatDateTimeBR } from '@/components/student-account'
 import { NotifyWhenApproved, StudentReminderCard } from '@/components/student-reminders'
 import { useAuth } from '@/lib/auth'
@@ -170,7 +171,12 @@ function LinkMode({ token, notice }: { token: string | null; notice: string | nu
 /** Logado: liga a conta ao aluno (pelo link), pede o aceite LGPD e mostra a área do aluno. */
 function AccountMode({ token, onLeave }: { token: string | null; onLeave: (notice: string | null) => void }) {
   const queryClient = useQueryClient()
-  const account = useQuery({ queryKey: keys.myStudentAccount, queryFn: () => getMyStudentAccount(db()) })
+  const account = useQuery({
+    queryKey: keys.myStudentAccount,
+    queryFn: () => getMyStudentAccount(db()),
+    // Termo em conferência: confere de tempos em tempos se o professor já aprovou.
+    refetchInterval: (q) => (q.state.data?.guardian_consent?.status === 'em_analise' ? 60_000 : false),
+  })
   const consented = !!account.data && hasAccountConsent(account.data)
   const portal = useQuery({ queryKey: keys.myStudentPortal, queryFn: () => getMyStudentPortal(db()), enabled: consented })
   const tried = useRef(false)
@@ -222,6 +228,19 @@ function AccountMode({ token, onLeave }: { token: string | null; onLeave: (notic
 
   if (!account.data) {
     return <PendingAccount claimError={claimError} onSignOut={() => void signOut()} />
+  }
+
+  // Menor de idade: o termo do responsável aprovado (com a autorização de imagem) vem antes do aceite.
+  if (!consented && account.data.minor && !(account.data.guardian_consent?.status === 'enviado' && account.data.image_consent_at)) {
+    return (
+      <Shell>
+        <Brand />
+        <StudentGuardianScreen
+          account={account.data}
+          onSignOut={() => void signOut()}
+        />
+      </Shell>
+    )
   }
 
   if (!consented) {

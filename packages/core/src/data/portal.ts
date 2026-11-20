@@ -49,6 +49,12 @@ export interface MyStudentAccount {
   gym_name: string
   account_consent_at: string | null
   image_consent_at: string | null
+  /** Ausentes em dados antigos do cache. */
+  birth_date?: string | null
+  /** Menor de 18 anos (calculado no banco, dia de São Paulo). */
+  minor?: boolean
+  /** Termo do responsável (só menor de idade). */
+  guardian_consent?: { status: string; uploaded_at: string | null; rejected_reason: string | null } | null
 }
 
 /** A conta só acessa a área do aluno com o aceite do próprio aluno e o consentimento de imagem em vigor. */

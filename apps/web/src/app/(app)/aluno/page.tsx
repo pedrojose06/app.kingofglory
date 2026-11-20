@@ -92,7 +92,7 @@ export default function StudentPage() {
   const consent = consents.data?.find((c) => c.student_id === student.id)
   const termStatus = guardianTermStatus(student, consent, today)
   // Menor sem termo enviado: o banco recusa o uso de imagem.
-  const consentLocked = termStatus === 'pendente' && !student.image_consent_at
+  const consentLocked = (termStatus === 'pendente' || termStatus === 'em_analise') && !student.image_consent_at
 
   return (
     <Page
@@ -319,7 +319,7 @@ export default function StudentPage() {
               <span className="block text-text">Autorizou uso de imagem e reconhecimento facial</span>
               <span className="block text-xs text-dim">{student.image_consent_at
                   ? `${student.account_consent_at ? 'Aceito pelo aluno no app' : 'Aceite registrado'} em ${formatDateBR(student.image_consent_at.slice(0, 10))}`
-                  : consentLocked ? 'Menor de idade: só depois do termo do responsável enviado' : 'Sem aceite registrado (LGPD)'}</span>
+                  : consentLocked ? 'Menor de idade: só depois do termo do responsável aprovado' : 'Sem aceite registrado (LGPD)'}</span>
             </span>
             <input type="checkbox" className="size-5 accent-[var(--kog-gold)]" checked={!!student.image_consent_at} disabled={consentLocked} onChange={(e) => {
               const next = e.target.checked

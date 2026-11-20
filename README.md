@@ -84,6 +84,7 @@ As migrations em `supabase/migrations` já estão aplicadas no projeto remoto, c
 | `face_recognition` | Fase 4: `face_embeddings` (pgvector 128, só referências numéricas), `face_detections` (decisão do professor por rosto), trigger de consentimento, apagamento ao retirar o consentimento, `save_face_decisions`, `face_references` e `profiles.face_auto_approve_min` (desligado) |
 | `face_signup_reference` | foto do cadastro do aluno como primeira referência: `face_embeddings.source` (`class_photo`/`signup_photo`, uma do cadastro por aluno, fora da poda), `face_signup_photos(gym)` e `add_signup_face_reference` |
 | `guardian_consents` | termo do responsável do aluno menor: `is_minor(nascimento, hoje)`, data de nascimento validada (não futura, não pode ser apagada), `student_guardian_consents` (`pendente`/`enviado`), bucket privado `guardian-consents`, `set_guardian_consent_file` e uso de imagem de menor só com o termo enviado |
+| `guardian_consent_review` | termo enviado pelo próprio aluno menor (`submit_guardian_consent_file`, status `em_analise`) e conferência do professor (`review_guardian_consent`: aprova informando se o responsável autorizou a imagem, ou recusa com motivo); `my_student_account` traz nascimento, `minor` e o termo; `accept_image_consent` não libera a imagem do menor sozinho |
 
 Para criar uma migration nova e aplicar (com a CLI do Supabase):
 
@@ -352,6 +353,12 @@ continuam funcionando: aparecem com o selo **Data pendente** na lista e a ficha 
   "Autorizou uso de imagem" (e o aceite do próprio aluno na conta) sem o termo; quem vira menor ao preencher a data perde o
   aceite anterior e os dados do rosto são apagados. Recusar não impede o aluno de treinar: presença e chamada seguem iguais.
 - No cadastro sem link (`/cadastro-aluno`) a data também é obrigatória; o menor é avisado de que o professor vai pedir o termo.
+- **Pelo próprio aluno**: na conta, o aluno menor sem termo aprovado vê a tela **Autorização do responsável** em vez do
+  aceite: baixa o termo (o servidor usa o nome e o nascimento do cadastro dele) e envia o arquivo assinado. O termo fica
+  **Termo para conferir** e aparece em **Pendências** (soma no número da aba) e na ficha do aluno. O professor abre o
+  arquivo e **aprova**, dizendo se o responsável autorizou uso de imagem e reconhecimento facial, ou **recusa** com o motivo,
+  que o aluno vê para enviar de novo. Aprovado com "Sim", o aluno faz o aceite e entra na conta; com "Não", a conta não fica
+  disponível (ele segue treinando e vê as presenças pelo link do professor). Termo enviado pelo professor já vale como aprovado.
 
 ## Importação do InClass
 
