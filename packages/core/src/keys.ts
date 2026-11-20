@@ -2,6 +2,7 @@
 export const keys = {
   profile: ['profile'] as const,
   gyms: ['gyms'] as const,
+  myGymStarts: ['gyms', 'my-starts'] as const,
   schedules: ['schedules'] as const,
   reminders: ['reminders'] as const,
   planReminder: ['reminders', 'plan'] as const,

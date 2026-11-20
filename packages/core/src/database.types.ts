@@ -338,18 +338,21 @@ export type Database = {
           profile_id: string
           role: Database["public"]["Enums"]["gym_role"]
           created_at: string
+          started_on: string | null
         }
         Insert: {
           gym_id: string
           profile_id: string
           role?: Database["public"]["Enums"]["gym_role"]
           created_at?: string
+          started_on?: string | null
         }
         Update: {
           gym_id?: string
           profile_id?: string
           role?: Database["public"]["Enums"]["gym_role"]
           created_at?: string
+          started_on?: string | null
         }
         Relationships: []
       }
@@ -839,6 +842,7 @@ export type Database = {
       my_signup_request: { Args: never; Returns: Json }
       set_signup_photo: { Args: { p_path: string }; Returns: undefined }
       set_schedule_start: { Args: { p_schedule_id: string; p_starts_on: string }; Returns: number }
+      set_my_gym_start: { Args: { p_gym_id: string; p_started_on: string | null }; Returns: undefined }
       set_pending_signup_photo: { Args: { p_profile_id: string; p_token: string }; Returns: undefined }
       set_guardian_consent_file: { Args: { p_student_id: string; p_path: string }; Returns: string | null }
       is_minor: { Args: { p_birth: string; p_today: string }; Returns: boolean }
