@@ -648,6 +648,10 @@ export type Database = {
           uploaded_by: string | null
           created_at: string
           updated_at: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          rejected_reason: string | null
+          rejected_at: string | null
         }
         Insert: {
           id?: string
@@ -658,6 +662,10 @@ export type Database = {
           uploaded_by?: string | null
           created_at?: string
           updated_at?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          rejected_reason?: string | null
+          rejected_at?: string | null
         }
         Update: {
           id?: string
@@ -668,6 +676,10 @@ export type Database = {
           uploaded_by?: string | null
           created_at?: string
           updated_at?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          rejected_reason?: string | null
+          rejected_at?: string | null
         }
         Relationships: []
       }
@@ -828,6 +840,11 @@ export type Database = {
       set_signup_photo: { Args: { p_path: string }; Returns: undefined }
       set_guardian_consent_file: { Args: { p_student_id: string; p_path: string }; Returns: string | null }
       is_minor: { Args: { p_birth: string; p_today: string }; Returns: boolean }
+      submit_guardian_consent_file: { Args: { p_path: string }; Returns: string | null }
+      review_guardian_consent: {
+        Args: { p_student_id: string; p_approve: boolean; p_image_consent?: boolean; p_reason?: string }
+        Returns: string | null
+      }
       list_student_requests: { Args: never; Returns: Json }
       approve_student_request: { Args: { p_request_id: string; p_student_id?: string }; Returns: string }
       reject_student_request: { Args: { p_request_id: string }; Returns: undefined }

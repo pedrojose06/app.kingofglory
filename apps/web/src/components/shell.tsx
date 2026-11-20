@@ -5,6 +5,7 @@ import { CalendarCheck, ChevronLeft, CloudOff, ListTodo, Menu, RefreshCw, Users 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import type { ReactNode } from 'react'
+import { useGuardianReviews } from '@/components/guardian-term'
 import { useOnline, useOutbox, useOutboxSyncing } from '@/lib/outbox'
 import { usePendingClasses, useStudentRequests } from '@/lib/queries'
 
@@ -17,8 +18,8 @@ const TABS = [
 
 export function BottomNav() {
   const pathname = usePathname()
-  // Chamadas acumuladas + pedidos de acesso de alunos.
-  const pending = (usePendingClasses().data?.length ?? 0) + (useStudentRequests().data?.length ?? 0)
+  // Chamadas acumuladas + pedidos de acesso de alunos + termos do responsável para conferir.
+  const pending = (usePendingClasses().data?.length ?? 0) + (useStudentRequests().data?.length ?? 0) + useGuardianReviews().length
   return (
     <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-bg/95 pb-[env(safe-area-inset-bottom)] backdrop-blur">
       <ul className="mx-auto flex max-w-xl">

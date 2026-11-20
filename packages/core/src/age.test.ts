@@ -66,6 +66,9 @@ describe('termo do responsável', () => {
     expect(guardianTermStatus({ birth_date: '2012-05-05' }, null, '2026-11-20')).toBe('pendente')
     expect(guardianTermStatus({ birth_date: '2012-05-05' }, { status: 'pendente' }, '2026-11-20')).toBe('pendente')
     expect(guardianTermStatus({ birth_date: '2012-05-05' }, { status: 'enviado' }, '2026-11-20')).toBe('enviado')
+    expect(guardianTermStatus({ birth_date: '2012-05-05' }, { status: 'em_analise' }, '2026-11-20')).toBe('em_analise')
+    // Fez 18 com o termo ainda em análise: não se aplica mais.
+    expect(guardianTermStatus({ birth_date: '2008-11-20' }, { status: 'em_analise' }, '2026-11-20')).toBeNull()
     expect(guardianTermStatus({ birth_date: '1990-05-05' }, null, '2026-11-20')).toBeNull()
     expect(guardianTermStatus({ birth_date: null }, null, '2026-11-20')).toBeNull()
   })

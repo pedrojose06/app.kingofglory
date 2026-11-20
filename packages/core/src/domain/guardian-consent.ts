@@ -11,10 +11,12 @@ export const GUARDIAN_CONSENT_ACCEPT = 'application/pdf,image/jpeg,image/png,.pd
 /** URL assinada do termo: curta, só para abrir na hora. */
 export const GUARDIAN_CONSENT_URL_SECONDS = 60
 
-export type GuardianConsentStatus = 'pendente' | 'enviado'
+/** pendente = sem arquivo; em_analise = o aluno enviou e o professor confere; enviado = aprovado (vale). */
+export type GuardianConsentStatus = 'pendente' | 'em_analise' | 'enviado'
 export const GUARDIAN_CONSENT_LABEL: Record<GuardianConsentStatus, string> = {
   pendente: 'Termo pendente',
-  enviado: 'Termo enviado',
+  em_analise: 'Termo para conferir',
+  enviado: 'Termo aprovado',
 }
 
 const BY_EXTENSION: Record<string, GuardianConsentMime> = { pdf: 'application/pdf', jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png' }
@@ -48,7 +50,8 @@ export function guardianTermStatus(
   today: string | Date = new Date(),
 ): GuardianConsentStatus | null {
   if (consent?.status === 'enviado') return 'enviado'
-  return isMinor(student.birth_date, today) ? 'pendente' : null
+  if (!isMinor(student.birth_date, today)) return null
+  return consent?.status === 'em_analise' ? 'em_analise' : 'pendente'
 }
 
 /** Conteúdo do termo em PDF (uma página A4). O web só desenha. */

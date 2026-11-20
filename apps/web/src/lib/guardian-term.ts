@@ -1,11 +1,14 @@
 import { guardianTermFileName } from '@kog/core'
 import { db } from './supabase'
 
-/** Gera o termo do responsável no servidor (/api/termo-responsavel) e baixa o PDF. Exige conexão. */
+/**
+ * Gera o termo do responsável no servidor (/api/termo-responsavel) e baixa o PDF. Exige conexão.
+ * Para a conta do aluno, o servidor usa o nome e o nascimento do cadastro dele (os enviados são ignorados).
+ */
 export async function downloadGuardianTerm(input: { name: string; birthDate: string }): Promise<void> {
   const { data } = await db().auth.getSession()
   const token = data.session?.access_token
-  if (!token) throw new Error('Entre na sua conta de professor.')
+  if (!token) throw new Error('Entre na sua conta.')
   const res = await fetch('/api/termo-responsavel', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
