@@ -3,8 +3,9 @@ import { createClient } from '@supabase/supabase-js'
 import { buildGuardianTermPdf } from '@/lib/guardian-term-pdf'
 
 // Termo do responsável (aluno menor de idade) em PDF, preenchido com nome e nascimento do aluno.
-// POST (dados no corpo, não na URL nem nos logs de acesso), para professor ou para o próprio aluno logado, sem cache.
-// Nada é guardado: o PDF é gerado na memória e devolvido.
+// POST (dados no corpo, não na URL nem nos logs de acesso), sem cache. Nada é guardado: o PDF é gerado na memória.
+// Sem login (cadastro do aluno) ou professor: usa o nome e a data enviados. Conta de aluno: usa os dados do cadastro
+// dele no banco (o corpo é ignorado).
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -39,13 +40,12 @@ async function caller(token: string): Promise<Caller> {
 
 export async function POST(request: Request) {
   const token = request.headers.get('authorization')?.match(/^Bearer\s+(.+)$/i)?.[1]
-  if (!token) return fail(401, 'Entre na sua conta.')
-  const who = await caller(token).catch(() => null)
-  if (!who) return fail(403, 'Só o professor ou o próprio aluno podem gerar o termo.')
+  // O PDF só repete o que quem pede já sabe (nome e nascimento digitados), então o cadastro sem login também gera.
+  const who = token ? await caller(token).catch(() => null) : null
 
   let name: string
   let birthDate: string
-  if (who.kind === 'student') {
+  if (who?.kind === 'student') {
     name = who.name.trim().replace(/\s+/g, ' ')
     birthDate = who.birthDate ?? ''
   } else {

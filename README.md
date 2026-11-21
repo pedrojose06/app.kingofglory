@@ -88,6 +88,7 @@ As migrations em `supabase/migrations` já estão aplicadas no projeto remoto, c
 | `signup_photo_without_confirmation` | foto de rosto do cadastro salva já no cadastro, antes de confirmar o e-mail: código secreto de uso único no signUp (`photo_upload_token`), envio sem login para `{profile_id}/signup-{código}.jpg` por até 24 h e `set_pending_signup_photo` |
 | `schedule_start_date` | `set_schedule_start`: corrigir a data de início de um horário da grade (aulas vazias antes da nova data são removidas) |
 | `signup_image_consent` | autorização de uso de imagem no cadastro sem link (`student_signup_requests.image_consent_at`), levada ao aluno na aprovação (maior de idade) |
+| `signup_guardian_term` | termo do responsável anexado já no cadastro do aluno menor (`student_signup_requests.guardian_file_path`, também sem login pelo código do cadastro); aprovado o aluno, vira "Termo para conferir"; policies do Storage pelo registro do termo |
 
 Para criar uma migration nova e aplicar (com a CLI do Supabase):
 
@@ -276,6 +277,8 @@ em que treina e cria a conta (nome, WhatsApp opcional, e-mail e senha). A conta 
 - O professor vê os pedidos em **Pendências** (somam no número da aba) e, para cada um,
   diz **qual aluno da lista é esse login** (nomes parecidos primeiro), **cadastra como aluno novo** ou **recusa**.
   Qualquer professor que dá aula na academia escolhida pode decidir.
+- Menor de idade: o cadastro tem **Baixar termo** (gerado sem login, com o nome e o nascimento digitados) e o anexo do
+  termo assinado (obrigatório). Aprovado o aluno, o termo aparece como **Termo para conferir** em Pendências.
 - O aluno maior de idade autoriza o uso de imagem já no cadastro (obrigatório para usar a conta). Aprovado, a autorização
   vai para o aluno e ele entra direto, sem a tela de aceite. Menor de idade: vale o termo do responsável.
 - Pedido sem autorização no cadastro (feito antes dela existir): no primeiro acesso o aluno passa pelo aceite LGPD.

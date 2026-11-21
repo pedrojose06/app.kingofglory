@@ -43,7 +43,7 @@ export function useGuardianReviews() {
   }, [consents.data, students.data, today])
 }
 
-function DownloadButton({ name, birthDate, block }: { name: string; birthDate: string; block?: boolean }) {
+export function DownloadButton({ name, birthDate, block }: { name: string; birthDate: string; block?: boolean }) {
   const [busy, setBusy] = useState(false)
   return (
     <Button
@@ -69,7 +69,7 @@ function DownloadButton({ name, birthDate, block }: { name: string; birthDate: s
 }
 
 /** Escolha do arquivo do termo assinado, com a validação de tipo e tamanho antes de enviar. */
-function FilePicker({ file, onChange, label }: { file: File | null; onChange: (file: File | null) => void; label: string }) {
+export function FilePicker({ file, onChange, label }: { file: File | null; onChange: (file: File | null) => void; label: string }) {
   const inputRef = useRef<HTMLInputElement>(null)
   function onFile(e: ChangeEvent<HTMLInputElement>) {
     const picked = e.target.files?.[0] ?? null
