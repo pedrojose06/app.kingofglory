@@ -1,5 +1,5 @@
 import {
-  GUARDIAN_CONSENT_BUCKET, GUARDIAN_CONSENT_URL_SECONDS, guardianConsentFileIssue, guardianConsentMime, guardianConsentPath,
+  GUARDIAN_CONSENT_BUCKET, GUARDIAN_CONSENT_TYPES, GUARDIAN_CONSENT_URL_SECONDS, type GuardianConsentMime, guardianConsentFileIssue, guardianConsentMime, guardianConsentPath,
 } from '../domain/guardian-consent'
 import type { Db, GuardianConsent } from '../types'
 import { unwrap } from './util'
@@ -76,4 +76,38 @@ export async function reviewGuardianConsent(db: Db, studentId: string, review: G
   if (res.error) throw res.error
   const rejected = res.data as string | null
   if (rejected) await db.storage.from(GUARDIAN_CONSENT_BUCKET).remove([rejected])
+}
+
+/** Caminho do termo anexado no cadastro (o aluno ainda não existe): pasta da conta. */
+export const signupTermPath = (profileId: string, name: string, mime: GuardianConsentMime) =>
+  `${profileId}/termo-${name}.${GUARDIAN_CONSENT_TYPES[mime]}`
+
+/**
+ * Termo anexado no cadastro do aluno menor, logo após o signUp, sem sessão. `token` é o mesmo código secreto do
+ * cadastro (o da foto); vale uma vez e por 24 horas. Quando o professor aprovar o aluno, vira "Termo para conferir".
+ */
+export async function uploadPendingSignupTerm(db: Db, profileId: string, token: string, file: UploadFile): Promise<void> {
+  const issue = guardianConsentFileIssue(file)
+  if (issue) throw new Error(issue)
+  const mime = guardianConsentMime(file)!
+  const path = signupTermPath(profileId, token, mime)
+  const up = await db.storage.from(GUARDIAN_CONSENT_BUCKET).upload(path, file, { contentType: mime, upsert: false })
+  if (up.error) throw up.error
+  const res = await db.rpc('set_pending_signup_term', { p_profile_id: profileId, p_token: token, p_ext: GUARDIAN_CONSENT_TYPES[mime] })
+  if (res.error) throw res.error
+}
+
+/** Termo anexado no cadastro pela conta já logada (pedido feito com request_student_access). */
+export async function uploadMySignupTerm(db: Db, profileId: string, fileId: string, file: UploadFile): Promise<void> {
+  const issue = guardianConsentFileIssue(file)
+  if (issue) throw new Error(issue)
+  const mime = guardianConsentMime(file)!
+  const path = signupTermPath(profileId, fileId, mime)
+  const up = await db.storage.from(GUARDIAN_CONSENT_BUCKET).upload(path, file, { contentType: mime, upsert: false })
+  if (up.error) throw up.error
+  const res = await db.rpc('set_my_signup_term', { p_path: path })
+  if (res.error) {
+    await db.storage.from(GUARDIAN_CONSENT_BUCKET).remove([path])
+    throw res.error
+  }
 }
