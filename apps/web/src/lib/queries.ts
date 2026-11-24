@@ -5,7 +5,7 @@ import {
   listClassesRange, listClassPhotos, listGuardianConsents, listGraduations, listGyms, listMyGymStarts, listPendingClasses, listProgress, listRanks, listReminders, listSchedules,
   listPlannedClassIds, listPlanReviews, listFaceReferences, listPhotoFaces, listStudentAttendance, listStudentPhotoUrls, listStudentRequests, listStudents, listWalkInLocations, todayISO, type ClassRow,
 } from '@kog/core'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
 import { useUserId } from './auth'
 import { db } from './supabase'
@@ -136,6 +136,21 @@ export function useSave<TArgs, TResult = unknown>(
 /** Referências faciais da academia (só alunos com consentimento). Ficam no cache offline para reconhecer sem internet. */
 export const useFaceReferences = (gymId: string, enabled = true) =>
   useQuery({ queryKey: keys.faceReferences(gymId), queryFn: () => listFaceReferences(db(), gymId), enabled: enabled && !!gymId, staleTime: 10 * 60_000 })
+
+/** Referências de várias academias juntas (presença avulsa: o aluno pode ser de qualquer academia do professor). */
+export const useFaceReferencesOfGyms = (gymIds: readonly string[], enabled = true) =>
+  useQueries({
+    queries: gymIds.map((gymId) => ({
+      queryKey: keys.faceReferences(gymId),
+      queryFn: () => listFaceReferences(db(), gymId),
+      enabled: enabled && !!gymId,
+      staleTime: 10 * 60_000,
+    })),
+    combine: (results) => ({
+      data: results.flatMap((r) => r.data ?? []),
+      isPending: results.some((r) => r.isPending && r.fetchStatus !== 'idle'),
+    }),
+  })
 
 /** Rostos já decididos nas fotos da aula. */
 export const usePhotoFaces = (classId: string, photoIds: readonly string[]) =>

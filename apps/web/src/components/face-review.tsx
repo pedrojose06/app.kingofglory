@@ -22,13 +22,22 @@ export interface FaceReviewTarget {
   gymId: string
 }
 
+/**
+ * Presença avulsa: não há aula nem foto guardada. As respostas não vão para o banco; os confirmados só voltam para
+ * a tela da avulsa, que registra a presença do jeito de sempre.
+ */
+export interface FaceReviewWalkIn {
+  walkIn: true
+  onApply: (studentIds: string[]) => void
+}
+
 interface Decision {
   kind: FaceDecisionKind
   studentId: string | null
 }
 
 interface Props {
-  target: FaceReviewTarget | null
+  target: FaceReviewTarget | FaceReviewWalkIn | null
   /** Progresso da análise (enquanto não há resultado). */
   progress: FaceProgress | null
   result: AnalyzedPhoto | null
@@ -38,6 +47,8 @@ interface Props {
   refs: readonly StoredReference[]
   statusOf: ReadonlyMap<string, AttendanceStatus>
   autoApproveMin: number | null | undefined
+  /** Linha extra embaixo do nome (ex.: a academia do aluno, quando o professor dá aula em mais de uma). */
+  detailOf?: (studentId: string) => string | undefined
   onClose: () => void
 }
 
@@ -48,7 +59,7 @@ const STAGE_LABEL: Record<FaceProgress['stage'], string> = {
   signup: 'Lendo as fotos do cadastro dos alunos',
 }
 
-export function FaceReview({ target, progress, result, error, students, refs, statusOf, autoApproveMin, onClose }: Props) {
+export function FaceReview({ target, progress, result, error, students, refs, statusOf, autoApproveMin, detailOf, onClose }: Props) {
   const queryClient = useQueryClient()
   const [crops, setCrops] = useState<string[]>([])
   const [decisions, setDecisions] = useState<Map<number, Decision>>(new Map())
@@ -101,6 +112,11 @@ export function FaceReview({ target, progress, result, error, students, refs, st
 
   function save() {
     if (!target || !result) return
+    if ('walkIn' in target) {
+      const ids = [...decisions.values()].flatMap((d) => (d.studentId ? [d.studentId] : []))
+      target.onApply(ids)
+      return onClose()
+    }
     const items: FaceDecisionItem[] = []
     const added: StoredReference[] = []
     const now = new Date().toISOString()
@@ -150,6 +166,7 @@ export function FaceReview({ target, progress, result, error, students, refs, st
   }
 
   const marked = [...decisions.values()].filter((d) => d.studentId).length
+  const walkIn = !!target && 'walkIn' in target
   const faces = result?.faces ?? []
   // Primeiro os rostos com sugestão (do mais provável ao menos), depois os "Quem é?" da esquerda para a direita.
   const order = faces
@@ -178,8 +195,10 @@ export function FaceReview({ target, progress, result, error, students, refs, st
       ) : (
         <>
           <p className="mb-3 text-sm text-soft">
-            {faces.length} {faces.length === 1 ? 'rosto encontrado' : 'rostos encontrados'}. Confirme quem é cada um: a presença só é
-            marcada depois da sua resposta.
+            {faces.length} {faces.length === 1 ? 'rosto encontrado' : 'rostos encontrados'}.{' '}
+            {walkIn
+              ? 'Confirme quem é cada um: os confirmados ficam marcados na lista, e você registra a avulsa como sempre.'
+              : 'Confirme quem é cada um: a presença só é marcada depois da sua resposta.'}
           </p>
           <div className="space-y-2">
             {order.map((i) => (
@@ -196,6 +215,8 @@ export function FaceReview({ target, progress, result, error, students, refs, st
                   return at != null && at !== i
                 }}
                 statusOf={statusOf}
+                detailOf={detailOf}
+                walkIn={walkIn}
                 onDecide={(d) => decide(i, d)}
                 onPick={() => setPicking(picking === i ? null : i)}
               />
@@ -203,9 +224,13 @@ export function FaceReview({ target, progress, result, error, students, refs, st
           </div>
           <div className="sticky bottom-[calc(-1rem-env(safe-area-inset-bottom))] -mx-4 -mb-[calc(1rem+env(safe-area-inset-bottom))] mt-4 border-t border-line bg-bg px-4 pt-3 pb-[calc(1rem+env(safe-area-inset-bottom))]">
             <Button block onPress={save} disabled={decisions.size === 0}>
-              {marked > 0 ? `Salvar e marcar ${marked} ${marked === 1 ? 'presença' : 'presenças'}` : 'Salvar respostas'}
+              {walkIn
+                ? marked > 0 ? `Marcar ${marked} ${marked === 1 ? 'aluno' : 'alunos'} na lista` : 'Fechar'
+                : marked > 0 ? `Salvar e marcar ${marked} ${marked === 1 ? 'presença' : 'presenças'}` : 'Salvar respostas'}
             </Button>
-            <p className="mt-1.5 text-center text-xs text-dim">Rostos sem resposta não são salvos. Sem sinal, envia depois.</p>
+            <p className="mt-1.5 text-center text-xs text-dim">
+              {walkIn ? 'A foto não é guardada: o reconhecimento roda só no seu celular.' : 'Rostos sem resposta não são salvos. Sem sinal, envia depois.'}
+            </p>
           </div>
         </>
       )}
@@ -224,11 +249,13 @@ interface CardProps {
   students: readonly Student[]
   takenBy: (studentId: string) => boolean
   statusOf: ReadonlyMap<string, AttendanceStatus>
+  detailOf: ((studentId: string) => string | undefined) | undefined
+  walkIn: boolean
   onDecide: (d: Decision | null) => void
   onPick: () => void
 }
 
-function FaceCard({ crop, suggestion, decision, picking, byId, students, takenBy, statusOf, onDecide, onPick }: CardProps) {
+function FaceCard({ crop, suggestion, decision, picking, byId, students, takenBy, statusOf, detailOf, walkIn, onDecide, onPick }: CardProps) {
   const suggested = suggestion.student_id ? byId.get(suggestion.student_id) : undefined
   const chosen = decision?.studentId ? byId.get(decision.studentId) : undefined
   const already = (id: string) => statusOf.get(id) === 'present' || statusOf.get(id) === 'late'
@@ -249,7 +276,8 @@ function FaceCard({ crop, suggestion, decision, picking, byId, students, takenBy
                 <Badge tone="success">{decision.kind === 'auto' ? 'Aprovado automaticamente' : 'Confirmado'}</Badge>
               )}
               {chosen ? <p className="mt-1.5 truncate font-bold text-text">{chosen.name}</p> : null}
-              {chosen && already(chosen.id) ? <p className="text-xs text-dim">Já estava presente</p> : null}
+              {chosen && detailOf?.(chosen.id) ? <p className="truncate text-xs text-dim">{detailOf(chosen.id)}</p> : null}
+              {chosen && already(chosen.id) ? <p className="text-xs text-dim">{walkIn ? 'Já estava marcado na lista' : 'Já estava presente'}</p> : null}
               <button type="button" onClick={() => onDecide(null)} className="mt-1 block text-xs font-bold uppercase tracking-[0.08em] text-accent">
                 Desfazer
               </button>
@@ -260,13 +288,16 @@ function FaceCard({ crop, suggestion, decision, picking, byId, students, takenBy
               <p className="font-bold leading-snug text-text">
                 {suggested.name}? <span className="font-normal text-accent">({formatConfidence(suggestion.confidence)})</span>
               </p>
-              {already(suggested.id) ? <p className="text-xs text-dim">Já está presente na chamada</p> : null}
+              {detailOf?.(suggested.id) ? <p className="truncate text-xs text-dim">{detailOf(suggested.id)}</p> : null}
+              {already(suggested.id) ? <p className="text-xs text-dim">{walkIn ? 'Já está marcado na lista' : 'Já está presente na chamada'}</p> : null}
             </>
           ) : (
             <>
               <p className="font-bold text-text">Quem é?</p>
               <p className="text-xs text-dim">
-                {students.length === 0 ? 'Nenhum aluno autorizou o reconhecimento.' : 'Escolha o aluno: o app aprende com a sua resposta.'}
+                {students.length === 0
+                  ? 'Nenhum aluno autorizou o reconhecimento.'
+                  : walkIn ? 'Escolha o aluno na lista.' : 'Escolha o aluno: o app aprende com a sua resposta.'}
               </p>
             </>
           )}
@@ -294,6 +325,7 @@ function FaceCard({ crop, suggestion, decision, picking, byId, students, takenBy
           students={students}
           suggestion={suggestion}
           takenBy={takenBy}
+          detailOf={detailOf}
           onPick={(id) => onDecide({ kind: 'corrected', studentId: id })}
         />
       ) : null}
@@ -301,10 +333,11 @@ function FaceCard({ crop, suggestion, decision, picking, byId, students, takenBy
   )
 }
 
-function StudentPicker({ students, suggestion, takenBy, onPick }: {
+function StudentPicker({ students, suggestion, takenBy, detailOf, onPick }: {
   students: readonly Student[]
   suggestion: FaceSuggestion
   takenBy: (id: string) => boolean
+  detailOf: ((studentId: string) => string | undefined) | undefined
   onPick: (studentId: string) => void
 }) {
   const [query, setQuery] = useState('')
@@ -329,7 +362,10 @@ function StudentPicker({ students, suggestion, takenBy, onPick }: {
               onClick={() => onPick(s.id)}
               className="flex w-full items-center justify-between gap-3 px-3 py-2.5 text-left text-sm text-text active:bg-tint disabled:opacity-40"
             >
-              <span className="truncate">{s.name}</span>
+              <span className="min-w-0">
+                <span className="block truncate">{s.name}</span>
+                {detailOf?.(s.id) ? <span className="block truncate text-xs text-dim">{detailOf(s.id)}</span> : null}
+              </span>
               <span className="shrink-0 text-xs text-dim">{busy ? 'outro rosto' : c != null && c > 0 ? formatConfidence(c) : ''}</span>
             </button>
           )

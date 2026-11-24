@@ -5,6 +5,7 @@ import { Button, Chip, DateInput, EmptyState, Field, Input, cn } from '@kog/ui'
 import { Search } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { CheckRow, GymChips } from '@/components/common'
+import { WalkInFace } from '@/components/walk-in-face'
 import { Loading, Page } from '@/components/shell'
 import { outbox } from '@/lib/outbox'
 import { useGyms, useStudents, useToday, useWalkInLocations } from '@/lib/queries'
@@ -23,6 +24,8 @@ export default function WalkInPage() {
   // Aluno escolhido → quanto vale a presença dele.
   const [selected, setSelected] = useState<Map<string, number>>(new Map())
   const [credits, setCredits] = useState(1)
+
+  const selectedIds = useMemo(() => new Set(selected.keys()), [selected])
 
   const visible = useMemo(() => {
     const q = normalizeName(search)
@@ -43,6 +46,17 @@ export default function WalkInPage() {
   }
 
   // Valor só deste aluno: 1× → 2× → 3× → 1×.
+  // Confirmados pelo rosto entram na lista com o valor atual; quem já estava escolhido fica como está.
+  function addFromFace(ids: string[]) {
+    const fresh = ids.filter((id) => !selected.has(id))
+    setSelected((prev) => {
+      const next = new Map(prev)
+      for (const id of ids) if (!next.has(id)) next.set(id, credits)
+      return next
+    })
+    if (fresh.length > 0) toast(`${fresh.length} ${fresh.length === 1 ? 'aluno marcado' : 'alunos marcados'} pelo rosto. Confira e registre.`)
+  }
+
   const cycleCredits = (id: string) =>
     setSelected((prev) => new Map(prev).set(id, ((prev.get(id) ?? 1) % 3) + 1))
 
@@ -114,6 +128,8 @@ export default function WalkInPage() {
           aluno, dia, local e período corrige o valor.
         </p>
       </div>
+
+      <WalkInFace gyms={gyms.data ?? []} students={students.data ?? []} selected={selectedIds} onConfirm={addFromFace} />
 
       <div className="mt-5">
         <GymChips gyms={gyms.data ?? []} value={gymId} onChange={setGymId} />
