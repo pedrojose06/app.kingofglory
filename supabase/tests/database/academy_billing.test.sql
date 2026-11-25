@@ -1,6 +1,6 @@
 -- Cadastros e financeiro da academia: quem vê o quê, coerência entre academias, contrato com parcelas e atraso.
 begin;
-select plan(34);
+select plan(39);
 
 -- Pessoas: ADM (admin da academia), PRO (professor da academia), MEM (membro/pagador), OUT (professor de outra academia).
 insert into auth.users (instance_id, id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
@@ -116,9 +116,22 @@ select is((select count(*)::int from public.class_group_members), 1, 'professor 
 set local request.jwt.claims = '{"sub":"a4000000-0000-0000-0000-000000000004"}';
 select is((select count(*)::int from public.students where gym_id = 'ac000000-0000-0000-0000-0000000000ac'), 0, 'professor de fora não vê alunos da academia');
 
--- ── cancelamento ──
+-- ── prorrogação ──
 set local request.jwt.claims = '{"sub":"a1000000-0000-0000-0000-000000000001"}';
-select is(public.cancel_contract((select v::uuid from t where k = 'contract'), 'Mudou de cidade', '2026-02-01'), 1,
+select throws_like($$ select public.extend_contract((select v::uuid from t where k = 'contract'), '2030-12-31', '[]') $$,
+  '%depois do fim atual%', 'prorrogar precisa de data depois do fim atual');
+select throws_like($$ select public.extend_contract((select v::uuid from t where k = 'contract'), '2031-12-31',
+  '[{"kind":"mensalidade","competence":"2030-12-01","due_on":"2030-12-20","amount_cents":9590}]') $$,
+  '%fora do período da prorrogação%', 'parcela antes do fim atual é recusada');
+select is(public.extend_contract((select v::uuid from t where k = 'contract'), '2031-12-31',
+  '[{"kind":"mensalidade","competence":"2031-01-01","due_on":"2031-01-10","amount_cents":9590,"installment":3,"installments_total":3}]'), 1,
+  'prorrogar cria as mensalidades do período novo');
+select is((select ends_on from public.contracts where id = (select v::uuid from t where k = 'contract')), '2031-12-31'::date, 'prorrogar muda o fim');
+select is((select array_agg(distinct installments_total)::int[] from public.charges
+  where contract_id = (select v::uuid from t where k = 'contract') and kind = 'mensalidade'), array[3], 'todas as parcelas mostram o novo total');
+
+-- ── cancelamento ──
+select is(public.cancel_contract((select v::uuid from t where k = 'contract'), 'Mudou de cidade', '2026-02-01'), 2,
   'cancelar o contrato cancela só as abertas a partir da data');
 select is((select state from public.charge_overview where kind = 'mensalidade' and due_on = '2026-01-10'), 'atrasada', 'a vencida antes continua devida');
 

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
-  addMonths, buildContractCharges, chargeState, chargeTotals, contractEndFor, contractIssue, contractPeriodState, daysLate,
+  addMonths, buildContractCharges, chargeState, chargeTotals, contractEndFor, contractExtensionCharges, contractExtensionEnd,
+  contractExtensionIssue, contractIssue, contractPeriodState, daysLate,
   dueDateIn, formatBRL, parseBRL,
 } from './domain/billing'
 
@@ -129,5 +130,28 @@ describe('vigência do contrato', () => {
     expect(contractPeriodState(c, '2026-12-16')).toBe('vencido')
     expect(contractPeriodState({ ...c, status: 'cancelado' }, '2026-11-25')).toBe('cancelado')
     expect(contractPeriodState({ ...c, starts_on: '2027-01-01', ends_on: '2027-12-31' }, '2026-11-25')).toBe('futuro')
+  })
+})
+
+describe('prorrogação do contrato', () => {
+  it('sugere mais 1 ano depois do fim atual', () => {
+    expect(contractExtensionEnd('2027-11-30')).toBe('2028-11-30')
+    expect(contractExtensionEnd('2027-12-31')).toBe('2028-12-31')
+    expect(contractExtensionEnd('2027-11-30', 6)).toBe('2028-05-31')
+  })
+  it('nova data precisa ser depois do fim atual', () => {
+    expect(contractExtensionIssue('2027-11-30', '2027-11-30')).toMatch(/depois/)
+    expect(contractExtensionIssue('2027-11-30', '')).toMatch(/Informe/)
+    expect(contractExtensionIssue('2027-11-30', '2028-11-30')).toBeNull()
+  })
+  it('gera só as mensalidades do período novo, continuando a numeração', () => {
+    const drafts = contractExtensionCharges({ ...base, enrollmentFeeCents: 5000 }, '2028-11-30')
+    expect(drafts).toHaveLength(12)
+    expect(drafts.every((d) => d.kind === 'mensalidade')).toBe(true)
+    expect(drafts[0]).toMatchObject({ dueOn: '2027-12-10', installment: 13, installmentsTotal: 24, amountCents: 9590 })
+    expect(drafts.at(-1)).toMatchObject({ dueOn: '2028-11-10', installment: 24 })
+  })
+  it('contrato isento prorroga sem cobranças', () => {
+    expect(contractExtensionCharges({ ...base, billing: 'isento', amountCents: 0 }, '2028-11-30')).toEqual([])
   })
 })

@@ -2,7 +2,8 @@
 
 import {
   type AcademyStudent, type AcademyStudentInput, addGraduation, addStudentBelt, cancelContract, CHARGE_KIND_LABEL, CHARGE_STATE_LABEL,
-  chargeTotals, CONTRACT_BILLING_LABEL, contractPeriodState, type ContractRow, formatBRL, formatCpf, formatDateBR, isMinor, isValidCpf,
+  chargeTotals, CONTRACT_BILLING_LABEL, contractExtensionCharges, contractExtensionEnd, contractExtensionIssue, contractPeriodState,
+  contractTermsOf, type ContractRow, extendContract, formatBRL, formatCpf, formatDateBR, isMinor, isValidCpf,
   graduationStatus, linkGuardian, missingLabel, PAYMENT_METHOD_LABEL, savePayer, saveAcademyStudent, setStudentFaceOptOut, todayISO, unlinkGuardian,
   updateContractNotes,
 } from '@kog/core'
@@ -485,6 +486,7 @@ function ContractsSection({ data }: { data: AcademyStudent }) {
   const contracts = useStudentContracts(data.student.id)
   const [open, setOpen] = useState(false)
   const [cancelling, setCancelling] = useState<ContractRow | null>(null)
+  const [extending, setExtending] = useState<ContractRow | null>(null)
   const { academy } = useAcademy()
   const queryClient = useQueryClient()
   const today = todayISO()
@@ -550,6 +552,9 @@ function ContractsSection({ data }: { data: AcademyStudent }) {
                         Marcar como revisado
                       </Button>
                     ) : null}
+                    <Button size="sm" variant={period === 'vencendo' || period === 'vencido' ? 'gold' : 'ghost'} onPress={() => setExtending(c)}>
+                      Prorrogar contrato
+                    </Button>
                     <Button size="sm" variant="plain" onPress={() => setCancelling(c)}>
                       Cancelar contrato
                     </Button>
@@ -562,7 +567,63 @@ function ContractsSection({ data }: { data: AcademyStudent }) {
       )}
       {open ? <ContractDialog open onClose={() => setOpen(false)} data={data} /> : null}
       {cancelling ? <CancelContractDialog contract={cancelling} onClose={() => setCancelling(null)} /> : null}
+      {extending ? <ExtendContractDialog contract={extending} onClose={() => setExtending(null)} /> : null}
     </Section>
+  )
+}
+
+function ExtendContractDialog({ contract, onClose }: { contract: ContractRow; onClose: () => void }) {
+  const { academy } = useAcademy()
+  const queryClient = useQueryClient()
+  const [endsOn, setEndsOn] = useState(() => contractExtensionEnd(contract.ends_on))
+  const issue = contractExtensionIssue(contract.ends_on, endsOn)
+  const drafts = useMemo(() => (issue ? [] : contractExtensionCharges(contractTermsOf(contract), endsOn)), [issue, contract, endsOn])
+  const total = drafts.reduce((s, d) => s + d.amountCents, 0)
+  const extend = useMutation({
+    mutationFn: () => extendContract(db(), contract, endsOn),
+    onSuccess: async (n) => {
+      await queryClient.invalidateQueries({ queryKey: keys.all(academy.gym_id) })
+      toast(`Contrato prorrogado até ${formatDateBR(endsOn)}. ${n} ${n === 1 ? 'cobrança criada' : 'cobranças criadas'}.`)
+      onClose()
+    },
+    onError: toastError,
+  })
+  return (
+    <Dialog
+      open
+      onClose={onClose}
+      title="Prorrogar contrato"
+      footer={
+        <>
+          <Button variant="plain" onPress={onClose}>Voltar</Button>
+          <Button disabled={Boolean(issue)} loading={extend.isPending} onPress={() => extend.mutate()}>
+            Prorrogar
+          </Button>
+        </>
+      }
+    >
+      <div className="space-y-4">
+        <p className="text-sm text-soft">
+          Vigência atual: {formatDateBR(contract.starts_on)} a <strong className="text-text">{formatDateBR(contract.ends_on)}</strong>.
+        </p>
+        <Field label="Prorrogar até" hint="Sugestão: mais 1 ano. Pode trocar a data.">
+          <DateInput value={endsOn} min={contract.ends_on} onChange={(e) => setEndsOn(e.target.value)} />
+        </Field>
+        {issue ? (
+          <FormMessage message={{ text: issue, error: true }} />
+        ) : contract.billing !== 'mensal' ? (
+          <p className="text-sm text-soft">
+            {CONTRACT_BILLING_LABEL[contract.billing as keyof typeof CONTRACT_BILLING_LABEL]}: só muda a vigência, sem mensalidades.
+          </p>
+        ) : (
+          <p className="text-sm text-soft">
+            Cria <strong className="text-text">{drafts.length} {drafts.length === 1 ? 'mensalidade' : 'mensalidades'}</strong> de{' '}
+            {formatBRL(contract.amount_cents - contract.discount_cents)}
+            {drafts.length ? <> (de {formatDateBR(drafts[0]!.dueOn)} a {formatDateBR(drafts.at(-1)!.dueOn)}), total {formatBRL(total)}</> : null}.
+          </p>
+        )}
+      </div>
+    </Dialog>
   )
 }
 

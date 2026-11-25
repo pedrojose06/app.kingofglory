@@ -1598,6 +1598,9 @@ isOneToOne: false
 "email_verified":
 { Args: Record<PropertyKey, never>; Returns: boolean
                            },
+"extend_contract":
+{ Args: { "p_charges": Json,"p_contract_id": string,"p_ends_on": string }; Returns: number
+                           },
 "ensure_academy_classes":
 { Args: { "p_from": string,"p_gym_id": string,"p_to": string }; Returns: number
                            },
