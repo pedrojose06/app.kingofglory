@@ -11,14 +11,14 @@ export interface BrowserDb {
  * Cliente do Supabase para um app web. A sessão fica no localStorage da origem do app, então cada app
  * (professor, academia) tem o próprio login. `storageKey` separa as sessões mesmo na mesma origem (dev local).
  */
-export function browserDb(url: string | undefined, key: string | undefined, options: { storageKey?: string } = {}): BrowserDb {
+export function browserDb(url: string | undefined, key: string | undefined, options: { storageKey?: string; headers?: Record<string, string> } = {}): BrowserDb {
   let client: Db | undefined
   return {
     isConfigured: Boolean(url && key),
     db() {
       if (!client) {
         if (!url || !key) throw new Error('Variáveis NEXT_PUBLIC_SUPABASE_* não configuradas')
-        client = createSupabase(url, key, { storage: window.localStorage, detectSessionInUrl: true, storageKey: options.storageKey })
+        client = createSupabase(url, key, { storage: window.localStorage, detectSessionInUrl: true, storageKey: options.storageKey, headers: options.headers })
       }
       return client
     },

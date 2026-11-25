@@ -17,12 +17,14 @@ interface NavItem {
   roles: readonly AcademyRole[]
   /** Etapa em que o módulo chega (aparece como "Em breve"). */
   soon?: boolean
+  /** Rotas que deixam o item ativo (padrão: o próprio href). */
+  match?: readonly string[]
 }
 
 const STAFF: readonly AcademyRole[] = ['admin', 'professor']
 const NAV: readonly NavItem[] = [
   { href: '/', label: 'Painel', icon: LayoutDashboard, roles: ['admin', 'professor', 'membro'] },
-  { href: '/alunos', label: 'Cadastros', icon: Users, roles: ['admin'], soon: true },
+  { href: '/alunos', label: 'Cadastros', icon: Users, roles: ['admin'], match: ['/alunos', '/aluno', '/responsaveis', '/planos', '/turmas'] },
   { href: '/financeiro', label: 'Mensalidades', icon: Wallet, roles: ['admin'], soon: true },
   { href: '/diarios', label: 'Diários de aula', icon: CalendarDays, roles: STAFF, soon: true },
   { href: '/contratos', label: 'Contratos', icon: FileSignature, roles: ['admin'], soon: true },
@@ -36,8 +38,8 @@ function NavLinks({ orientation }: { orientation: 'vertical' | 'horizontal' }) {
   const items = NAV.filter((i) => i.roles.includes(role))
   return (
     <ul className={cn(orientation === 'vertical' ? 'space-y-1' : 'flex gap-1 overflow-x-auto px-4 pb-2')}>
-      {items.map(({ href, label, icon: Icon, soon }) => {
-        const active = !soon && (href === '/' ? pathname === '/' : pathname.startsWith(href))
+      {items.map(({ href, label, icon: Icon, soon, match }) => {
+        const active = !soon && (href === '/' ? pathname === '/' : (match ?? [href]).some((m) => pathname === m || pathname.startsWith(`${m}/`)))
         const body = (
           <>
             <Icon className="size-[18px] shrink-0" strokeWidth={active ? 2.4 : 1.8} />
