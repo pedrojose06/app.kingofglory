@@ -21,3 +21,4 @@ apps/*/public/models/
 
 # Gerado pelo `next dev` (regras para assistentes de código)
 apps/web/AGENTS.md
+apps/academia/AGENTS.md
