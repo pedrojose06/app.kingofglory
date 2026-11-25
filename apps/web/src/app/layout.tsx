@@ -3,6 +3,7 @@ import '@fontsource-variable/archivo'
 import './globals.css'
 import type { Metadata, Viewport } from 'next'
 import type { ReactNode } from 'react'
+import { Analytics } from '@vercel/analytics/next'
 import { Providers } from '@/lib/providers'
 import { Toaster } from '@/components/toaster'
 
@@ -54,6 +55,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       <body>
         <Providers>{children}</Providers>
         <Toaster />
+        <Analytics />
       </body>
     </html>
   )
