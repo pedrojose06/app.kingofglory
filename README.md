@@ -116,7 +116,12 @@ pnpm db:types
 
 `pnpm db:types` regenera `packages/core/src/database.types.ts`. Para um banco local com dados de exemplo:
 `supabase start` e `supabase db reset` (aplica as migrations e o `supabase/seed.sql`; login
-`professor@example.com` / `senha123`).
+`professor@example.com` / `senha123`). A configuração local fica em `supabase/config.jsonc` (Postgres 17, igual à
+produção, e confirmação de e-mail ligada).
+
+**Toda migration nova é testada no banco local antes de ir para produção** e tem o rollback em
+`supabase/rollback/` (ver o README de lá). O histórico local e o de produção têm as mesmas versões; uma migration
+aplicada direto no painel ou pelo SQL Editor precisa ganhar o arquivo correspondente aqui com a mesma versão.
 
 ### Regras que o banco garante
 
