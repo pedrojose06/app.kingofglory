@@ -2,6 +2,7 @@
 // Chamada, fotos e rostos usam as mesmas funções do app do professor (`attendance`, `photos`, `faces`): o banco libera a
 // equipe da academia por policies próprias (migration academy_diary), então aqui só entra o que é novo.
 
+import type { Json } from '../database.types'
 import type { GroupMembership } from '../domain/diary'
 import type { ClassRow, ClassSchedule, Db, Student, StudentProgress } from '../types'
 import { PHOTO_BUCKET } from './photos'
@@ -144,4 +145,48 @@ export async function getStudentProgress(db: Db, studentId: string): Promise<Stu
  */
 export async function setStudentImageConsent(db: Db, studentId: string, authorized: boolean): Promise<void> {
   unwrap(await db.from('students').update({ image_consent_at: authorized ? new Date().toISOString() : null }).eq('id', studentId))
+}
+
+// ── foto do aluno (também é o primeiro rosto de referência) ──────────────────
+
+export const STUDENT_PHOTO_BUCKET = 'student-photos'
+
+/**
+ * Envia a foto do aluno e troca o rosto de referência dele (`student_photo`). `embedding` é o vetor do rosto achado na
+ * foto (calculado no aparelho); null salva só a foto. Só o administrador. A foto anterior sai do Storage.
+ */
+export async function saveStudentPhoto(
+  db: Db,
+  student: { id: string; gym_id: string },
+  photo: { id: string; file: Blob },
+  embedding: number[] | null,
+): Promise<string> {
+  const path = `${student.gym_id}/${student.id}/${photo.id}.jpg`
+  const up = await db.storage.from(STUDENT_PHOTO_BUCKET).upload(path, photo.file, { contentType: 'image/jpeg' })
+  if (up.error) throw up.error
+  await setStudentPhoto(db, student.id, path, embedding)
+  return path
+}
+
+/** Grava a foto já enviada (ou tira, com null) e o rosto de referência. Apaga do Storage a foto anterior. */
+export async function setStudentPhoto(db: Db, studentId: string, path: string | null, embedding: number[] | null): Promise<void> {
+  const old = unwrap(
+    await db.rpc('set_student_photo', {
+      p_student_id: studentId,
+      p_path: path,
+      p_embedding: embedding ? (embedding.map((v) => Math.round(v * 1e6) / 1e6) as unknown as Json) : null,
+    }),
+  )
+  // Se o arquivo antigo sobrar no Storage, ele não aparece em lugar nenhum.
+  if (old) await db.storage.from(STUDENT_PHOTO_BUCKET).remove([old])
+}
+
+/** Links temporários das fotos dos alunos (bucket privado). */
+export async function signStudentPhotoUrls(db: Db, paths: readonly string[], expiresInSeconds = 3600): Promise<Record<string, string>> {
+  if (paths.length === 0) return {}
+  const { data, error } = await db.storage.from(STUDENT_PHOTO_BUCKET).createSignedUrls([...paths], expiresInSeconds)
+  if (error) throw error
+  const out: Record<string, string> = {}
+  for (const item of data ?? []) if (item.path && item.signedUrl) out[item.path] = item.signedUrl
+  return out
 }

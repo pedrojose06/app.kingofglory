@@ -14,6 +14,7 @@ import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Suspense, useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react'
 import { ContractDialog } from '@/components/contract-dialog'
+import { refreshPhotoReference, StudentAvatar, StudentPhoto } from '@/components/student-photo'
 import { ageOn, Dialog, GroupTag, Stat, whatsappLink } from '@/components/kit'
 import { ErrorState, FormMessage, Loading } from '@/components/states'
 import { useAcademy } from '@/lib/academy'
@@ -277,7 +278,9 @@ function StudentDetail({ id }: { id: string }) {
     <>
       <BackLink />
       <div className="mt-3 mb-5 flex flex-wrap items-end justify-between gap-3">
-        <div>
+        <div className="flex items-center gap-4">
+          <StudentAvatar path={s.photo_path} name={s.name} className="size-16" />
+          <div>
           <h1 className="font-display text-3xl uppercase leading-none text-text">{s.name}</h1>
           <p className="mt-2 flex flex-wrap items-center gap-2 text-sm text-dim">
             {s.birth_date ? `${ageOn(s.birth_date, today)} anos · nasc. ${formatDateBR(s.birth_date)}` : 'Nascimento pendente'}
@@ -288,6 +291,7 @@ function StudentDetail({ id }: { id: string }) {
               return grp ? <GroupTag key={g.group_id} name={grp.name} color={grp.color} /> : null
             })}
           </p>
+          </div>
         </div>
         {s.phone ? (
           <a href={whatsappLink(s.phone)} target="_blank" rel="noreferrer" className="inline-flex h-9 items-center gap-2 rounded border border-line-strong px-3 text-xs font-bold uppercase tracking-[0.08em] text-accent">
@@ -330,6 +334,9 @@ function StudentDetail({ id }: { id: string }) {
             <AttendanceSection data={data} />
             <GraduationSection data={data} />
             <GuardiansSection data={data} />
+            <Section title="Foto">
+              <StudentPhoto student={s} />
+            </Section>
             <FaceSection data={data} />
           </div>
         </div>
@@ -427,10 +434,20 @@ function FaceSection({ data }: { data: AcademyStudent }) {
   const s = data.student
   const optedOut = Boolean(s.face_opt_out_at)
   const set = useMutation({
-    mutationFn: (value: boolean) => setStudentFaceOptOut(db(), s.id, value),
-    onSuccess: async (_d, value) => {
+    mutationFn: async (value: boolean) => {
+      await setStudentFaceOptOut(db(), s.id, value)
+      // De volta ao reconhecimento: a foto da ficha volta a ser o rosto de referência.
+      return value ? false : refreshPhotoReference(s)
+    },
+    onSuccess: async (fromPhoto, value) => {
       await queryClient.invalidateQueries({ queryKey: keys.all(academy.gym_id) })
-      toast(value ? 'Aluno fora do reconhecimento. Os dados do rosto foram apagados.' : 'Aluno de volta ao reconhecimento facial.')
+      toast(
+        value
+          ? 'Aluno fora do reconhecimento. Os dados do rosto foram apagados.'
+          : fromPhoto
+            ? 'Aluno de volta ao reconhecimento facial, com o rosto da foto da ficha.'
+            : 'Aluno de volta ao reconhecimento facial.',
+      )
     },
     onError: toastError,
   })

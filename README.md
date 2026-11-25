@@ -104,6 +104,7 @@ As migrations em `supabase/migrations` já estão aplicadas no projeto remoto, c
 | `academy_diary` | diários de aula da academia: turma na grade e na aula (`group_id`), policies da equipe da academia em grade, aulas, presenças, fotos e rostos (com o cabeçalho `x-kog-app: academia`; o arquivo da foto vale pelo caminho da academia), `ensure_academy_classes` (gera as aulas da grade) e `conclude_academy_class` (falta só para quem é da turma). Testes em `supabase/tests/database` |
 | `academy_face_contract` | na academia com gestão o contrato de matrícula já autoriza uso de imagem e reconhecimento facial: todo aluno entra no reconhecimento sem `image_consent_at`; quem pedir para ficar de fora tem `students.face_opt_out_at` (apaga os dados do rosto na hora). Academias parceiras: nada muda |
 | `academy_delete_class` | `delete_academy_class`: apagar aula avulsa (fora da grade) com chamada, fotos e rostos; devolve os caminhos das fotos para o app apagar do Storage. Aula da grade continua com "Não houve aula" |
+| `academy_student_photo` | foto do aluno na ficha (`students.photo_path`, bucket privado `student-photos` em `{gym_id}/{student_id}/{id}.jpg`; equipe vê, admin envia) e `set_student_photo`: a foto vira o rosto de referência `student_photo` do aluno (uma por aluno, fora da poda; o vetor é calculado no navegador). Trocar ou apagar a foto troca ou apaga a referência |
 
 Para criar uma migration nova e aplicar (com a CLI do Supabase):
 
