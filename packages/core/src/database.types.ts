@@ -357,17 +357,23 @@ isOneToOne: false
                   ]
                 },"class_schedules": {
                   Row: {
-                    "active": boolean,"created_at": string,"ends_on": string | null,"gym_id": string,"id": string,"instructor_id": string,"start_time": string,"starts_on": string,"title": string,"weekday": number
+                    "active": boolean,"created_at": string,"ends_on": string | null,"group_id": string | null,"gym_id": string,"id": string,"instructor_id": string,"start_time": string,"starts_on": string,"title": string,"weekday": number
                   }
                   ComputedFields: never
                   Insert: {
-                    "active"?: boolean,"created_at"?: string,"ends_on"?: string | null,"gym_id": string,"id"?: string,"instructor_id"?: string,"start_time": string,"starts_on"?: string,"title"?: string,"weekday": number
+                    "active"?: boolean,"created_at"?: string,"ends_on"?: string | null,"group_id"?: string | null,"gym_id": string,"id"?: string,"instructor_id"?: string,"start_time": string,"starts_on"?: string,"title"?: string,"weekday": number
                   }
                   Update: {
-                    "active"?: boolean,"created_at"?: string,"ends_on"?: string | null,"gym_id"?: string,"id"?: string,"instructor_id"?: string,"start_time"?: string,"starts_on"?: string,"title"?: string,"weekday"?: number
+                    "active"?: boolean,"created_at"?: string,"ends_on"?: string | null,"group_id"?: string | null,"gym_id"?: string,"id"?: string,"instructor_id"?: string,"start_time"?: string,"starts_on"?: string,"title"?: string,"weekday"?: number
                   }
                   Relationships: [
                     {
+      foreignKeyName: "class_schedules_group_id_fkey"
+      columns: ["group_id"]
+isOneToOne: false
+      referencedRelation: "class_groups"
+      referencedColumns: ["id"]
+    },{
       foreignKeyName: "class_schedules_gym_id_fkey"
       columns: ["gym_id"]
 isOneToOne: false
@@ -383,17 +389,23 @@ isOneToOne: false
                   ]
                 },"classes": {
                   Row: {
-                    "created_at": string,"date": string,"gym_id": string,"id": string,"instructor_id": string,"schedule_id": string | null,"start_time": string | null,"status": Database["public"]['Enums']["class_status"],"title": string
+                    "created_at": string,"date": string,"group_id": string | null,"gym_id": string,"id": string,"instructor_id": string,"schedule_id": string | null,"start_time": string | null,"status": Database["public"]['Enums']["class_status"],"title": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "created_at"?: string,"date": string,"gym_id": string,"id"?: string,"instructor_id"?: string,"schedule_id"?: string | null,"start_time"?: string | null,"status"?: Database["public"]['Enums']["class_status"],"title"?: string
+                    "created_at"?: string,"date": string,"group_id"?: string | null,"gym_id": string,"id"?: string,"instructor_id"?: string,"schedule_id"?: string | null,"start_time"?: string | null,"status"?: Database["public"]['Enums']["class_status"],"title"?: string
                   }
                   Update: {
-                    "created_at"?: string,"date"?: string,"gym_id"?: string,"id"?: string,"instructor_id"?: string,"schedule_id"?: string | null,"start_time"?: string | null,"status"?: Database["public"]['Enums']["class_status"],"title"?: string
+                    "created_at"?: string,"date"?: string,"group_id"?: string | null,"gym_id"?: string,"id"?: string,"instructor_id"?: string,"schedule_id"?: string | null,"start_time"?: string | null,"status"?: Database["public"]['Enums']["class_status"],"title"?: string
                   }
                   Relationships: [
                     {
+      foreignKeyName: "classes_group_id_fkey"
+      columns: ["group_id"]
+isOneToOne: false
+      referencedRelation: "class_groups"
+      referencedColumns: ["id"]
+    },{
       foreignKeyName: "classes_gym_id_fkey"
       columns: ["gym_id"]
 isOneToOne: false
@@ -1303,14 +1315,14 @@ isOneToOne: false
                   ]
                 },"students": {
                   Row: {
-                    "account_consent_at": string | null,"active": boolean,"birth_date": string | null,"created_at": string,"gym_id": string,"id": string,"image_consent_at": string | null,"name": string,"notes": string | null,"opening_absent": number,"opening_after_grad": number | null,"opening_from": string | null,"opening_present": number,"opening_until": string | null,"phone": string | null,"profile_id": string | null,"started_on": string,"track": string
+                    "account_consent_at": string | null,"active": boolean,"birth_date": string | null,"created_at": string,"face_opt_out_at": string | null,"gym_id": string,"id": string,"image_consent_at": string | null,"name": string,"notes": string | null,"opening_absent": number,"opening_after_grad": number | null,"opening_from": string | null,"opening_present": number,"opening_until": string | null,"phone": string | null,"photo_path": string | null,"profile_id": string | null,"started_on": string,"track": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "account_consent_at"?: string | null,"active"?: boolean,"birth_date"?: string | null,"created_at"?: string,"gym_id": string,"id"?: string,"image_consent_at"?: string | null,"name": string,"notes"?: string | null,"opening_absent"?: number,"opening_after_grad"?: number | null,"opening_from"?: string | null,"opening_present"?: number,"opening_until"?: string | null,"phone"?: string | null,"profile_id"?: string | null,"started_on"?: string,"track"?: string
+                    "account_consent_at"?: string | null,"active"?: boolean,"birth_date"?: string | null,"created_at"?: string,"face_opt_out_at"?: string | null,"gym_id": string,"id"?: string,"image_consent_at"?: string | null,"name": string,"notes"?: string | null,"opening_absent"?: number,"opening_after_grad"?: number | null,"opening_from"?: string | null,"opening_present"?: number,"opening_until"?: string | null,"phone"?: string | null,"photo_path"?: string | null,"profile_id"?: string | null,"started_on"?: string,"track"?: string
                   }
                   Update: {
-                    "account_consent_at"?: string | null,"active"?: boolean,"birth_date"?: string | null,"created_at"?: string,"gym_id"?: string,"id"?: string,"image_consent_at"?: string | null,"name"?: string,"notes"?: string | null,"opening_absent"?: number,"opening_after_grad"?: number | null,"opening_from"?: string | null,"opening_present"?: number,"opening_until"?: string | null,"phone"?: string | null,"profile_id"?: string | null,"started_on"?: string,"track"?: string
+                    "account_consent_at"?: string | null,"active"?: boolean,"birth_date"?: string | null,"created_at"?: string,"face_opt_out_at"?: string | null,"gym_id"?: string,"id"?: string,"image_consent_at"?: string | null,"name"?: string,"notes"?: string | null,"opening_absent"?: number,"opening_after_grad"?: number | null,"opening_from"?: string | null,"opening_present"?: number,"opening_until"?: string | null,"phone"?: string | null,"photo_path"?: string | null,"profile_id"?: string | null,"started_on"?: string,"track"?: string
                   }
                   Relationships: [
                     {
@@ -1463,6 +1475,12 @@ isOneToOne: false
 "can_manage_student":
 { Args: { "p_student_id": string }; Returns: boolean
                            },
+"can_staff_class":
+{ Args: { "p_class_id": string }; Returns: boolean
+                           },
+"can_staff_photo":
+{ Args: { "p_photo_id": string }; Returns: boolean
+                           },
 "can_staff_student":
 { Args: { "p_student_id": string }; Returns: boolean
                            },
@@ -1508,6 +1526,15 @@ isOneToOne: false
 "claim_student_class_reminders":
 { Args: Record<PropertyKey, never>; Returns: Json
                            },
+"set_student_photo":
+{ Args: { "p_student_id": string; "p_path": string | null; "p_embedding"?: Json | null }; Returns: string | null
+                           },
+"delete_academy_class":
+{ Args: { "p_class_id": string }; Returns: string[]
+                           },
+"conclude_academy_class":
+{ Args: { "p_class_id": string }; Returns: undefined
+                           },
 "conclude_class":
 { Args: { "p_class_id": string }; Returns: undefined
                            },
@@ -1534,6 +1561,9 @@ isOneToOne: false
                            },
 "email_verified":
 { Args: Record<PropertyKey, never>; Returns: boolean
+                           },
+"ensure_academy_classes":
+{ Args: { "p_from": string,"p_gym_id": string,"p_to": string }; Returns: number
                            },
 "ensure_classes":
 { Args: { "p_until"?: string }; Returns: number

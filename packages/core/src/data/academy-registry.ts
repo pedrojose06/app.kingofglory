@@ -24,6 +24,8 @@ export interface AcademyStudentRow {
   active: boolean
   started_on: string | null
   created_at: string
+  /** Foto do aluno (bucket student-photos). */
+  photo_path: string | null
   /** Turmas atuais (sem data de saída). */
   group_ids: string[]
   /** Só o admin recebe (RLS): null para o professor. */
@@ -36,7 +38,7 @@ export interface AcademyStudentRow {
 export async function listAcademyStudents(db: Db, gymId: string): Promise<AcademyStudentRow[]> {
   const [students, members, details, contracts] = await Promise.all([
     fetchAll((a, b) =>
-      db.from('students').select('id, name, phone, birth_date, active, started_on, created_at').eq('gym_id', gymId).order('name').range(a, b),
+      db.from('students').select('id, name, phone, birth_date, active, started_on, created_at, photo_path').eq('gym_id', gymId).order('name').range(a, b),
     ),
     fetchAll((a, b) => db.from('class_group_members').select('student_id, group_id, left_on').eq('gym_id', gymId).range(a, b)),
     fetchAll((a, b) => db.from('student_details').select('student_id, cpf, email').eq('gym_id', gymId).range(a, b)),

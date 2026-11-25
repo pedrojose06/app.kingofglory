@@ -3,9 +3,10 @@
 import {
   type AcademyStudent, type AcademyStudentInput, addGraduation, addStudentBelt, cancelContract, CHARGE_KIND_LABEL, CHARGE_STATE_LABEL,
   chargeTotals, CONTRACT_BILLING_LABEL, contractPeriodState, type ContractRow, formatBRL, formatCpf, formatDateBR, isMinor, isValidCpf,
-  linkGuardian, PAYMENT_METHOD_LABEL, savePayer, saveAcademyStudent, todayISO, unlinkGuardian, updateContractNotes,
+  graduationStatus, linkGuardian, missingLabel, PAYMENT_METHOD_LABEL, savePayer, saveAcademyStudent, setStudentFaceOptOut, todayISO, unlinkGuardian,
+  updateContractNotes,
 } from '@kog/core'
-import { Badge, Button, Card, DateInput, EmptyState, Field, Input, RankBand, Select, Textarea } from '@kog/ui'
+import { Badge, Button, Card, DateInput, EmptyState, Field, Input, ProgressBar, RankBand, Select, Textarea } from '@kog/ui'
 import { toast, toastError } from '@kog/web-kit'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { ArrowLeft, MessageCircle, Plus } from 'lucide-react'
@@ -13,10 +14,13 @@ import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Suspense, useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react'
 import { ContractDialog } from '@/components/contract-dialog'
+import { refreshPhotoReference, StudentAvatar, StudentPhoto } from '@/components/student-photo'
 import { ageOn, Dialog, GroupTag, Stat, whatsappLink } from '@/components/kit'
 import { ErrorState, FormMessage, Loading } from '@/components/states'
 import { useAcademy } from '@/lib/academy'
-import { keys, useBeltRanks, useClassGroups, usePayers, useRanks, useStudent, useStudentCharges, useStudentContracts } from '@/lib/queries'
+import {
+  keys, useBeltRanks, useClassGroups, useGraduationSchedule, usePayers, useRanks, useStudent, useStudentCharges, useStudentContracts, useStudentProgress,
+} from '@/lib/queries'
 import { db } from '@/lib/supabase'
 
 export default function StudentPage() {
@@ -144,6 +148,11 @@ function StudentForm({ data }: { data: AcademyStudent | null }) {
   const disabled = !isAdmin
   return (
     <form onSubmit={submit} className="space-y-6">
+      {data ? (
+        <Section title="Foto">
+          <StudentPhoto student={data.student} />
+        </Section>
+      ) : null}
       <Section title="Dados pessoais">
         <fieldset disabled={disabled} className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <Field label="Nome completo" className="sm:col-span-2">
@@ -274,7 +283,9 @@ function StudentDetail({ id }: { id: string }) {
     <>
       <BackLink />
       <div className="mt-3 mb-5 flex flex-wrap items-end justify-between gap-3">
-        <div>
+        <div className="flex items-center gap-4">
+          <StudentAvatar path={s.photo_path} name={s.name} className="size-16" />
+          <div>
           <h1 className="font-display text-3xl uppercase leading-none text-text">{s.name}</h1>
           <p className="mt-2 flex flex-wrap items-center gap-2 text-sm text-dim">
             {s.birth_date ? `${ageOn(s.birth_date, today)} anos · nasc. ${formatDateBR(s.birth_date)}` : 'Nascimento pendente'}
@@ -285,6 +296,7 @@ function StudentDetail({ id }: { id: string }) {
               return grp ? <GroupTag key={g.group_id} name={grp.name} color={grp.color} /> : null
             })}
           </p>
+          </div>
         </div>
         {s.phone ? (
           <a href={whatsappLink(s.phone)} target="_blank" rel="noreferrer" className="inline-flex h-9 items-center gap-2 rounded border border-line-strong px-3 text-xs font-bold uppercase tracking-[0.08em] text-accent">
@@ -312,7 +324,10 @@ function StudentDetail({ id }: { id: string }) {
         isAdmin ? (
           <StudentForm data={data} />
         ) : (
-          <GraduationSection data={data} />
+          <div className="space-y-6">
+            <AttendanceSection data={data} />
+            <GraduationSection data={data} />
+          </div>
         )
       ) : (
         <div className="grid gap-6 xl:grid-cols-[1fr_380px]">
@@ -321,12 +336,143 @@ function StudentDetail({ id }: { id: string }) {
             <ChargesSection studentId={s.id} />
           </div>
           <div className="space-y-6">
-            <GuardiansSection data={data} />
+            <AttendanceSection data={data} />
             <GraduationSection data={data} />
+            <GuardiansSection data={data} />
+            <FaceSection data={data} />
           </div>
         </div>
       )}
     </>
+  )
+}
+
+// ── presenças e próxima graduação ─────────────────────────────────────────────
+
+/**
+ * Quantas presenças o aluno tem e quanto falta para o próximo grau de muay thai (mesma conta do app do professor:
+ * treinos desde a última graduação, tabela de requisitos de cada grau e data marcada da próxima graduação).
+ */
+function AttendanceSection({ data }: { data: AcademyStudent }) {
+  const s = data.student
+  const today = todayISO()
+  const progress = useStudentProgress(s.id)
+  const ranks = useRanks()
+  const schedule = useGraduationSchedule()
+  const track = s.track === 'infantil' ? 'infantil' : 'adulto'
+
+  if (progress.isPending || ranks.isPending) return <Section title="Presenças"><Loading /></Section>
+  if (progress.isError) return <Section title="Presenças"><ErrorState error={progress.error} onRetry={() => progress.refetch()} /></Section>
+  const p = progress.data
+  const status = graduationStatus(p ?? undefined, ranks.data ?? [], s.started_on ?? s.created_at.slice(0, 10), today, {
+    track,
+    birthDate: s.birth_date,
+    graduationOn: schedule.data?.[track] ?? null,
+  })
+  const missing = missingLabel(status)
+  const since = status.current ? 'desde a última graduação' : 'desde o início'
+
+  return (
+    <Section title="Presenças">
+      <div className="grid grid-cols-2 gap-3">
+        <Stat label="Presenças no total" value={p?.attendance_total ?? 0} />
+        <Stat label={status.current ? 'Desde a graduação' : 'Desde o início'} value={status.count} />
+      </div>
+      <p className="mt-2 text-xs text-dim">
+        {p?.last_attendance_on ? `Último treino em ${formatDateBR(p.last_attendance_on)}.` : 'Nenhum treino registrado ainda.'}
+      </p>
+
+      <div className="mt-4 border-t border-line pt-4">
+        <p className="text-xs font-bold uppercase tracking-[0.12em] text-dim">Próxima graduação · muay thai</p>
+        {!status.next ? (
+          <p className="mt-1 text-sm text-soft">{status.current ? 'Já está no último grau.' : 'Sem graus cadastrados.'}</p>
+        ) : (
+          <>
+            <div className="mt-1.5 mb-2 flex items-center justify-between gap-2">
+              <p className="flex items-center gap-2 font-semibold text-text">
+                <RankBand colors={status.next.colors} />
+                {status.next.name}
+              </p>
+              {status.eligible ? <Badge tone="success">Apto</Badge> : status.configured ? <Badge tone="gold">Em progresso</Badge> : <Badge>Sem requisito</Badge>}
+            </div>
+            {status.byAge ? (
+              <p className="text-sm text-soft">
+                {status.ageThisYear != null ? `Completa ${status.ageThisYear} anos este ano` : 'Sem data de nascimento cadastrada'}
+                {status.ageNeeded != null ? <span className="text-dim"> · {status.next.name} a partir de {status.ageNeeded}</span> : null}
+              </p>
+            ) : status.needed != null ? (
+              <>
+                <ProgressBar value={Math.min(status.count, status.needed)} max={status.needed || 1} />
+                <p className="mt-1.5 text-sm text-soft">
+                  <strong className="text-text">{status.count}</strong> de {status.needed} treinos <span className="text-dim">{since}</span>
+                </p>
+              </>
+            ) : (
+              <p className="text-sm text-soft"><strong className="text-text">{status.count}</strong> treinos {since}</p>
+            )}
+            {!status.byAge && status.monthsNeeded != null ? (
+              <p className="mt-1 text-sm text-soft">
+                <strong className="text-text">{status.monthsElapsed}</strong> de {status.monthsNeeded} meses{status.on ? ` em ${formatDateBR(status.on)}` : ''}
+              </p>
+            ) : null}
+            {missing ? <p className="mt-2 text-sm font-semibold text-accent">{missing.charAt(0).toUpperCase() + missing.slice(1)}.</p> : null}
+            {status.on ? <p className="mt-1 text-xs text-dim">Próxima graduação marcada para {formatDateBR(status.on)}.</p> : null}
+          </>
+        )}
+      </div>
+    </Section>
+  )
+}
+
+// ── reconhecimento facial ────────────────────────────────────────────────────
+
+/**
+ * O contrato de matrícula já autoriza o uso de imagem e o reconhecimento facial: todo aluno entra na presença pelo
+ * rosto. Quem pedir para não ser reconhecido fica de fora (e os dados do rosto são apagados na hora).
+ */
+function FaceSection({ data }: { data: AcademyStudent }) {
+  const { academy } = useAcademy()
+  const queryClient = useQueryClient()
+  const s = data.student
+  const optedOut = Boolean(s.face_opt_out_at)
+  const set = useMutation({
+    mutationFn: async (value: boolean) => {
+      await setStudentFaceOptOut(db(), s.id, value)
+      // De volta ao reconhecimento: a foto da ficha volta a ser o rosto de referência.
+      return value ? false : refreshPhotoReference(s)
+    },
+    onSuccess: async (fromPhoto, value) => {
+      await queryClient.invalidateQueries({ queryKey: keys.all(academy.gym_id) })
+      toast(
+        value
+          ? 'Aluno fora do reconhecimento. Os dados do rosto foram apagados.'
+          : fromPhoto
+            ? 'Aluno de volta ao reconhecimento facial, com o rosto da foto da ficha.'
+            : 'Aluno de volta ao reconhecimento facial.',
+      )
+    },
+    onError: toastError,
+  })
+  return (
+    <Section title="Reconhecimento facial" action={optedOut ? <Badge tone="neutral">Fora</Badge> : <Badge tone="success">Liberado</Badge>}>
+      <p className="text-sm text-soft">
+        {optedOut
+          ? `O aluno pediu para não ser reconhecido pelo rosto (desde ${formatDateBR(s.face_opt_out_at!.slice(0, 10))}). A presença dele é marcada na chamada.`
+          : 'Liberado pelo contrato de matrícula, que já traz a autorização de uso de imagem: o aluno pode ser reconhecido nas fotos da turma.'}
+      </p>
+      <Button
+        variant="ghost"
+        size="sm"
+        className="mt-4"
+        loading={set.isPending}
+        onPress={() => {
+          if (optedOut) set.mutate(false)
+          else if (window.confirm(`${s.name} não quer ser reconhecido pelo rosto? Os dados do rosto são apagados na hora (as presenças continuam).`)) set.mutate(true)
+        }}
+      >
+        {optedOut ? 'Liberar de novo' : 'Aluno não quer ser reconhecido'}
+      </Button>
+    </Section>
   )
 }
 

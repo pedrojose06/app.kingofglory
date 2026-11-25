@@ -314,11 +314,11 @@ describe('padrões de frequência', () => {
 describe('próximas aulas e plano antecipado', () => {
   // 2026-11-16 é segunda (1); 2026-11-18 é quarta (3).
   const sched = (id: string, weekday: number, extra: Partial<ClassSchedule> = {}): ClassSchedule => ({
-    id, gym_id: 'g', instructor_id: 'p', weekday, start_time: '19:00:00', title: 'Muay Thai', starts_on: '2026-01-01',
+    id, gym_id: 'g', group_id: null, instructor_id: 'p', weekday, start_time: '19:00:00', title: 'Muay Thai', starts_on: '2026-01-01',
     ends_on: null, active: true, created_at: '2026-01-01T00:00:00Z', ...extra,
   })
   const klass = (id: string, date: string, extra: Partial<ClassRow> = {}): ClassRow => ({
-    id, gym_id: 'g', instructor_id: 'p', schedule_id: null, date, start_time: '20:00:00', title: 'Extra', status: 'scheduled',
+    id, gym_id: 'g', group_id: null, instructor_id: 'p', schedule_id: null, date, start_time: '20:00:00', title: 'Extra', status: 'scheduled',
     created_at: '2026-01-01T00:00:00Z', ...extra,
   })
 

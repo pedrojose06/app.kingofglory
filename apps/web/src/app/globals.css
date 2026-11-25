@@ -2,6 +2,7 @@
 @import '@kog/ui/tokens.css';
 @source '../../../../packages/ui/src';
 @source '../../../../packages/web-kit/src';
+@source '../../../../packages/face-kit/src';
 
 @layer base {
   html {

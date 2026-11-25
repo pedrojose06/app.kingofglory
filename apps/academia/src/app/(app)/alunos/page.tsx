@@ -9,15 +9,17 @@ import { Suspense, useMemo, useState } from 'react'
 import { ageOn, GroupTag, RegistryTabs, SearchInput } from '@/components/kit'
 import { PageHeader } from '@/components/shell'
 import { ErrorState, Loading } from '@/components/states'
+import { AvatarImage, useStudentPhotoUrls } from '@/components/student-photo'
 import { useAcademy } from '@/lib/academy'
 import { useClassGroups, useStudents } from '@/lib/queries'
 
-type Quick = 'menores' | 'sem_contrato' | 'revisar' | 'sem_nascimento'
+type Quick = 'menores' | 'sem_contrato' | 'revisar' | 'sem_nascimento' | 'sem_foto'
 const QUICK: { id: Quick; label: string }[] = [
   { id: 'menores', label: 'Menores' },
   { id: 'sem_contrato', label: 'Sem contrato' },
   { id: 'revisar', label: 'Contrato a revisar' },
   { id: 'sem_nascimento', label: 'Sem nascimento' },
+  { id: 'sem_foto', label: 'Sem foto' },
 ]
 
 const strip = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
@@ -71,10 +73,13 @@ function StudentsList() {
       if (quick === 'sem_contrato' && s.contract) return false
       if (quick === 'revisar' && !s.contract?.review_needed) return false
       if (quick === 'sem_nascimento' && s.birth_date) return false
+      if (quick === 'sem_foto' && s.photo_path) return false
       if (term && !strip(s.name).includes(term) && !(digits.length >= 3 && s.cpf?.includes(digits))) return false
       return true
     })
   }, [students.data, q, group, status, quick, today])
+  const photos = useStudentPhotoUrls(useMemo(() => rows.flatMap((s) => (s.photo_path ? [s.photo_path] : [])), [rows]))
+  const photoOf = (s: AcademyStudentRow) => (s.photo_path ? photos.data?.[s.photo_path] : null)
 
   return (
     <>
@@ -144,14 +149,19 @@ function StudentsList() {
                   {rows.map((s) => (
                     <tr key={s.id} className="cursor-pointer hover:bg-tint" onClick={() => router.push(`/aluno?id=${s.id}`)}>
                       <td className="px-4 py-2.5">
-                        <Link href={`/aluno?id=${s.id}`} className="font-semibold text-text hover:text-accent" onClick={(e) => e.stopPropagation()}>
-                          {s.name}
-                        </Link>
-                        <p className="text-xs text-dim">
-                          {s.birth_date ? `${ageOn(s.birth_date, today)} anos` : 'Nascimento pendente'}
-                          {isMinor(s.birth_date, today) ? ' · menor' : ''}
-                          {!s.active ? ' · inativo' : ''}
-                        </p>
+                        <div className="flex items-center gap-3">
+                          <AvatarImage url={photoOf(s)} name={s.name} className="size-9" />
+                          <div>
+                            <Link href={`/aluno?id=${s.id}`} className="font-semibold text-text hover:text-accent" onClick={(e) => e.stopPropagation()}>
+                              {s.name}
+                            </Link>
+                            <p className="text-xs text-dim">
+                              {s.birth_date ? `${ageOn(s.birth_date, today)} anos` : 'Nascimento pendente'}
+                              {isMinor(s.birth_date, today) ? ' · menor' : ''}
+                              {!s.active ? ' · inativo' : ''}
+                            </p>
+                          </div>
+                        </div>
                       </td>
                       <td className="px-4 py-2.5">
                         <div className="flex flex-wrap gap-1">
@@ -177,6 +187,7 @@ function StudentsList() {
               {rows.map((s) => (
                 <li key={s.id}>
                   <Link href={`/aluno?id=${s.id}`} className="flex items-center gap-3 rounded-lg border border-line bg-surface px-4 py-3 active:bg-tint">
+                    <AvatarImage url={photoOf(s)} name={s.name} className="size-10" />
                     <div className="min-w-0 flex-1">
                       <p className="truncate font-semibold text-text">{s.name}</p>
                       <p className="text-xs text-dim">
