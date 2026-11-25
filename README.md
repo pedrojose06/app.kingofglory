@@ -93,6 +93,7 @@ As migrations em `supabase/migrations` já estão aplicadas no projeto remoto, c
 | `signup_guardian_esign` | o responsável também assina na tela já no cadastro do aluno menor (`sign_signup_guardian_term`, sem login pelo código do cadastro ou pela conta logada; fica em `student_signup_requests.guardian_esign`); aprovado o aluno, vira "Termo para conferir" |
 | `signup_request_term_view` | aprovação do cadastro de aluno menor com o termo: `list_student_requests` diz se é menor e qual termo veio (`guardian_term`, `guardian_file_path`) e `signup_guardian_signature` dá os dados do termo assinado na tela para o PDF |
 | `fix_anon_storage_upload` | corrige o envio sem login da foto e do termo no cadastro (a policy do termo chamava uma função que `anon` não podia executar e derrubava todo envio sem login) |
+| `minor_account_from_guardian` | aluno menor: aprovar o termo com uso de imagem também marca o aceite da conta (`account_consent_at`), sem a tela de aceite do aluno |
 
 Para criar uma migration nova e aplicar (com a CLI do Supabase):
 
