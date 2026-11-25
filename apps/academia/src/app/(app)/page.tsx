@@ -1,6 +1,6 @@
 'use client'
 
-import { formatTime, todayISO } from '@kog/core'
+import { formatTime, TIME_ZONE, todayISO } from '@kog/core'
 import { Badge, Card } from '@kog/ui'
 import { CalendarDays, ChevronRight, ClipboardCheck, FileSignature, Users, Wallet } from 'lucide-react'
 import Link from 'next/link'
@@ -63,31 +63,37 @@ export default function DashboardPage() {
   )
 }
 
-/** O dia civil de hoje, que vira sozinho à meia-noite (a tela pode ficar aberta o dia todo na recepção). */
-function useToday(): string {
-  const [today, setToday] = useState(todayISO)
+const clockFmt = new Intl.DateTimeFormat('en-GB', { timeZone: TIME_ZONE, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' })
+
+/** Dia e hora em São Paulo ('YYYY-MM-DD' e 'HH:MM'), atualizados a cada minuto (a tela pode ficar aberta o dia todo). */
+function useClock(): { today: string; time: string } {
+  const read = () => {
+    const now = new Date()
+    return { today: todayISO(now), time: clockFmt.format(now) }
+  }
+  const [clock, setClock] = useState(read)
   useEffect(() => {
-    const timer = window.setInterval(() => setToday(todayISO()), 60_000)
+    const timer = window.setInterval(() => setClock(read()), 30_000)
     return () => window.clearInterval(timer)
   }, [])
-  return today
+  return clock
 }
 
 /**
- * Aulas de hoje que ainda esperam a chamada. Cada card leva ao diário da aula e some quando a chamada é concluída
- * (ou a aula é cancelada) ou quando o dia acaba.
+ * Aulas de hoje que já começaram e ainda esperam a chamada. O card aparece no horário da aula (aula sem horário: o dia
+ * todo), leva ao diário dela e some quando a chamada é concluída (ou a aula é cancelada) ou quando o dia acaba.
  */
 function TodayClasses() {
-  const today = useToday()
+  const { today, time } = useClock()
   const classes = useWeekClasses(today, today)
   const groups = useClassGroups()
   const groupById = useMemo(() => new Map((groups.data ?? []).map((g) => [g.id, g])), [groups.data])
   const open = useMemo(
     () =>
       (classes.data ?? [])
-        .filter((c) => c.date === today && c.status === 'scheduled')
+        .filter((c) => c.date === today && c.status === 'scheduled' && (!c.start_time || formatTime(c.start_time) <= time))
         .sort((a, b) => (a.start_time ?? '99').localeCompare(b.start_time ?? '99')),
-    [classes.data, today],
+    [classes.data, today, time],
   )
   const counts = useClassCounts(useMemo(() => open.map((c) => c.id), [open]))
 
