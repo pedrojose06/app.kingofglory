@@ -1,11 +1,12 @@
 'use client'
 
 import {
-  countPresentByClass, ensureAcademyClasses, getAcademyDashboardCounts, listAcademyProgress, getAcademyClass, getAcademyStudent, getGraduationSchedule, getStudentProgress, listAcademyClasses, listAcademyMembers,
+  type ChargeList, countPresentByClass, ensureAcademyClasses, getAcademyDashboardCounts, listAcademyCharges, listAcademyProgress, getAcademyClass, getAcademyStudent, getGraduationSchedule, getStudentProgress, listAcademyClasses, listAcademyMembers,
   listAcademySchedules, listAcademyStudents, listBeltRanks, listClassAttendance, listClassGroups, listClassPhotos, listDiaryStudents,
   listFaceReferences, listGroupMemberships, listModalities, listPayers, listPlans, listRanks, listStudentCharges, listStudentContracts,
 } from '@kog/core'
 import { useQuery } from '@tanstack/react-query'
+import { useMemo } from 'react'
 import { academyKeys, useAcademy } from './academy'
 import { db } from './supabase'
 
@@ -32,6 +33,7 @@ export const keys = {
   faceRefs: (gymId: string) => ['academia', gymId, 'diario', 'rostos'] as const,
   dashboard: (gymId: string, today: string) => ['academia', gymId, 'painel', today] as const,
   progress: (gymId: string) => ['academia', gymId, 'progresso'] as const,
+  charges: (gymId: string, list: string, month: string) => ['academia', gymId, 'mensalidades', list, month] as const,
 }
 
 export function useStudents() {
@@ -192,4 +194,21 @@ export function useDashboardCounts(today: string) {
 export function useAcademyProgress() {
   const { academy } = useAcademy()
   return useQuery({ queryKey: keys.progress(academy.gym_id), queryFn: () => listAcademyProgress(db(), academy.gym_id) })
+}
+
+/** Uma das listas da tela de mensalidades (`month` 'YYYY-MM'; as atrasadas ignoram o mês). Só o administrador. */
+export function useAcademyCharges(list: ChargeList, month: string) {
+  const { academy, isAdmin } = useAcademy()
+  const m = list === 'atrasadas' ? 'todas' : month
+  return useQuery({
+    queryKey: keys.charges(academy.gym_id, list, m),
+    queryFn: () => listAcademyCharges(db(), academy.gym_id, list, month),
+    enabled: isAdmin,
+  })
+}
+
+/** Ids dos alunos ativos: a cobrança "conta" (como no DojoWeb) quando é de pelo menos um aluno ativo. */
+export function useActiveStudentIds() {
+  const students = useStudents()
+  return useMemo(() => (students.data ? new Set(students.data.filter((s) => s.active).map((s) => s.id)) : undefined), [students.data])
 }

@@ -11,7 +11,7 @@ import { ErrorState, Loading } from '@/components/states'
 import { AvatarImage, useStudentPhotoUrls } from '@/components/student-photo'
 import { useAcademy } from '@/lib/academy'
 import {
-  useAcademyProgress, useClassCounts, useClassGroups, useDashboardCounts, useDiaryStudents, useGraduationSchedule, useRanks, useStudents,
+  useAcademyCharges, useAcademyProgress, useActiveStudentIds, useClassCounts, useClassGroups, useDashboardCounts, useDiaryStudents, useGraduationSchedule, useRanks, useStudents,
   useWeekClasses,
 } from '@/lib/queries'
 
@@ -82,6 +82,10 @@ function Counters() {
   const eligible = useEligibleStudents(today)
   const [showEligible, setShowEligible] = useState(false)
   const c = counts.data
+  // Como no DojoWeb: só as cobranças de alunos ativos (a dívida de ex-aluno continua na tela de mensalidades).
+  const overdueCharges = useAcademyCharges('atrasadas', today.slice(0, 7))
+  const active = useActiveStudentIds()
+  const overdue = overdueCharges.data && active ? overdueCharges.data.filter((ch) => ch.student_ids.some((id) => active.has(id))).length : undefined
   const plural = (n: number | undefined, one: string, many: string) => (n === 1 ? one : many)
 
   return (
@@ -91,12 +95,11 @@ function Counters() {
         {isAdmin ? (
           <>
             <Tile
-              value={c?.contractsPending}
-              tone="warning"
-              label={plural(c?.contractsPending, 'Contrato com pendência', 'Contratos com pendência')}
-              href="/alunos?filtro=revisar"
+              value={overdue}
+              tone="danger"
+              label={plural(overdue, 'Cobrança em atraso', 'Cobranças em atraso')}
+              href="/financeiro?aba=atrasadas"
             />
-            <Tile value={c?.chargesOverdue} tone="danger" label={plural(c?.chargesOverdue, 'Cobrança em atraso', 'Cobranças em atraso')} />
             <Tile
               value={c?.contractsEnding}
               tone="gold"
