@@ -909,6 +909,108 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"partner_checkins": {
+                  Row: {
+                    "attendance_id": string | null,"checked_in_at": string,"class_id": string | null,"decided_at": string | null,"decided_by": string | null,"event_key": string,"external_email": string | null,"external_id": string,"external_name": string | null,"gym_id": string,"id": string,"payload": Json,"provider": string,"reason": string | null,"received_at": string,"status": string,"student_id": string | null,"suggested_student_id": string | null,"validated_at": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "attendance_id"?: string | null,"checked_in_at": string,"class_id"?: string | null,"decided_at"?: string | null,"decided_by"?: string | null,"event_key": string,"external_email"?: string | null,"external_id": string,"external_name"?: string | null,"gym_id": string,"id"?: string,"payload"?: Json,"provider": string,"reason"?: string | null,"received_at"?: string,"status"?: string,"student_id"?: string | null,"suggested_student_id"?: string | null,"validated_at"?: string | null
+                  }
+                  Update: {
+                    "attendance_id"?: string | null,"checked_in_at"?: string,"class_id"?: string | null,"decided_at"?: string | null,"decided_by"?: string | null,"event_key"?: string,"external_email"?: string | null,"external_id"?: string,"external_name"?: string | null,"gym_id"?: string,"id"?: string,"payload"?: Json,"provider"?: string,"reason"?: string | null,"received_at"?: string,"status"?: string,"student_id"?: string | null,"suggested_student_id"?: string | null,"validated_at"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "partner_checkins_attendance_id_fkey"
+      columns: ["attendance_id"]
+isOneToOne: false
+      referencedRelation: "attendance"
+      referencedColumns: ["id"]
+    },                    {
+      foreignKeyName: "partner_checkins_class_id_fkey"
+      columns: ["class_id"]
+isOneToOne: false
+      referencedRelation: "classes"
+      referencedColumns: ["id"]
+    },                    {
+      foreignKeyName: "partner_checkins_decided_by_fkey"
+      columns: ["decided_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },                    {
+      foreignKeyName: "partner_checkins_gym_id_fkey"
+      columns: ["gym_id"]
+isOneToOne: false
+      referencedRelation: "gyms"
+      referencedColumns: ["id"]
+    },                    {
+      foreignKeyName: "partner_checkins_student_id_fkey"
+      columns: ["student_id"]
+isOneToOne: false
+      referencedRelation: "students"
+      referencedColumns: ["id"]
+    },                    {
+      foreignKeyName: "partner_checkins_suggested_student_id_fkey"
+      columns: ["suggested_student_id"]
+isOneToOne: false
+      referencedRelation: "students"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"partner_integrations": {
+                  Row: {
+                    "auto_approve": boolean,"created_at": string,"enabled": boolean,"external_gym_id": string,"gym_id": string,"max_per_day": number,"provider": string,"require_class": boolean,"updated_at": string,"window_after_min": number,"window_before_min": number
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "auto_approve"?: boolean,"created_at"?: string,"enabled"?: boolean,"external_gym_id": string,"gym_id": string,"max_per_day"?: number,"provider": string,"require_class"?: boolean,"updated_at"?: string,"window_after_min"?: number,"window_before_min"?: number
+                  }
+                  Update: {
+                    "auto_approve"?: boolean,"created_at"?: string,"enabled"?: boolean,"external_gym_id"?: string,"gym_id"?: string,"max_per_day"?: number,"provider"?: string,"require_class"?: boolean,"updated_at"?: string,"window_after_min"?: number,"window_before_min"?: number
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "partner_integrations_gym_id_fkey"
+      columns: ["gym_id"]
+isOneToOne: false
+      referencedRelation: "gyms"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"partner_links": {
+                  Row: {
+                    "created_at": string,"created_by": string | null,"external_id": string,"gym_id": string,"provider": string,"student_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"created_by"?: string | null,"external_id": string,"gym_id": string,"provider": string,"student_id": string
+                  }
+                  Update: {
+                    "created_at"?: string,"created_by"?: string | null,"external_id"?: string,"gym_id"?: string,"provider"?: string,"student_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "partner_links_created_by_fkey"
+      columns: ["created_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },                    {
+      foreignKeyName: "partner_links_gym_id_fkey"
+      columns: ["gym_id"]
+isOneToOne: false
+      referencedRelation: "gyms"
+      referencedColumns: ["id"]
+    },                    {
+      foreignKeyName: "partner_links_student_id_fkey"
+      columns: ["student_id"]
+isOneToOne: false
+      referencedRelation: "students"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"payments": {
                   Row: {
                     "amount_cents": number,"charge_id": string,"created_at": string,"external_ref": string | null,"gateway_payment_id": string | null,"gym_id": string,"id": string,"method": string,"notes": string | null,"paid_on": string,"received_by": string | null,"reverse_reason": string | null,"reversed_at": string | null,"reversed_by": string | null,"source": string
@@ -1755,6 +1857,18 @@ isOneToOne: false
 "my_student_portal":
 { Args: Record<PropertyKey, never>; Returns: Json
                            },
+"partner_checkin_finish":
+{ Args: { "p_error"?: string | null,"p_id": string }; Returns: string
+                           },
+"partner_checkin_prepare":
+{ Args: { "p_class_id"?: string | null,"p_id": string,"p_student_id": string }; Returns: Json
+                           },
+"partner_checkin_receive":
+{ Args: { "p_checked_in_at": string,"p_email": string | null,"p_event_key": string,"p_external_gym_id": string,"p_external_id": string,"p_name": string | null,"p_payload"?: Json,"p_provider": string }; Returns: Json
+                           },
+"partner_checkin_reject":
+{ Args: { "p_id": string,"p_reason": string }; Returns: undefined
+                           },
 "pay_charge":
 { Args: { "p_amount_cents": number,"p_charge_id": string,"p_method": string,"p_notes"?: string,"p_paid_on": string }; Returns: string
                            },
@@ -1885,7 +1999,7 @@ isOneToOne: false
                            }
           }
           Enums: {
-            "attendance_source": "manual"|"walk_in"|"import"|"face"|"student_checkin","attendance_status": "present"|"absent"|"late"|"justified","class_status": "scheduled"|"done"|"cancelled","face_decision": "confirmed"|"corrected"|"ignored"|"auto","gym_role": "owner"|"instructor","profile_role": "instructor"|"student"
+            "attendance_source": "manual"|"walk_in"|"import"|"face"|"student_checkin"|"gympass"|"totalpass","attendance_status": "present"|"absent"|"late"|"justified","class_status": "scheduled"|"done"|"cancelled","face_decision": "confirmed"|"corrected"|"ignored"|"auto","gym_role": "owner"|"instructor","profile_role": "instructor"|"student"
           }
           CompositeTypes: {
             [_ in never]: never
@@ -2001,7 +2115,7 @@ export type CompositeTypes<
 export const Constants = {
   "public": {
           Enums: {
-            "attendance_source": ["manual", "walk_in", "import", "face", "student_checkin"],"attendance_status": ["present", "absent", "late", "justified"],"class_status": ["scheduled", "done", "cancelled"],"face_decision": ["confirmed", "corrected", "ignored", "auto"],"gym_role": ["owner", "instructor"],"profile_role": ["instructor", "student"]
+            "attendance_source": ["manual", "walk_in", "import", "face", "student_checkin", "gympass", "totalpass"],"attendance_status": ["present", "absent", "late", "justified"],"class_status": ["scheduled", "done", "cancelled"],"face_decision": ["confirmed", "corrected", "ignored", "auto"],"gym_role": ["owner", "instructor"],"profile_role": ["instructor", "student"]
           }
         }
 } as const

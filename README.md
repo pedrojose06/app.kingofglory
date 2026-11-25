@@ -519,6 +519,41 @@ pnpm --filter @kog/academia dev
 Sobe em http://localhost:3001. Com o banco local, os e-mails (confirmação, senha) chegam no Mailpit:
 http://127.0.0.1:54324.
 
+### Check-ins Gympass / TotalPass (aprovação automática)
+
+O aluno faz check-in no app parceiro; o parceiro chama a Edge Function `partner-checkins` (webhook). Ela confere a
+assinatura, grava o check-in (`partner_checkin_receive`) e aplica as regras da academia: usuário já vinculado a um aluno
+ativo, aula da grade dentro da janela (padrão: de 60 min antes a 30 min depois do início) e limite de check-ins por dia.
+Passou: valida o check-in na API do parceiro e lança a presença (`source` `gympass`/`totalpass`, na aula ou avulsa).
+Não passou: fica **pendente** na tela **Check-ins** para a equipe aprovar (escolhe o aluno e a aula) ou recusar. Na
+primeira aprovação manual o usuário do parceiro fica vinculado ao aluno e os próximos check-ins dele entram sozinhos.
+Se o parceiro recusar a validação (ex.: check-in expirado), o check-in fica como **erro** com o motivo.
+
+- Regras e permissões no banco: `supabase/migrations/20261129120100_partner_checkins.sql` (testes:
+  `supabase/tests/database/partner_checkins.test.sql`). Configuração por academia em **Configurações › Gympass / TotalPass**.
+- Formatos do parceiro isolados em `supabase/functions/partner-checkins/providers.ts` (testes:
+  `node --experimental-strip-types --test supabase/functions/partner-checkins/providers.test.ts`).
+- **Wellhub (Gympass)**: segue a Access Control API (webhook de check-in assinado com `X-Gympass-Signature` e validação em
+  `POST /access/v1/validate`). Os pontos marcados `CONFERIR` no código precisam ser confirmados com a documentação e o
+  sandbox que o Wellhub libera junto com as credenciais.
+- **TotalPass**: não publica a API de integração. O webhook responde 501 até a documentação chegar (pedir ao gerente de
+  conta); o adaptador `totalpass` em `providers.ts` é o único ponto a implementar.
+
+Ligar o Gympass:
+
+1. Pedir ao Wellhub a integração de controle de acesso: **API key**, **gym id** da academia, **segredo do webhook** e o
+   sandbox para testes.
+2. Segredos da Edge Function (Supabase › Edge Functions › Secrets): `GYMPASS_API_KEY`, `GYMPASS_WEBHOOK_SECRET` e, nos
+   testes, `GYMPASS_API_URL=https://apitesting.partners.gympass.com` (sandbox).
+3. Deploy:
+
+   ```bash
+   supabase functions deploy partner-checkins --no-verify-jwt
+   ```
+
+4. No sistema da academia, **Configurações › Gympass / TotalPass**: informar o gym id e cadastrar no Wellhub o endereço do
+   webhook mostrado ali (`https://<projeto>.supabase.co/functions/v1/partner-checkins/gympass`).
+
 ### Deploy do sistema da academia (Vercel)
 
 1. vercel.com › Add New › Project › importar `pedrojose06/app.kingofglory` de novo, com **Root Directory

@@ -3,7 +3,8 @@
 import {
   ACADEMY_ROLE_HINT, ACADEMY_ROLE_LABEL, ACADEMY_ROLES, type AcademyInvite, type AcademyRole, academyInviteLink, academyInviteStatus,
   cancelAcademyInvite, createAcademyInvite, isValidEmail, listAcademyInvites, listAcademyMembers, normalizeEmail, setAcademyMemberRole,
-  updateAcademy,
+  PARTNER_LABEL, PARTNER_PROVIDERS, PARTNER_READY, type PartnerIntegrationInput, type PartnerProvider, partnerWebhookUrl,
+  savePartnerIntegration, updateAcademy,
 } from '@kog/core'
 import { Badge, Button, Card, EmptyState, Field, Input, Select } from '@kog/ui'
 import { toast, toastError, useAuth } from '@kog/web-kit'
@@ -13,6 +14,7 @@ import { useEffect, useState, type FormEvent, type ReactNode } from 'react'
 import { PageHeader } from '@/components/shell'
 import { ErrorState, Loading } from '@/components/states'
 import { academyKeys, useAcademy } from '@/lib/academy'
+import { keys, usePartnerIntegrations } from '@/lib/queries'
 import { db } from '@/lib/supabase'
 
 const STATUS_TONE = { aberto: 'gold', aceito: 'success', cancelado: 'neutral', vencido: 'warning' } as const
@@ -37,7 +39,10 @@ export default function SettingsPage() {
           <AcademyForm />
           <Members />
         </div>
-        <Invites />
+        <div className="space-y-6">
+          <Invites />
+          <PartnerIntegrations />
+        </div>
       </div>
     </>
   )
@@ -316,5 +321,135 @@ function InviteRow({ invite, busy, onRenew, onCancel }: { invite: AcademyInvite;
         </Button>
       ) : null}
     </li>
+  )
+}
+
+// ── Gympass / TotalPass ───────────────────────────────────────────────────────
+
+const DEFAULT_INTEGRATION: PartnerIntegrationInput = {
+  external_gym_id: '',
+  enabled: true,
+  auto_approve: true,
+  require_class: true,
+  window_before_min: 60,
+  window_after_min: 30,
+  max_per_day: 1,
+}
+
+const pickIntegration = (i: PartnerIntegrationInput | undefined): PartnerIntegrationInput | null =>
+  i
+    ? {
+        external_gym_id: i.external_gym_id, enabled: i.enabled, auto_approve: i.auto_approve, require_class: i.require_class,
+        window_before_min: i.window_before_min, window_after_min: i.window_after_min, max_per_day: i.max_per_day,
+      }
+    : null
+
+function PartnerIntegrations() {
+  const integrations = usePartnerIntegrations()
+  return (
+    <Section
+      title="Gympass / TotalPass"
+      description="Check-in feito no app parceiro chega sozinho na tela Check-ins e, se passar nas regras abaixo, já é confirmado no parceiro e vira presença."
+    >
+      {integrations.isPending ? (
+        <Loading />
+      ) : integrations.isError ? (
+        <ErrorState error={integrations.error} onRetry={() => integrations.refetch()} />
+      ) : (
+        <div className="space-y-6">
+          {PARTNER_PROVIDERS.map((provider) => (
+            <PartnerForm key={provider} provider={provider} saved={pickIntegration(integrations.data.find((i) => i.provider === provider))} />
+          ))}
+        </div>
+      )}
+    </Section>
+  )
+}
+
+function PartnerForm({ provider, saved }: { provider: PartnerProvider; saved: PartnerIntegrationInput | null }) {
+  const { academy } = useAcademy()
+  const queryClient = useQueryClient()
+  const [form, setForm] = useState<PartnerIntegrationInput>(saved ?? DEFAULT_INTEGRATION)
+  const savedKey = JSON.stringify(saved)
+  useEffect(() => {
+    if (saved) setForm(saved)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [savedKey])
+  const save = useMutation({
+    mutationFn: () => savePartnerIntegration(db(), academy.gym_id, provider, form),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: keys.checkins(academy.gym_id) })
+      toast(`${PARTNER_LABEL[provider]} salvo.`)
+    },
+    onError: toastError,
+  })
+  const webhook = partnerWebhookUrl(process.env.NEXT_PUBLIC_SUPABASE_URL ?? '', provider)
+  const minutes = (v: string) => Math.max(0, Math.min(240, Math.round(Number(v) || 0)))
+  const check = (key: 'enabled' | 'auto_approve' | 'require_class', label: string) => (
+    <label className="flex items-center gap-2 text-sm text-soft">
+      <input type="checkbox" checked={form[key]} onChange={(e) => setForm({ ...form, [key]: e.target.checked })} className="size-4 accent-[var(--kog-gold)]" />
+      {label}
+    </label>
+  )
+
+  return (
+    <form
+      className="space-y-3 border-t border-line pt-4 first:border-t-0 first:pt-0"
+      onSubmit={(e: FormEvent) => {
+        e.preventDefault()
+        save.mutate()
+      }}
+    >
+      <div className="flex items-center gap-2">
+        <h3 className="font-semibold text-text">{PARTNER_LABEL[provider]}</h3>
+        {!PARTNER_READY[provider] ? <Badge tone="warning">Aguardando a API da {PARTNER_LABEL[provider]}</Badge> : saved?.enabled ? <Badge tone="success">Ligado</Badge> : null}
+      </div>
+      {!PARTNER_READY[provider] ? (
+        <p className="text-sm text-dim">
+          A {PARTNER_LABEL[provider]} não publica a API de integração. Assim que a documentação e as credenciais chegarem, a aprovação automática
+          é ligada aqui. Por enquanto, lance esses check-ins à mão no diário.
+        </p>
+      ) : (
+        <>
+          <Field label={`Código da academia no ${PARTNER_LABEL[provider]}`} hint="O “gym id” que o parceiro informa ao liberar a integração.">
+            <Input required value={form.external_gym_id} onChange={(e) => setForm({ ...form, external_gym_id: e.target.value })} />
+          </Field>
+          <div className="grid gap-3 sm:grid-cols-3">
+            <Field label="Até quantos min antes da aula">
+              <Input type="number" min={0} max={240} value={form.window_before_min} onChange={(e) => setForm({ ...form, window_before_min: minutes(e.target.value) })} />
+            </Field>
+            <Field label="Até quantos min depois do início">
+              <Input type="number" min={0} max={240} value={form.window_after_min} onChange={(e) => setForm({ ...form, window_after_min: minutes(e.target.value) })} />
+            </Field>
+            <Field label="Check-ins automáticos por dia">
+              <Input type="number" min={1} max={10} value={form.max_per_day} onChange={(e) => setForm({ ...form, max_per_day: Math.max(1, Math.min(10, Math.round(Number(e.target.value) || 1))) })} />
+            </Field>
+          </div>
+          {check('enabled', 'Receber os check-ins deste parceiro')}
+          {check('auto_approve', 'Aprovar sozinho quando passar nas regras (senão, tudo fica pendente para a equipe)')}
+          {check('require_class', 'Exigir uma aula da grade no horário (desmarcado: sem aula vira presença avulsa)')}
+          <p className="text-xs text-dim">
+            Aluno ainda não vinculado ou inativo sempre fica pendente. Na primeira aprovação manual, o aluno fica vinculado e os próximos
+            check-ins dele entram sozinhos.
+          </p>
+          <div className="rounded border border-line bg-surface-2 p-3 text-xs text-soft">
+            <p className="font-semibold text-text">Endereço do webhook (cadastrar no {PARTNER_LABEL[provider]})</p>
+            <div className="mt-1 flex items-center gap-2">
+              <code className="min-w-0 flex-1 break-all">{webhook}</code>
+              <Button
+                variant="plain"
+                size="sm"
+                onPress={() => navigator.clipboard.writeText(webhook).then(() => toast('Endereço copiado.'), toastError)}
+              >
+                <Copy className="size-4" /> Copiar
+              </Button>
+            </div>
+          </div>
+          <Button type="submit" disabled={!form.external_gym_id.trim()} loading={save.isPending}>
+            Salvar
+          </Button>
+        </>
+      )}
+    </form>
   )
 }

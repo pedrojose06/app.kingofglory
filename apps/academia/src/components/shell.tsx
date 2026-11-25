@@ -3,7 +3,7 @@
 import { ACADEMY_ROLE_LABEL, type AcademyRole } from '@kog/core'
 import { Badge, cn } from '@kog/ui'
 import { useAuth } from '@kog/web-kit'
-import { Award, CalendarDays, ClipboardList, FileSignature, LayoutDashboard, LogOut, Settings, Users, Wallet, type LucideIcon } from 'lucide-react'
+import { Award, CalendarDays, ClipboardList, ScanLine, FileSignature, LayoutDashboard, LogOut, Settings, Users, Wallet, type LucideIcon } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import type { ReactNode } from 'react'
@@ -27,6 +27,7 @@ const NAV: readonly NavItem[] = [
   { href: '/alunos', label: 'Cadastros', icon: Users, roles: ['admin'], match: ['/alunos', '/aluno', '/responsaveis', '/planos', '/turmas'] },
   { href: '/financeiro', label: 'Mensalidades', icon: Wallet, roles: ['admin'] },
   { href: '/diarios', label: 'Diários de aula', icon: CalendarDays, roles: STAFF, match: ['/diarios', '/diario'] },
+  { href: '/checkins', label: 'Check-ins', icon: ScanLine, roles: STAFF },
   { href: '/graduacoes', label: 'Graduações', icon: Award, roles: STAFF, match: ['/graduacoes', '/graduacao'] },
   { href: '/contratos', label: 'Contratos', icon: FileSignature, roles: ['admin'], soon: true },
   { href: '/meu-contrato', label: 'Meu contrato', icon: ClipboardList, roles: ['membro'], soon: true },

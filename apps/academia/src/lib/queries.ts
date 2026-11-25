@@ -4,6 +4,7 @@ import {
   type ChargeList, countPresentByClass, ensureAcademyClasses, getAcademyDashboardCounts, listAcademyCharges, listAcademyProgress, getAcademyClass, getAcademyStudent, getGraduationSchedule, getStudentProgress, listAcademyClasses, listAcademyMembers,
   listAcademySchedules, listAcademyStudents, listBeltRanks, listClassAttendance, listClassGroups, listClassPhotos, listDiaryStudents,
   listFaceReferences, listGroupMemberships, listModalities, listPayers, listPlans, listRanks, listStudentCharges, listStudentContracts,
+  countPendingPartnerCheckins, listPartnerCheckins, listPartnerIntegrations, listPartnerLinks, type PartnerCheckinList,
 } from '@kog/core'
 import {
   getGraduationEvent, listEventCandidates, listGraduationEvents, listGraduationPhotos,
@@ -41,6 +42,11 @@ export const keys = {
   graduationEvent: (gymId: string, id: string) => ['academia', gymId, 'graduacao', id] as const,
   graduationPhotos: (gymId: string, id: string) => ['academia', gymId, 'graduacao', id, 'fotos'] as const,
   graduationCandidates: (gymId: string, id: string) => ['academia', gymId, 'graduacao', id, 'candidatos'] as const,
+  checkins: (gymId: string) => ['academia', gymId, 'checkins'] as const,
+  checkinList: (gymId: string, list: string) => ['academia', gymId, 'checkins', list] as const,
+  checkinPending: (gymId: string) => ['academia', gymId, 'checkins', 'contagem'] as const,
+  partnerIntegrations: (gymId: string) => ['academia', gymId, 'checkins', 'integracoes'] as const,
+  partnerLinks: (gymId: string) => ['academia', gymId, 'checkins', 'vinculos'] as const,
 }
 
 export function useStudents() {
@@ -240,4 +246,37 @@ export function useGraduationPhotos(id: string) {
 export function useGraduationCandidates(id: string) {
   const { academy } = useAcademy()
   return useQuery({ queryKey: keys.graduationCandidates(academy.gym_id, id), queryFn: () => listEventCandidates(db(), id), enabled: Boolean(id) })
+}
+
+// ── check-ins Gympass/TotalPass ─────────────────────────────────────────────
+
+/** Fila de pendentes ou histórico. A fila se atualiza sozinha a cada minuto (os check-ins chegam pelo webhook). */
+export function usePartnerCheckins(list: PartnerCheckinList) {
+  const { academy, isStaff } = useAcademy()
+  return useQuery({
+    queryKey: keys.checkinList(academy.gym_id, list),
+    queryFn: () => listPartnerCheckins(db(), academy.gym_id, list),
+    enabled: isStaff,
+    refetchInterval: list === 'pendentes' ? 60_000 : false,
+  })
+}
+
+export function usePendingCheckinCount() {
+  const { academy, isStaff } = useAcademy()
+  return useQuery({
+    queryKey: keys.checkinPending(academy.gym_id),
+    queryFn: () => countPendingPartnerCheckins(db(), academy.gym_id),
+    enabled: isStaff,
+    refetchInterval: 120_000,
+  })
+}
+
+export function usePartnerIntegrations() {
+  const { academy, isStaff } = useAcademy()
+  return useQuery({ queryKey: keys.partnerIntegrations(academy.gym_id), queryFn: () => listPartnerIntegrations(db(), academy.gym_id), enabled: isStaff })
+}
+
+export function usePartnerLinks() {
+  const { academy, isStaff } = useAcademy()
+  return useQuery({ queryKey: keys.partnerLinks(academy.gym_id), queryFn: () => listPartnerLinks(db(), academy.gym_id), enabled: isStaff })
 }
