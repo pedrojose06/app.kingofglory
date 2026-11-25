@@ -100,6 +100,13 @@ export async function listStudentPhotoUrls(db: Db, expiresInSeconds = 7 * 24 * 3
   return out
 }
 
+/** URL assinada da foto do cadastro da conta logada (aluno aprovado); null sem foto. Vale 7 dias, como o cache offline. */
+export async function getMyFacePhotoUrl(db: Db, expiresInSeconds = 7 * 24 * 3600): Promise<string | null> {
+  const path = unwrap(await db.rpc('my_face_photo'))
+  if (!path) return null
+  return (await signFaceUrls(db, [path], expiresInSeconds))[path] ?? null
+}
+
 export interface StudentSignupInput {
   gymId: string
   name: string

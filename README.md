@@ -89,6 +89,7 @@ As migrations em `supabase/migrations` já estão aplicadas no projeto remoto, c
 | `schedule_start_date` | `set_schedule_start`: corrigir a data de início de um horário da grade (aulas vazias antes da nova data são removidas) |
 | `signup_image_consent` | autorização de uso de imagem no cadastro sem link (`student_signup_requests.image_consent_at`), levada ao aluno na aprovação (maior de idade) |
 | `signup_guardian_term` | termo do responsável anexado já no cadastro do aluno menor (`student_signup_requests.guardian_file_path`, também sem login pelo código do cadastro); aprovado o aluno, vira "Termo para conferir"; policies do Storage pelo registro do termo |
+| `my_face_photo` | `my_face_photo()`: caminho da foto do cadastro do próprio aluno logado (aprovado), mostrada na área do aluno |
 
 Para criar uma migration nova e aplicar (com a CLI do Supabase):
 

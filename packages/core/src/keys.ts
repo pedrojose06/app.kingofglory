@@ -39,6 +39,7 @@ export const keys = {
   instructorInvites: ['instructor-invites'] as const,
   signupDirectory: ['signup-directory'] as const,
   mySignupRequest: ['student-portal', 'me', 'request'] as const,
+  myFacePhoto: ['student-portal', 'me', 'photo'] as const,
   studentRequests: ['student-requests'] as const,
   studentPhotos: ['students', 'photos'] as const,
   signupRanks: ['signup', 'ranks'] as const,

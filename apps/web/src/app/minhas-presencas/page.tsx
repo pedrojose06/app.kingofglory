@@ -1,13 +1,13 @@
 'use client'
 
 import {
-  STUDENT_SIGNUP_PATH, acceptImageConsent, attendanceStats, getMySignupRequest, claimStudentAccount, formatDateBR, getMyStudentAccount, getMyStudentPortal, hasAccountConsent,
+  STUDENT_SIGNUP_PATH, acceptImageConsent, attendanceStats, getMySignupRequest, claimStudentAccount, formatDateBR, getMyFacePhotoUrl, getMyStudentAccount, getMyStudentPortal, hasAccountConsent,
   monthsBetween, formatDayShort, formatMonth, formatTime, getStudentPortal, graduationStatus, isCounted,
   keys, missingLabel, trackOf, uploadSignupPhoto, walkInLabel, type StudentPortal,
 } from '@kog/core'
-import { Badge, Button, Card, EmptyState, Kicker, ProgressBar, RankBand, Title } from '@kog/ui'
+import { Badge, Button, Card, EmptyState, Kicker, ProgressBar, RankBand, Sheet, Title } from '@kog/ui'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { ChevronLeft, LogOut, UserPlus } from 'lucide-react'
+import { ChevronLeft, LogOut, UserPlus, UserRound } from 'lucide-react'
 import Link from 'next/link'
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { Section, StatusBadge, studentSince } from '@/components/common'
@@ -179,6 +179,8 @@ function AccountMode({ token, onLeave }: { token: string | null; onLeave: (notic
   })
   const consented = !!account.data && hasAccountConsent(account.data)
   const portal = useQuery({ queryKey: keys.myStudentPortal, queryFn: () => getMyStudentPortal(db()), enabled: consented })
+  // URL assinada vale 7 dias: renova a cada hora.
+  const photo = useQuery({ queryKey: keys.myFacePhoto, queryFn: () => getMyFacePhotoUrl(db()), enabled: consented, staleTime: 60 * 60_000 })
   const tried = useRef(false)
   const [claimError, setClaimError] = useState<string | null>(null)
 
@@ -279,6 +281,7 @@ function AccountMode({ token, onLeave }: { token: string | null; onLeave: (notic
         data={portal.data}
         updatedAt={portal.dataUpdatedAt}
         offline={portal.isError}
+        photoUrl={photo.data ?? undefined}
         onSignOut={() => void signOut()}
         bottom={
           <>
@@ -373,7 +376,7 @@ function Brand({ onSignOut }: { onSignOut?: () => void }) {
   )
 }
 
-function PortalView({ data, updatedAt, offline, top, bottom, onSignOut }: { data: StudentPortal; updatedAt: number; offline: boolean; top?: ReactNode; bottom?: ReactNode; onSignOut?: () => void }) {
+function PortalView({ data, updatedAt, offline, top, bottom, photoUrl, onSignOut }: { data: StudentPortal; updatedAt: number; offline: boolean; top?: ReactNode; bottom?: ReactNode; photoUrl?: string; onSignOut?: () => void }) {
   const today = useToday()
   const [showAll, setShowAll] = useState(false)
   const { student } = data
@@ -415,8 +418,13 @@ function PortalView({ data, updatedAt, offline, top, bottom, onSignOut }: { data
   return (
     <>
       <Brand onSignOut={onSignOut} />
-      <Kicker className="mb-1.5">{data.gym_name}</Kicker>
-      <Title>{student.name}</Title>
+      <div className="flex items-center gap-4">
+        {photoUrl ? <Avatar url={photoUrl} name={student.name} /> : null}
+        <div className="min-w-0 flex-1">
+          <Kicker className="mb-1.5">{data.gym_name}</Kicker>
+          <Title>{student.name}</Title>
+        </div>
+      </div>
       {offline ? (
         <p className="mt-2 text-xs text-warning">Sem conexão · mostrando dados de {new Date(updatedAt).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}</p>
       ) : null}
@@ -547,6 +555,33 @@ function PortalView({ data, updatedAt, offline, top, bottom, onSignOut }: { data
 
       {!student.active ? <p className="mt-6 text-center"><Badge>Matrícula inativa</Badge></p> : null}
       {bottom}
+    </>
+  )
+}
+
+/** Foto do cadastro do aluno; toque amplia. */
+function Avatar({ url, name }: { url: string; name: string }) {
+  const [open, setOpen] = useState(false)
+  const [broken, setBroken] = useState(false)
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => !broken && setOpen(true)}
+        className="flex size-16 shrink-0 items-center justify-center overflow-hidden rounded-full bg-surface-2 ring-2 ring-accent"
+        aria-label="Ver sua foto"
+      >
+        {broken ? (
+          <UserRound className="size-7 text-faint" />
+        ) : (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={url} alt={`Foto de ${name}`} className="size-full object-cover" onError={() => setBroken(true)} />
+        )}
+      </button>
+      <Sheet open={open} onClose={() => setOpen(false)} title={name}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={url} alt={`Foto de ${name}`} className="w-full rounded" />
+      </Sheet>
     </>
   )
 }
