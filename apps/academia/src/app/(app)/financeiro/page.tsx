@@ -2,17 +2,24 @@
 
 import {
   addMonths, CHARGE_KIND_LABEL, type ChargeKind, type ChargeList, type ChargeOverview, formatBRL, formatDateBR, formatMonth, PAYMENT_METHOD_LABEL,
-  type PaymentMethod, todayISO,
+  payCharge, type PaymentMethod, reversePayment, todayISO,
 } from '@kog/core'
-import { Badge, Button, Card, Chip, EmptyState } from '@kog/ui'
+import { Badge, Button, Card, Chip, DateInput, EmptyState, Field, Input, Select } from '@kog/ui'
+import { toast, toastError } from '@kog/web-kit'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { Suspense, useState } from 'react'
+import { Dialog, MoneyInput, SearchInput } from '@/components/kit'
 import { PageHeader } from '@/components/shell'
 import { ErrorState, Loading } from '@/components/states'
 import { useAcademy } from '@/lib/academy'
-import { useAcademyCharges, useActiveStudentIds } from '@/lib/queries'
+import { keys, useAcademyCharges, useActiveStudentIds } from '@/lib/queries'
+import { db } from '@/lib/supabase'
+
+const strip = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
+const matches = (c: ChargeOverview, term: string) => !term || [...c.student_names, c.payer_name].some((n) => strip(n).includes(term))
 
 const TABS: { id: ChargeList; label: string; hint: string }[] = [
   { id: 'em_aberto', label: 'Em aberto', hint: 'Vencem neste mês e ainda estão no prazo.' },
@@ -35,6 +42,9 @@ function Charges() {
   const [tab, setTab] = useState<ChargeList>(() => TABS.find((t) => t.id === params.get('aba'))?.id ?? 'em_aberto')
   const [month, setMonth] = useState(thisMonth)
   const [withFormer, setWithFormer] = useState(false)
+  const [q, setQ] = useState('')
+  const [paying, setPaying] = useState<ChargeOverview | null>(null)
+  const [reversing, setReversing] = useState<ChargeOverview | null>(null)
 
   const open = useAcademyCharges('em_aberto', month)
   const late = useAcademyCharges('atrasadas', month)
@@ -46,7 +56,8 @@ function Charges() {
   const isCurrent = (c: ChargeOverview) => !active || c.student_ids.some((id) => active.has(id))
   const lateCurrent = (late.data ?? []).filter(isCurrent)
   const former = (late.data?.length ?? 0) - lateCurrent.length
-  const rows = tab === 'atrasadas' && !withFormer ? lateCurrent : (query.data ?? [])
+  const term = strip(q.trim())
+  const rows = (tab === 'atrasadas' && !withFormer ? lateCurrent : (query.data ?? [])).filter((c) => matches(c, term))
   const total = rows.reduce((sum, c) => sum + (tab === 'pagas' ? (c.paid_cents ?? c.amount_cents) : c.amount_cents), 0)
   const count = (t: ChargeList) => (t === 'em_aberto' ? open.data?.length : t === 'atrasadas' ? lateCurrent.length : paid.data?.length)
 
@@ -72,6 +83,9 @@ function Charges() {
         ))}
       </div>
 
+      <div className="mb-3 max-w-md">
+        <SearchInput value={q} onChange={setQ} placeholder="Buscar pelo nome do aluno ou do responsável" />
+      </div>
       <div className="mb-4 flex flex-wrap items-center gap-2">
         {tab !== 'atrasadas' ? (
           <>
@@ -99,7 +113,17 @@ function Charges() {
       ) : query.isError ? (
         <ErrorState error={query.error} onRetry={() => query.refetch()} />
       ) : rows.length === 0 ? (
-        <EmptyState title={tab === 'atrasadas' ? 'Nenhuma cobrança em atraso.' : tab === 'pagas' ? 'Nenhum pagamento neste mês.' : 'Nenhuma cobrança em aberto neste mês.'} />
+        <EmptyState
+          title={
+            term
+              ? 'Ninguém com esse nome nesta lista.'
+              : tab === 'atrasadas'
+                ? 'Nenhuma cobrança em atraso.'
+                : tab === 'pagas'
+                  ? 'Nenhum pagamento neste mês.'
+                  : 'Nenhuma cobrança em aberto neste mês.'
+          }
+        />
       ) : (
         <>
           <p className="mb-2 text-sm text-dim">
@@ -108,26 +132,144 @@ function Charges() {
           <Card className="overflow-hidden">
             <ul className="divide-y divide-line">
               {rows.map((c) => (
-                <ChargeRow key={c.id} charge={c} tab={tab} former={!isCurrent(c)} />
+                <ChargeRow
+                  key={c.id}
+                  charge={c}
+                  tab={tab}
+                  former={!isCurrent(c)}
+                  onPay={() => setPaying(c)}
+                  onReverse={() => setReversing(c)}
+                />
               ))}
             </ul>
           </Card>
         </>
       )}
+      {paying ? <PayDialog charge={paying} onClose={() => setPaying(null)} /> : null}
+      {reversing ? <ReverseDialog charge={reversing} onClose={() => setReversing(null)} /> : null}
     </>
   )
 }
 
-function ChargeRow({ charge: c, tab, former }: { charge: ChargeOverview; tab: ChargeList; former: boolean }) {
+/** Depois de uma baixa ou estorno: as três listas, o painel e a ficha do aluno mudam. */
+function useRefreshCharges() {
+  const { academy } = useAcademy()
+  const queryClient = useQueryClient()
+  return () => queryClient.invalidateQueries({ queryKey: keys.all(academy.gym_id) })
+}
+
+const METHODS: PaymentMethod[] = ['pix', 'dinheiro', 'credito', 'debito', 'transferencia', 'boleto', 'gympass', 'totalpass', 'outro']
+
+function PayDialog({ charge: c, onClose }: { charge: ChargeOverview; onClose: () => void }) {
+  const today = todayISO()
+  const refresh = useRefreshCharges()
+  const [paidOn, setPaidOn] = useState(today)
+  const [amount, setAmount] = useState<number | null>(c.amount_cents)
+  const [method, setMethod] = useState<PaymentMethod>('pix')
+  const [notes, setNotes] = useState('')
+  const pay = useMutation({
+    mutationFn: () => payCharge(db(), c.id, { paidOn, amountCents: amount ?? 0, method, notes }),
+    onSuccess: async () => {
+      await refresh()
+      toast('Pagamento registrado.')
+      onClose()
+    },
+    onError: toastError,
+  })
+  const invalid = amount == null || !paidOn || paidOn > today
+
+  return (
+    <Dialog
+      open
+      onClose={onClose}
+      title="Dar baixa"
+      footer={
+        <>
+          <Button variant="ghost" onPress={onClose}>Cancelar</Button>
+          <Button onPress={() => pay.mutate()} loading={pay.isPending} disabled={invalid}>Confirmar pagamento</Button>
+        </>
+      }
+    >
+      <p className="font-semibold text-text">{c.student_names.join(', ') || c.payer_name}</p>
+      <p className="mb-4 text-sm text-dim">
+        {CHARGE_KIND_LABEL[c.kind as ChargeKind] ?? c.kind}
+        {c.competence ? ` · ${formatMonth(c.competence.slice(0, 7))}` : ''} · {c.due_on >= today ? 'vence' : 'venceu'} {formatDateBR(c.due_on)} · {formatBRL(c.amount_cents)}
+      </p>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Field label="Data do pagamento" hint={paidOn > today ? 'Não pode ser depois de hoje.' : undefined}>
+          <DateInput value={paidOn} max={today} onChange={(e) => setPaidOn(e.target.value)} />
+        </Field>
+        <Field label="Valor pago">
+          <MoneyInput value={amount} onChange={setAmount} required />
+        </Field>
+        <Field label="Forma de pagamento" className="sm:col-span-2">
+          <Select value={method} onChange={(e) => setMethod(e.target.value as PaymentMethod)}>
+            {METHODS.map((m) => (
+              <option key={m} value={m}>{PAYMENT_METHOD_LABEL[m]}</option>
+            ))}
+          </Select>
+        </Field>
+        <Field label="Observação (opcional)" className="sm:col-span-2">
+          <Input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Ex.: pagou na recepção" />
+        </Field>
+      </div>
+    </Dialog>
+  )
+}
+
+function ReverseDialog({ charge: c, onClose }: { charge: ChargeOverview; onClose: () => void }) {
+  const refresh = useRefreshCharges()
+  const [reason, setReason] = useState('')
+  const reverse = useMutation({
+    mutationFn: () => reversePayment(db(), c.id, reason),
+    onSuccess: async () => {
+      await refresh()
+      toast('Baixa desfeita: a cobrança voltou a ficar em aberto.')
+      onClose()
+    },
+    onError: toastError,
+  })
+  return (
+    <Dialog
+      open
+      onClose={onClose}
+      title="Desfazer baixa"
+      footer={
+        <>
+          <Button variant="ghost" onPress={onClose}>Voltar</Button>
+          <Button onPress={() => reverse.mutate()} loading={reverse.isPending} disabled={!reason.trim()}>Desfazer</Button>
+        </>
+      }
+    >
+      <p className="mb-4 text-sm text-soft">
+        O pagamento de <span className="font-semibold text-text">{c.student_names.join(', ') || c.payer_name}</span> (
+        {formatBRL(c.paid_cents ?? c.amount_cents)} em {c.paid_on ? formatDateBR(c.paid_on) : '—'}) fica registrado como estornado e a cobrança
+        volta para em aberto ou atrasada.
+      </p>
+      <Field label="Motivo">
+        <Input value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Ex.: baixa no aluno errado" autoFocus />
+      </Field>
+    </Dialog>
+  )
+}
+
+function ChargeRow({ charge: c, tab, former, onPay, onReverse }: {
+  charge: ChargeOverview
+  tab: ChargeList
+  former: boolean
+  onPay: () => void
+  onReverse: () => void
+}) {
   const names = c.student_names.length > 0 ? c.student_names.join(', ') : c.payer_name
   const what = c.kind === 'avulsa' && c.description ? c.description : CHARGE_KIND_LABEL[c.kind as ChargeKind] ?? c.kind
   const competence = c.competence ? ` · ${formatMonth(c.competence.slice(0, 7))}` : ''
   const installment = c.installment && c.installments_total && c.installments_total > 1 ? ` · ${c.installment}/${c.installments_total}` : ''
-  const body = (
-    <>
+  const studentId = c.student_ids[0]
+  return (
+    <li className="flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3">
       <div className="min-w-0 flex-1">
         <p className="truncate font-semibold text-text">
-          {names}
+          {studentId ? <Link href={`/aluno?id=${studentId}`} className="hover:underline">{names}</Link> : names}
           {former ? <Badge tone="neutral" className="ml-2">Ex-aluno</Badge> : null}
         </p>
         <p className="mt-0.5 truncate text-xs text-dim">
@@ -147,16 +289,10 @@ function ChargeRow({ charge: c, tab, former }: { charge: ChargeOverview; tab: Ch
               : `vence ${formatDateBR(c.due_on)}`}
         </p>
       </div>
-    </>
-  )
-  const cls = 'flex items-center gap-3 px-4 py-3'
-  const studentId = c.student_ids[0]
-  return (
-    <li>
-      {studentId ? (
-        <Link href={`/aluno?id=${studentId}`} className={`${cls} hover:bg-surface-2`}>{body}</Link>
+      {tab === 'pagas' ? (
+        <Button variant="ghost" size="sm" onPress={onReverse}>Desfazer</Button>
       ) : (
-        <div className={cls}>{body}</div>
+        <Button size="sm" onPress={onPay}>Dar baixa</Button>
       )}
     </li>
   )

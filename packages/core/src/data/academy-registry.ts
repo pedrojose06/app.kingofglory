@@ -2,7 +2,7 @@
 // Tudo filtrado pela academia (gym_id): quem é de mais de uma academia não mistura os dados.
 
 import { addDays } from '../dates'
-import { addMonths, buildContractCharges, type ChargeState, type ContractBilling, type ContractTerms } from '../domain/billing'
+import { addMonths, buildContractCharges, type ChargeState, type PaymentMethod, type ContractBilling, type ContractTerms } from '../domain/billing'
 import type { Db, Row } from '../types'
 import { fetchAll, unwrap } from './util'
 
@@ -387,4 +387,29 @@ export async function listAcademyCharges(db: Db, gymId: string, list: ChargeList
     return filtered.order('id').range(a, b)
   })
   return rows as unknown as ChargeOverview[]
+}
+
+export interface PaymentInput {
+  paidOn: string
+  amountCents: number
+  method: PaymentMethod
+  notes?: string | null
+}
+
+/** Dá baixa na cobrança (pagamento + cobrança paga numa transação). Só o administrador. */
+export async function payCharge(db: Db, chargeId: string, input: PaymentInput): Promise<string> {
+  return unwrap(
+    await db.rpc('pay_charge', {
+      p_charge_id: chargeId,
+      p_paid_on: input.paidOn,
+      p_amount_cents: input.amountCents,
+      p_method: input.method,
+      p_notes: input.notes ?? undefined,
+    }),
+  )
+}
+
+/** Desfaz uma baixa feita por engano: o pagamento fica estornado com o motivo e a cobrança volta a ficar em aberto. */
+export async function reversePayment(db: Db, chargeId: string, reason: string): Promise<void> {
+  unwrap(await db.rpc('reverse_payment', { p_charge_id: chargeId, p_reason: reason }))
 }
