@@ -3,7 +3,7 @@
 import {
   type AcademyStudent, type AcademyStudentInput, addGraduation, addStudentBelt, cancelContract, CHARGE_KIND_LABEL, CHARGE_STATE_LABEL,
   chargeTotals, CONTRACT_BILLING_LABEL, contractPeriodState, type ContractRow, formatBRL, formatCpf, formatDateBR, isMinor, isValidCpf,
-  linkGuardian, PAYMENT_METHOD_LABEL, savePayer, saveAcademyStudent, todayISO, unlinkGuardian, updateContractNotes,
+  linkGuardian, PAYMENT_METHOD_LABEL, savePayer, saveAcademyStudent, setStudentImageConsent, todayISO, unlinkGuardian, updateContractNotes,
 } from '@kog/core'
 import { Badge, Button, Card, DateInput, EmptyState, Field, Input, RankBand, Select, Textarea } from '@kog/ui'
 import { toast, toastError } from '@kog/web-kit'
@@ -322,11 +322,60 @@ function StudentDetail({ id }: { id: string }) {
           </div>
           <div className="space-y-6">
             <GuardiansSection data={data} />
+            <ImageConsentSection data={data} />
             <GraduationSection data={data} />
           </div>
         </div>
       )}
     </>
+  )
+}
+
+// ── uso de imagem e reconhecimento facial ────────────────────────────────────
+
+/** Autorização de uso de imagem e reconhecimento facial: sem ela o aluno não entra na presença pelo rosto. */
+function ImageConsentSection({ data }: { data: AcademyStudent }) {
+  const { academy } = useAcademy()
+  const queryClient = useQueryClient()
+  const s = data.student
+  const authorized = Boolean(s.image_consent_at)
+  const minor = isMinor(s.birth_date, todayISO())
+  const set = useMutation({
+    mutationFn: (value: boolean) => setStudentImageConsent(db(), s.id, value),
+    onSuccess: async (_d, value) => {
+      await queryClient.invalidateQueries({ queryKey: keys.all(academy.gym_id) })
+      toast(value ? 'Autorização registrada.' : 'Autorização retirada. Os dados do rosto foram apagados.')
+    },
+    onError: toastError,
+  })
+  return (
+    <Section title="Uso de imagem" action={authorized ? <Badge tone="success">Autorizado</Badge> : <Badge tone="neutral">Não autorizado</Badge>}>
+      <p className="text-sm text-soft">
+        Com a autorização, o aluno pode ser reconhecido pelo rosto nas fotos da turma e ter a presença marcada nos diários de aula.
+        {authorized && s.image_consent_at ? ` Registrada em ${formatDateBR(s.image_consent_at.slice(0, 10))}.` : ''}
+      </p>
+      {minor && !authorized ? (
+        <p className="mt-3 text-sm text-dim">
+          Menor de idade: a autorização só vale com o termo assinado pelo responsável, enviado pelo app do professor.
+        </p>
+      ) : (
+        <Button
+          variant={authorized ? 'ghost' : 'gold'}
+          size="sm"
+          className="mt-4"
+          loading={set.isPending}
+          onPress={() => {
+            if (authorized) {
+              if (window.confirm('Retirar a autorização? Os dados do rosto do aluno são apagados na hora (as presenças continuam).')) set.mutate(false)
+            } else if (window.confirm(`Confirma que ${s.name} (ou o responsável, se menor) autorizou o uso de imagem e o reconhecimento facial?`)) {
+              set.mutate(true)
+            }
+          }}
+        >
+          {authorized ? 'Retirar autorização' : 'Registrar autorização'}
+        </Button>
+      )}
+    </Section>
   )
 }
 

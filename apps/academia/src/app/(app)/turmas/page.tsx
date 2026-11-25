@@ -96,7 +96,7 @@ export default function GroupsPage() {
               </Card>
             )
           })}
-          <p className="text-xs text-dim">Os horários (grade de aulas) e os professores de cada turma entram na etapa dos diários de aula.</p>
+          <p className="text-xs text-dim">Os horários de cada turma ficam em Diários de aula › Grade de horários.</p>
         </div>
       )}
       {editGroup ? <GroupDialog group={editGroup === 'new' ? null : editGroup} modalities={modalities.data ?? []} onClose={() => setEditGroup(null)} /> : null}

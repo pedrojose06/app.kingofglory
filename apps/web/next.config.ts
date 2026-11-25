@@ -1,5 +1,4 @@
 import { randomUUID } from 'node:crypto'
-import { readFileSync } from 'node:fs'
 import withSerwistInit from '@serwist/next'
 import type { NextConfig } from 'next'
 
@@ -21,12 +20,8 @@ const withSerwist = withSerwistInit({
   additionalPrecacheEntries: ROUTES.map((url) => ({ url, revision })),
 })
 
-// Versão do onnxruntime-web: o runtime (wasm) é servido em /ort/<versão>/ (scripts/face-assets.mjs).
-const ortVersion = JSON.parse(readFileSync(new URL('./node_modules/onnxruntime-web/package.json', import.meta.url), 'utf8')).version
-
 const nextConfig: NextConfig = {
-  env: { NEXT_PUBLIC_ORT_VERSION: ortVersion },
-  transpilePackages: ['@kog/core', '@kog/ui', '@kog/web-kit'],
+  transpilePackages: ['@kog/core', '@kog/face-kit', '@kog/ui', '@kog/web-kit'],
   // O Serwist injeta config de webpack (usada no build). Em dev o service worker fica desligado,
   // então o Turbopack roda sem configuração extra; sem esta linha o `next dev` aborta.
   turbopack: {},

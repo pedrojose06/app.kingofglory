@@ -4,8 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "next dev -p 3001",
-    "build": "next build",
+    "dev": "node ../../packages/face-kit/scripts/assets.mjs && next dev -p 3001",
+    "build": "node ../../packages/face-kit/scripts/assets.mjs && next build",
     "start": "next start -p 3001",
     "typecheck": "tsc --noEmit"
   },
@@ -13,10 +13,12 @@
     "@fontsource-variable/archivo": "^5.3.0",
     "@fontsource/anton": "^5.3.0",
     "@kog/core": "workspace:*",
+    "@kog/face-kit": "workspace:*",
     "@kog/ui": "workspace:*",
     "@kog/web-kit": "workspace:*",
     "@supabase/supabase-js": "^2.119.0",
     "@tanstack/react-query": "^5.107.1",
+    "browser-image-compression": "^2.0.2",
     "lucide-react": "^1.72.0",
     "next": "^16.4.6",
     "react": "^19.3.1",

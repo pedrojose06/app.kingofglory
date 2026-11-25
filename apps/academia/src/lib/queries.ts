@@ -1,11 +1,12 @@
 'use client'
 
 import {
-  getAcademyStudent, listAcademyStudents, listBeltRanks, listClassGroups, listModalities, listPayers, listPlans, listRanks,
-  listStudentCharges, listStudentContracts,
+  countPresentByClass, ensureAcademyClasses, getAcademyClass, getAcademyStudent, listAcademyClasses, listAcademyMembers,
+  listAcademySchedules, listAcademyStudents, listBeltRanks, listClassAttendance, listClassGroups, listClassPhotos, listDiaryStudents,
+  listFaceReferences, listGroupMemberships, listModalities, listPayers, listPlans, listRanks, listStudentCharges, listStudentContracts,
 } from '@kog/core'
 import { useQuery } from '@tanstack/react-query'
-import { useAcademy } from './academy'
+import { academyKeys, useAcademy } from './academy'
 import { db } from './supabase'
 
 /** Chaves do cache do sistema da academia. Tudo começa com ['academia', gymId] para invalidar por academia. */
@@ -19,6 +20,15 @@ export const keys = {
   groups: (gymId: string) => ['academia', gymId, 'turmas'] as const,
   payers: (gymId: string) => ['academia', gymId, 'pagadores'] as const,
   plans: (gymId: string) => ['academia', gymId, 'planos'] as const,
+  classes: (gymId: string, from: string, to: string) => ['academia', gymId, 'aulas', from, to] as const,
+  classCounts: (gymId: string, ids: readonly string[]) => ['academia', gymId, 'aulas', 'presentes', [...ids].sort().join(',')] as const,
+  klass: (gymId: string, id: string) => ['academia', gymId, 'aula', id] as const,
+  classAttendance: (gymId: string, id: string) => ['academia', gymId, 'aula', id, 'presencas'] as const,
+  classPhotos: (gymId: string, id: string) => ['academia', gymId, 'aula', id, 'fotos'] as const,
+  schedules: (gymId: string) => ['academia', gymId, 'grade'] as const,
+  diaryStudents: (gymId: string) => ['academia', gymId, 'diario', 'alunos'] as const,
+  memberships: (gymId: string) => ['academia', gymId, 'diario', 'turmas-alunos'] as const,
+  faceRefs: (gymId: string) => ['academia', gymId, 'diario', 'rostos'] as const,
 }
 
 export function useStudents() {
@@ -75,4 +85,79 @@ export function useRanks() {
 
 export function useBeltRanks() {
   return useQuery({ queryKey: ['academia', 'faixas'], queryFn: () => listBeltRanks(db()), staleTime: 3_600_000 })
+}
+
+// ── diários de aula ───────────────────────────────────────────────────────────
+
+/** Aulas da semana. Antes de listar, gera as da grade (idempotente); se a geração falhar, vale o que já existe. */
+export function useWeekClasses(from: string, to: string) {
+  const { academy } = useAcademy()
+  return useQuery({
+    queryKey: keys.classes(academy.gym_id, from, to),
+    queryFn: async () => {
+      await ensureAcademyClasses(db(), academy.gym_id, from, to).catch((error: unknown) => console.warn('Não foi possível gerar as aulas da grade', error))
+      return listAcademyClasses(db(), academy.gym_id, from, to)
+    },
+  })
+}
+
+/** Quantos presentes (presença + atraso) em cada aula. */
+export function useClassCounts(ids: readonly string[]) {
+  const { academy } = useAcademy()
+  return useQuery({
+    queryKey: keys.classCounts(academy.gym_id, ids),
+    queryFn: () => countPresentByClass(db(), ids),
+    enabled: ids.length > 0,
+  })
+}
+
+export function useAcademyClass(id: string) {
+  const { academy } = useAcademy()
+  return useQuery({ queryKey: keys.klass(academy.gym_id, id), queryFn: () => getAcademyClass(db(), id), enabled: Boolean(id) })
+}
+
+export function useClassAttendance(id: string) {
+  const { academy } = useAcademy()
+  return useQuery({ queryKey: keys.classAttendance(academy.gym_id, id), queryFn: () => listClassAttendance(db(), id), enabled: Boolean(id) })
+}
+
+export function useClassPhotos(id: string) {
+  const { academy } = useAcademy()
+  return useQuery({ queryKey: keys.classPhotos(academy.gym_id, id), queryFn: () => listClassPhotos(db(), id), enabled: Boolean(id) })
+}
+
+export function useSchedules() {
+  const { academy } = useAcademy()
+  return useQuery({ queryKey: keys.schedules(academy.gym_id), queryFn: () => listAcademySchedules(db(), academy.gym_id) })
+}
+
+/** Todos os alunos da academia (ativos e inativos), com o consentimento de imagem. */
+export function useDiaryStudents() {
+  const { academy } = useAcademy()
+  return useQuery({ queryKey: keys.diaryStudents(academy.gym_id), queryFn: () => listDiaryStudents(db(), academy.gym_id) })
+}
+
+export function useMemberships() {
+  const { academy } = useAcademy()
+  return useQuery({ queryKey: keys.memberships(academy.gym_id), queryFn: () => listGroupMemberships(db(), academy.gym_id) })
+}
+
+export function useFaceReferences(enabled: boolean) {
+  const { academy } = useAcademy()
+  return useQuery({
+    queryKey: keys.faceRefs(academy.gym_id),
+    queryFn: () => listFaceReferences(db(), academy.gym_id),
+    enabled,
+    staleTime: 10 * 60_000,
+  })
+}
+
+/** Professores e administradores da academia, para escolher quem dá a aula (só o administrador lista). */
+export function useInstructors() {
+  const { academy, isAdmin } = useAcademy()
+  return useQuery({
+    queryKey: academyKeys.members(academy.gym_id),
+    queryFn: async () => (await listAcademyMembers(db(), academy.gym_id)).filter((m) => m.role !== 'membro'),
+    enabled: isAdmin,
+  })
 }

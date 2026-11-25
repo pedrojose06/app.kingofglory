@@ -4,9 +4,8 @@
 // Os recortes ficam só em memória (URLs de blob): nada de cópia extra da foto no aparelho ou no banco.
 
 import type { Box } from '@kog/core'
+import { ORT_VERSION } from './assets'
 import type { AnalyzedFace, FaceAssets, WorkerRequest, WorkerResponse } from './protocol'
-
-const ORT_VERSION = process.env.NEXT_PUBLIC_ORT_VERSION ?? '1.23.2'
 
 export const FACE_ASSETS: FaceAssets = {
   ortBase: `/ort/${ORT_VERSION}/`,

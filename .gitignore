@@ -15,7 +15,9 @@ apps/web/public/swe-worker-*.js
 apps/web/public/swe-worker-*.js.map
 next-env.d.ts
 .DS_Store
-apps/web/public/ort/
+# Gerados por packages/face-kit/scripts/assets.mjs (modelos e runtime do reconhecimento facial)
+apps/*/public/ort/
+apps/*/public/models/
 
 # Gerado pelo `next dev` (regras para assistentes de código)
 apps/web/AGENTS.md
