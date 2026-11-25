@@ -1,9 +1,14 @@
 'use client'
 
-import { Card } from '@kog/ui'
-import { CalendarDays, FileSignature, Users, Wallet } from 'lucide-react'
+import { formatTime, todayISO } from '@kog/core'
+import { Badge, Card } from '@kog/ui'
+import { CalendarDays, ChevronRight, ClipboardCheck, FileSignature, Users, Wallet } from 'lucide-react'
+import Link from 'next/link'
+import { useEffect, useMemo, useState } from 'react'
+import { GroupTag } from '@/components/kit'
 import { PageHeader } from '@/components/shell'
 import { useAcademy } from '@/lib/academy'
+import { useClassCounts, useClassGroups, useWeekClasses } from '@/lib/queries'
 
 const ROADMAP = [
   { icon: Users, title: 'Cadastros e matrículas', text: 'Alunos, responsáveis, planos, turmas e contratos de matrícula com as parcelas geradas.' },
@@ -30,6 +35,7 @@ export default function DashboardPage() {
   return (
     <>
       <PageHeader kicker={academy.name} title="Painel" />
+      <TodayClasses />
       <Card className="p-5">
         <p className="font-bold text-text">O painel chega junto com os módulos</p>
         <p className="mt-1 text-sm text-soft">
@@ -54,5 +60,71 @@ export default function DashboardPage() {
         ))}
       </ol>
     </>
+  )
+}
+
+/** O dia civil de hoje, que vira sozinho à meia-noite (a tela pode ficar aberta o dia todo na recepção). */
+function useToday(): string {
+  const [today, setToday] = useState(todayISO)
+  useEffect(() => {
+    const timer = window.setInterval(() => setToday(todayISO()), 60_000)
+    return () => window.clearInterval(timer)
+  }, [])
+  return today
+}
+
+/**
+ * Aulas de hoje que ainda esperam a chamada. Cada card leva ao diário da aula e some quando a chamada é concluída
+ * (ou a aula é cancelada) ou quando o dia acaba.
+ */
+function TodayClasses() {
+  const today = useToday()
+  const classes = useWeekClasses(today, today)
+  const groups = useClassGroups()
+  const groupById = useMemo(() => new Map((groups.data ?? []).map((g) => [g.id, g])), [groups.data])
+  const open = useMemo(
+    () =>
+      (classes.data ?? [])
+        .filter((c) => c.date === today && c.status === 'scheduled')
+        .sort((a, b) => (a.start_time ?? '99').localeCompare(b.start_time ?? '99')),
+    [classes.data, today],
+  )
+  const counts = useClassCounts(useMemo(() => open.map((c) => c.id), [open]))
+
+  if (open.length === 0) return null
+
+  return (
+    <section aria-label="Aulas de hoje" className="mb-6">
+      <h2 className="kicker mb-2 flex items-center gap-2 text-accent">
+        <ClipboardCheck className="size-4" /> Aulas de hoje · chamada em aberto
+      </h2>
+      <ul className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
+        {open.map((c) => {
+          const group = c.group_id ? groupById.get(c.group_id) : undefined
+          const present = counts.data?.[c.id] ?? 0
+          return (
+            <li key={c.id}>
+              <Link
+                href={`/diario?id=${c.id}`}
+                className="flex items-center gap-3 rounded-lg border border-gold bg-surface p-4 transition hover:border-line-strong"
+              >
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="font-display text-2xl leading-none text-accent">{c.start_time ? formatTime(c.start_time) : '--:--'}</p>
+                    <Badge tone="gold">Fazer chamada</Badge>
+                  </div>
+                  <p className="mt-2 truncate font-semibold text-text">{c.title}</p>
+                  <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-dim">
+                    {group ? <GroupTag name={group.name} color={group.color} /> : <span>Sem turma</span>}
+                    {present > 0 ? <span>{present} {present === 1 ? 'presente' : 'presentes'}</span> : null}
+                  </div>
+                </div>
+                <ChevronRight className="size-5 shrink-0 text-dim" aria-hidden />
+              </Link>
+            </li>
+          )
+        })}
+      </ul>
+    </section>
   )
 }
