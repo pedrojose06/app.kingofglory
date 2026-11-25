@@ -1,7 +1,8 @@
 // Cadastros do sistema da academia: alunos (ficha completa), modalidades, turmas, faixas, pagadores, planos e contratos.
 // Tudo filtrado pela academia (gym_id): quem é de mais de uma academia não mistura os dados.
 
-import { buildContractCharges, type ChargeState, type ContractBilling, type ContractTerms } from '../domain/billing'
+import { addDays } from '../dates'
+import { addMonths, buildContractCharges, type ChargeState, type PaymentMethod, type ContractBilling, type ContractTerms } from '../domain/billing'
 import type { Db, Row } from '../types'
 import { fetchAll, unwrap } from './util'
 
@@ -364,4 +365,58 @@ export async function listStudentCharges(db: Db, studentId: string): Promise<Cha
   return unwrap(
     await db.from('charge_overview').select('*').contains('student_ids', [studentId]).order('due_on', { ascending: false }),
   ) as unknown as ChargeOverview[]
+}
+
+// ── mensalidades da academia ──────────────────────────────────────────────────
+
+/** Em aberto: vencem no mês e ainda não venceram. Atrasadas: todas, de qualquer mês. Pagas: pagas no mês. */
+export type ChargeList = 'em_aberto' | 'atrasadas' | 'pagas'
+
+/** Cobranças da academia de uma das listas da tela de mensalidades. `month` é 'YYYY-MM'. Só o administrador (RLS). */
+export async function listAcademyCharges(db: Db, gymId: string, list: ChargeList, month: string): Promise<ChargeOverview[]> {
+  const from = `${month}-01`
+  const to = addDays(`${addMonths(from, 1)}`, -1)
+  const rows = await fetchAll((a, b) => {
+    const q = db.from('charge_overview').select('*').eq('gym_id', gymId)
+    const filtered =
+      list === 'atrasadas'
+        ? q.eq('state', 'atrasada').order('due_on', { ascending: false })
+        : list === 'em_aberto'
+          ? q.eq('state', 'em_aberto').gte('due_on', from).lte('due_on', to).order('due_on')
+          : q.eq('state', 'paga').gte('paid_on', from).lte('paid_on', to).order('paid_on', { ascending: false })
+    return filtered.order('id').range(a, b)
+  })
+  return rows as unknown as ChargeOverview[]
+}
+
+export interface PaymentInput {
+  paidOn: string
+  amountCents: number
+  method: PaymentMethod
+  notes?: string | null
+}
+
+/** Dá baixa na cobrança (pagamento + cobrança paga numa transação). Só o administrador. */
+export async function payCharge(db: Db, chargeId: string, input: PaymentInput): Promise<string> {
+  return unwrap(
+    await db.rpc('pay_charge', {
+      p_charge_id: chargeId,
+      p_paid_on: input.paidOn,
+      p_amount_cents: input.amountCents,
+      p_method: input.method,
+      p_notes: input.notes ?? undefined,
+    }),
+  )
+}
+
+/** Desfaz uma baixa feita por engano: o pagamento fica estornado com o motivo e a cobrança volta a ficar em aberto. */
+export async function reversePayment(db: Db, chargeId: string, reason: string): Promise<void> {
+  unwrap(await db.rpc('reverse_payment', { p_charge_id: chargeId, p_reason: reason }))
+}
+
+/** Baixa em lote: cada cobrança pelo próprio valor, numa transação (se uma falhar, nenhuma entra). Devolve quantas. */
+export async function payCharges(db: Db, chargeIds: readonly string[], input: Omit<PaymentInput, 'amountCents'>): Promise<number> {
+  return unwrap(
+    await db.rpc('pay_charges', { p_charge_ids: [...chargeIds], p_paid_on: input.paidOn, p_method: input.method, p_notes: input.notes ?? undefined }),
+  )
 }

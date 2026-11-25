@@ -1755,6 +1755,12 @@ isOneToOne: false
 "my_student_portal":
 { Args: Record<PropertyKey, never>; Returns: Json
                            },
+"pay_charge":
+{ Args: { "p_amount_cents": number,"p_charge_id": string,"p_method": string,"p_notes"?: string,"p_paid_on": string }; Returns: string
+                           },
+"pay_charges":
+{ Args: { "p_charge_ids": string[],"p_method": string,"p_notes"?: string,"p_paid_on": string }; Returns: number
+                           },
 "portal_payload":
 { Args: { "p_student_id": string }; Returns: Json
                            },
@@ -1769,6 +1775,9 @@ isOneToOne: false
                            },
 "request_student_access":
 { Args: { "p_birth_date"?: string,"p_graduated_at"?: string,"p_gym_id": string,"p_name": string,"p_phone"?: string,"p_rank_id"?: string }; Returns: undefined
+                           },
+"reverse_payment":
+{ Args: { "p_charge_id": string,"p_reason": string }; Returns: undefined
                            },
 "review_guardian_consent":
 { Args: { "p_approve": boolean,"p_image_consent"?: boolean,"p_reason"?: string,"p_student_id": string }; Returns: string

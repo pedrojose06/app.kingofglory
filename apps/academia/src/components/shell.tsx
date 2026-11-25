@@ -25,7 +25,7 @@ const STAFF: readonly AcademyRole[] = ['admin', 'professor']
 const NAV: readonly NavItem[] = [
   { href: '/', label: 'Painel', icon: LayoutDashboard, roles: ['admin', 'professor', 'membro'] },
   { href: '/alunos', label: 'Cadastros', icon: Users, roles: ['admin'], match: ['/alunos', '/aluno', '/responsaveis', '/planos', '/turmas'] },
-  { href: '/financeiro', label: 'Mensalidades', icon: Wallet, roles: ['admin'], soon: true },
+  { href: '/financeiro', label: 'Mensalidades', icon: Wallet, roles: ['admin'] },
   { href: '/diarios', label: 'Diários de aula', icon: CalendarDays, roles: STAFF, match: ['/diarios', '/diario'] },
   { href: '/graduacoes', label: 'Graduações', icon: Award, roles: STAFF, match: ['/graduacoes', '/graduacao'] },
   { href: '/contratos', label: 'Contratos', icon: FileSignature, roles: ['admin'], soon: true },
