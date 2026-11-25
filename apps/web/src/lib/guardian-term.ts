@@ -1,4 +1,4 @@
-import { guardianTermFileName } from '@kog/core'
+import { guardianTermFileName, type GuardianSignatureRef } from '@kog/core'
 import { db } from './supabase'
 
 async function fetchTerm(body: unknown, withSession: boolean): Promise<Blob> {
@@ -43,19 +43,21 @@ export async function downloadGuardianTerm(input: { name: string; birthDate: str
  * Baixa o termo assinado no app (preenchido, com a assinatura e o registro). Pelo link do responsável (`token`) ou
  * pelo aluno (`studentId`, com a sessão do professor ou da conta do aluno).
  */
-export async function downloadSignedGuardianTerm(by: { token: string } | { studentId: string }, studentName: string): Promise<void> {
-  const blob = await fetchTerm({ signed: by }, 'studentId' in by)
+export async function downloadSignedGuardianTerm(by: GuardianSignatureRef, studentName: string): Promise<void> {
+  const blob = await fetchTerm({ signed: by }, !('token' in by))
   save(blob, guardianTermFileName(studentName).replace('.pdf', '-assinado.pdf'))
 }
 
 /**
  * Abre o termo assinado no app numa aba nova (para o professor ler antes de aprovar). A aba abre antes da espera:
- * no iPhone, window.open depois de um await é bloqueado. Sem aba (bloqueada), baixa o arquivo.
+ * no iPhone, window.open depois de um await é bloqueado. No Android (o Chrome não mostra PDF numa aba) ou sem aba
+ * (bloqueada), baixa o arquivo, que abre no leitor de PDF do aparelho.
  */
-export async function openSignedGuardianTerm(studentId: string, studentName: string): Promise<void> {
-  const tab = window.open('', '_blank')
+export async function openSignedGuardianTerm(by: { studentId: string } | { requestId: string }, studentName: string): Promise<void> {
+  const android = /Android/i.test(navigator.userAgent)
+  const tab = android ? null : window.open('', '_blank')
   try {
-    const blob = await fetchTerm({ signed: { studentId } }, true)
+    const blob = await fetchTerm({ signed: by }, true)
     if (!tab) return save(blob, guardianTermFileName(studentName).replace('.pdf', '-assinado.pdf'))
     const url = URL.createObjectURL(blob)
     tab.location.href = url

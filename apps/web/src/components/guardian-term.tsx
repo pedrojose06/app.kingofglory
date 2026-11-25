@@ -100,7 +100,7 @@ export function FilePicker({ file, onChange, label }: { file: File | null; onCha
 }
 
 /** Abre o arquivo do termo por URL assinada de curta duração. */
-function useOpenGuardianFile() {
+export function useOpenGuardianFile() {
   const [opening, setOpening] = useState(false)
   /** true = abriu. */
   async function open(path: string): Promise<boolean> {
@@ -141,7 +141,7 @@ function SignedTermButton({ studentId, studentName, label = 'Ver termo assinado'
       onPress={async () => {
         setBusy(true)
         try {
-          await openSignedGuardianTerm(studentId, studentName)
+          await openSignedGuardianTerm({ studentId }, studentName)
           onOpened?.()
         } catch (error) {
           toastError(error)
@@ -456,7 +456,8 @@ export function GuardianTermSection({ student, consent }: { student: Student; co
         {status === 'pendente' ? <GuardianSignLinkCard studentId={student.id} studentName={student.name} phone={student.phone} /> : null}
         {status === 'pendente' ? <p className="text-xs font-bold uppercase tracking-[0.08em] text-dim">Ou em papel</p> : null}
         <div className="grid grid-cols-2 gap-2">
-          {student.birth_date ? <DownloadButton name={student.name} birthDate={student.birth_date} block /> : null}
+          {/* Modelo em branco (para imprimir): só enquanto falta o termo; depois confundiria com o termo enviado. */}
+          {status === 'pendente' && student.birth_date ? <DownloadButton name={student.name} birthDate={student.birth_date} block /> : null}
           {status !== 'pendente' && consent?.signed_at ? (
             <SignedTermButton studentId={student.id} studentName={student.name} label="Ver termo" />
           ) : null}

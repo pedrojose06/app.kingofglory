@@ -916,6 +916,7 @@ export type Database = {
         Returns: Json
       }
       guardian_term_signature: { Args: { p_student_id?: string; p_token?: string }; Returns: Json }
+      signup_guardian_signature: { Args: { p_request_id: string }; Returns: Json }
       sign_signup_guardian_term: {
         Args: {
           p_profile_id: string

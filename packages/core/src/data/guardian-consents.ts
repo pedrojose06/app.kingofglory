@@ -177,8 +177,14 @@ export async function signGuardianTerm(db: Db, token: string, form: GuardianSign
   return unwrap(res) as unknown as { signed_at: string; document_sha256: string }
 }
 
-/** Dados do termo assinado no app (para o PDF): pelo link ou pelo aluno (professor dele ou a conta do aluno). */
-export async function getGuardianSignature(db: Db, by: { token: string } | { studentId: string }): Promise<GuardianSignature | null> {
-  const args = 'token' in by ? { p_token: by.token } : { p_student_id: by.studentId }
-  return (unwrap(await db.rpc('guardian_term_signature', args)) as unknown as GuardianSignature | null) ?? null
+/** De onde vem o termo assinado no app: link do responsável, aluno (professor ou a conta dele) ou pedido de cadastro. */
+export type GuardianSignatureRef = { token: string } | { studentId: string } | { requestId: string }
+
+/** Dados do termo assinado no app (para o PDF). O banco confere quem pode ver. */
+export async function getGuardianSignature(db: Db, by: GuardianSignatureRef): Promise<GuardianSignature | null> {
+  const res =
+    'requestId' in by
+      ? await db.rpc('signup_guardian_signature', { p_request_id: by.requestId })
+      : await db.rpc('guardian_term_signature', 'token' in by ? { p_token: by.token } : { p_student_id: by.studentId })
+  return (unwrap(res) as unknown as GuardianSignature | null) ?? null
 }

@@ -1,4 +1,4 @@
-import { birthDateIssue, getGuardianSignature, guardianTermFileName, isMinor, type Database } from '@kog/core'
+import { birthDateIssue, getGuardianSignature, guardianTermFileName, isMinor, type Database, type GuardianSignatureRef } from '@kog/core'
 import { createClient } from '@supabase/supabase-js'
 import { buildGuardianTermPdf } from '@/lib/guardian-term-pdf'
 
@@ -46,16 +46,19 @@ async function caller(token: string): Promise<Caller> {
 }
 
 /** PDF do termo assinado no app. O banco decide quem pode ver (link válido, professor do aluno ou a conta do aluno). */
-async function signedPdf(token: string | undefined, signed: { token?: unknown; studentId?: unknown }): Promise<Response> {
-  const by =
+async function signedPdf(token: string | undefined, signed: { token?: unknown; studentId?: unknown; requestId?: unknown }): Promise<Response> {
+  const uuid = (v: unknown): v is string => typeof v === 'string' && /^[0-9a-f-]{36}$/i.test(v)
+  const by: GuardianSignatureRef | null =
     typeof signed.token === 'string' && /^[a-f0-9]{64}$/.test(signed.token)
       ? { token: signed.token }
-      : typeof signed.studentId === 'string' && token && /^[0-9a-f-]{36}$/i.test(signed.studentId)
+      : token && uuid(signed.studentId)
         ? { studentId: signed.studentId }
-        : null
+        : token && uuid(signed.requestId)
+          ? { requestId: signed.requestId }
+          : null
   if (!by) return fail(400, 'Dados inválidos.')
   // Pelo link, sem login; pelo aluno, com a sessão de quem pede (o banco confere se é professor dele ou a conta dele).
-  const sb = supabase('studentId' in by ? token : undefined)
+  const sb = supabase('token' in by ? undefined : token)
   if (!sb) return fail(500, 'Servidor sem configuração.')
   const data = await getGuardianSignature(sb, by).catch(() => null)
   if (!data) return fail(404, 'Termo assinado não encontrado.')
@@ -73,7 +76,7 @@ export async function POST(request: Request) {
   const token = request.headers.get('authorization')?.match(/^Bearer\s+(.+)$/i)?.[1]
   // Termo assinado no app: lê o corpo antes (o resto da rota também usa o corpo).
   const raw = await request.text()
-  let parsed: { name?: unknown; birthDate?: unknown; signed?: { token?: unknown; studentId?: unknown } } | null = null
+  let parsed: { name?: unknown; birthDate?: unknown; signed?: { token?: unknown; studentId?: unknown; requestId?: unknown } } | null = null
   try {
     parsed = raw ? JSON.parse(raw) : null
   } catch {
