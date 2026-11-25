@@ -10,6 +10,7 @@ export const keys = {
   guardianConsents: ['students', 'guardian-consents'] as const,
   ranks: ['ranks'] as const,
   graduationSchedule: ['graduation-schedule'] as const,
+  graduationCandidates: ['graduation-candidates'] as const,
   progress: ['progress'] as const,
   absenceStreaks: ['attendance', 'streaks'] as const,
   classTurnout: ['attendance', 'turnout'] as const,

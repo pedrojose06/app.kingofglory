@@ -106,6 +106,7 @@ As migrations em `supabase/migrations` já estão aplicadas no projeto remoto, c
 | `academy_delete_class` | `delete_academy_class`: apagar aula avulsa (fora da grade) com chamada, fotos e rostos; devolve os caminhos das fotos para o app apagar do Storage. Aula da grade continua com "Não houve aula" |
 | `academy_student_photo` | foto do aluno na ficha (`students.photo_path`, bucket privado `student-photos` em `{gym_id}/{student_id}/{id}.jpg`; equipe vê, admin envia) e `set_student_photo`: a foto vira o rosto de referência `student_photo` do aluno (uma por aluno, fora da poda; o vetor é calculado no navegador). Trocar ou apagar a foto troca ou apaga a referência |
 | `fix_face_references_academy` | `face_references` volta a funcionar no sistema da academia: a pergunta "a academia tem gestão?" vai para `gym_has_management` (security definer), porque a equipe da academia não lê `gyms` pela RLS |
+| `graduation_events` | graduações da equipe pelo rosto: `graduation_events` (data e trilha, cadastrada pelo admin da academia com gestão), fotos no bucket privado `graduation-photos` (`{gym_id}/{event_id}/{id}.jpg`), `graduation_candidates` (aluno, grau atual → próximo, pendente/aprovado/não aprovado). `graduation_face_match` compara no banco os vetores dos rostos com as referências de todas as academias (o navegador não recebe vetores de ninguém), `propose_graduation_candidates` (aluno reconhecido já fica pendente e o professor responsável recebe push), `decide_graduation_candidate` (admin da academia ou professor do aluno; aprovar grava em `student_graduations` com a data da graduação, reprovar depois desfaz), `dismiss_graduation_candidate`, `graduation_student_search`, `graduation_event_candidates`, `my_graduation_candidates` e `claim_graduation_notifications` |
 
 Para criar uma migration nova e aplicar (com a CLI do Supabase):
 
@@ -146,6 +147,21 @@ aplicada direto no painel ou pelo SQL Editor precisa ganhar o arquivo correspond
   contador zera a cada graduação; o total do aluno nunca zera. Presença e atraso contam; falta não.
   Na primeira graduação, quem está apto ao Branco e tem 5+ meses pode pular direto para Vermelho e Branco
   (decisão do professor; o app só sinaliza). O saldo importado (sem datas) só conta para o próximo grau se a última graduação for anterior ao período dele.
+
+## Graduação pelo rosto
+
+No sistema da academia, **Graduações** guarda a data de cada graduação da equipe (adulto ou infantil). Na graduação, a
+equipe envia as fotos: o rosto é lido no navegador e o banco compara só os vetores com os alunos de **todas** as academias
+(King of Glory e parceiras, como Neolife e Panobianco). Cada aluno reconhecido entra na lista como "aguardando aprovação"
+com o próximo grau da trilha, e o professor responsável por ele (quem dá aula na academia do aluno) recebe na hora um
+push "Graduação para aprovar", que abre **Pendências** no app do professor.
+
+- O admin da academia pode aprovar ali mesmo, pular (fica para o professor) ou dizer que não é a pessoa (escolhe outro
+  parecido ou tira da lista). Alunos que o rosto não achou entram pelo nome ("Incluir aluno").
+- Quem decidir primeiro vale; a decisão pode ser refeita. Aprovado, o grau entra no histórico do aluno com a data da
+  graduação (o contador de treinos recomeça dali); reprovar depois de aprovar apaga a graduação que a aprovação criou.
+- Alunos da própria academia com gestão (sem professor no app do professor) são aprovados pela academia.
+- O push sai pela mesma Edge Function `push-reminders` (precisa de um novo deploy com `claim_graduation_notifications`).
 
 ## Como funciona o offline
 
