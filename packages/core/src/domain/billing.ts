@@ -186,6 +186,35 @@ export function buildContractCharges(t: ContractTerms, options: { from?: string 
   return out
 }
 
+// ── prorrogação ───────────────────────────────────────────────────────────────
+
+/** Dia seguinte. */
+export function nextDay(iso: string): string {
+  const [y, m, d] = partsOf(iso)
+  return new Date(Date.UTC(y, m - 1, d + 1)).toISOString().slice(0, 10)
+}
+
+/** Nova data de fim sugerida ao prorrogar: mais N meses (padrão 1 ano) depois do fim atual (30/11/2027 → 30/11/2028). */
+export function contractExtensionEnd(endsOn: string, months = 12): string {
+  return contractEndFor(nextDay(endsOn), months)
+}
+
+export function contractExtensionIssue(currentEndsOn: string, newEndsOn: string): string | null {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(newEndsOn)) return 'Informe a nova data de fim.'
+  if (newEndsOn <= currentEndsOn) return 'A nova data de fim precisa ser depois do fim atual.'
+  return null
+}
+
+/**
+ * Mensalidades do período novo de uma prorrogação (do dia seguinte ao fim atual até o novo fim). A numeração continua a
+ * do contrato e o total passa a contar a vigência inteira (12/12 → 13/24). Não cobra matrícula de novo.
+ */
+export function contractExtensionCharges(t: ContractTerms, newEndsOn: string): ChargeDraft[] {
+  const issue = contractExtensionIssue(t.endsOn, newEndsOn)
+  if (issue) throw new Error(issue)
+  return buildContractCharges({ ...t, endsOn: newEndsOn, enrollmentFeeCents: 0 }, { from: nextDay(t.endsOn) })
+}
+
 // ── situação e totais ─────────────────────────────────────────────────────────
 
 /** Mesma regra da view charge_overview: aberta e vencida antes de hoje = atrasada (vencendo hoje ainda está em aberto). */

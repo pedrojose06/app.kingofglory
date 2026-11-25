@@ -2,7 +2,9 @@
 // Tudo filtrado pela academia (gym_id): quem é de mais de uma academia não mistura os dados.
 
 import { addDays } from '../dates'
-import { addMonths, buildContractCharges, type ChargeState, type PaymentMethod, type ContractBilling, type ContractTerms } from '../domain/billing'
+import {
+  addMonths, buildContractCharges, type ChargeState, type ContractBilling, contractExtensionCharges, type ContractTerms, type PaymentMethod,
+} from '../domain/billing'
 import type { Db, Row } from '../types'
 import { fetchAll, unwrap } from './util'
 
@@ -331,6 +333,39 @@ export async function createContract(db: Db, input: NewContract): Promise<string
 /** Cancela o contrato; as cobranças abertas a partir de `from` são canceladas. Devolve quantas. */
 export async function cancelContract(db: Db, contractId: string, reason: string, from: string): Promise<number> {
   return unwrap(await db.rpc('cancel_contract', { p_contract_id: contractId, p_reason: reason, p_from: from }))
+}
+
+/** Termos atuais do contrato, no formato das regras de cobrança. */
+export function contractTermsOf(c: Contract): ContractTerms {
+  return {
+    billing: c.billing as ContractBilling,
+    startsOn: c.starts_on,
+    endsOn: c.ends_on,
+    dueDay: c.due_day,
+    amountCents: c.amount_cents,
+    discountCents: c.discount_cents,
+    enrollmentFeeCents: c.enrollment_fee_cents,
+  }
+}
+
+/** Prorroga o contrato até `newEndsOn`, criando as mensalidades do período novo. Devolve quantas cobranças criou. */
+export async function extendContract(db: Db, contract: Contract, newEndsOn: string): Promise<number> {
+  const drafts = contractExtensionCharges(contractTermsOf(contract), newEndsOn)
+  return unwrap(
+    await db.rpc('extend_contract', {
+      p_contract_id: contract.id,
+      p_ends_on: newEndsOn,
+      p_charges: drafts.map((d) => ({
+        kind: d.kind,
+        competence: d.competence,
+        due_on: d.dueOn,
+        amount_cents: d.amountCents,
+        installment: d.installment,
+        installments_total: d.installmentsTotal,
+        description: d.description,
+      })),
+    }),
+  )
 }
 
 export async function updateContractNotes(db: Db, contractId: string, patch: Pick<Contract, 'notes' | 'review_needed'>): Promise<void> {
