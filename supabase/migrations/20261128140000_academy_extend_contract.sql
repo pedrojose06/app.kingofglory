@@ -3,7 +3,7 @@
 -- O admin escolhe a nova data de fim (o app sugere +1 ano). As mensalidades do período novo vêm calculadas pelo app
 -- (packages/core › domain/billing.ts › contractExtensionCharges) e as já existentes passam a mostrar o novo total de
 -- parcelas (ex.: 12/12 vira 12/24).
--- Rollback: supabase/rollback/20261128120000_academy_extend_contract.down.sql
+-- Rollback: supabase/rollback/20261128140000_academy_extend_contract.down.sql
 
 -- p_charges: [{ kind, competence?, due_on, amount_cents, description?, installment?, installments_total? }]
 -- Devolve quantas cobranças foram criadas.
