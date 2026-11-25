@@ -16,6 +16,7 @@ apps/mobile       reservado para o app Expo (Fase 5)
 packages/core     tipos do banco, schemas Zod, regras de negócio, cliente e queries do Supabase, fila offline
 packages/ui       tokens de design (tema claro/escuro) e componentes compartilháveis
 packages/web-kit  React para os apps web: cliente do Supabase no browser, sessão (AuthProvider) e avisos (toast)
+packages/face-kit Reconhecimento facial no aparelho (modelos, worker e a tela de revisão), usado pelo app do professor e pela academia
 supabase/         migrations versionadas e seed de desenvolvimento
 ```
 
@@ -100,6 +101,7 @@ As migrations em `supabase/migrations` já estão aplicadas no projeto remoto, c
 | `academy_members` | sistema da academia (`academia.kingofglory.com.br`): `gyms.management_enabled`, `academy_members` (papéis `admin`/`professor`/`membro`, separados do app do professor), convites por e-mail (`academy_invites`, só o hash do token) aceitos apenas pela conta com aquele e-mail confirmado, `create_academy`, `update_academy`, `set_academy_member_role` (nunca sem admin) e `my_academies()`; academia com gestão não aparece no app do professor de quem não dá aula nela. Testes em `supabase/tests/database` (`pnpm db:test`) |
 | `academy_catalog` | ficha do aluno (`student_details`: CPF, RG, endereço, e-mail; só admin e o próprio aluno), modalidades, turmas e membros (`class_groups`, `class_group_members`), faixas do jiu-jitsu (`belt_ranks`, `student_belts`) e policies da academia em `students`/`student_graduations` que só valem com o cabeçalho `x-kog-app: academia` (`request_app()`) |
 | `academy_billing` | pagadores e responsáveis (`payers`, `student_guardians`), planos, contratos de matrícula com os alunos, cobranças e pagamentos (centavos; pagamento nunca apagado, um válido por cobrança), view `charge_overview` (situação calculada: atrasada = aberta e vencida), `create_contract` e `cancel_contract`; coerência entre academias por trigger |
+| `academy_diary` | diários de aula da academia: turma na grade e na aula (`group_id`), policies da equipe da academia em grade, aulas, presenças, fotos e rostos (com o cabeçalho `x-kog-app: academia`; o arquivo da foto vale pelo caminho da academia), `ensure_academy_classes` (gera as aulas da grade) e `conclude_academy_class` (falta só para quem é da turma). Testes em `supabase/tests/database` |
 
 Para criar uma migration nova e aplicar (com a CLI do Supabase):
 
@@ -329,10 +331,15 @@ pela mesma fila offline da chamada (quem já estava presente ou atrasado não mu
   um Web Worker. A foto original é analisada (mais nítida que a enviada); foto grande é varrida em blocos sobrepostos
   para achar rostos pequenos do fundo. A lógica pura (blocos, decodificação, alinhamento, comparação, confiança,
   sugestões) está em `packages/core/src/domain/face.ts`, com testes em `face.test.ts`.
-- **Modelos servidos pelo próprio app**: `apps/web/public/models/` (no repositório) e o runtime em `/ort/<versão>/`,
-  copiado do pacote por `apps/web/scripts/face-assets.mjs` no `dev`/`build`. Não entram no pré-cache (ninguém baixa 11 MB
-  ao instalar); o service worker guarda no primeiro uso (`kog-face-models`) e depois funciona offline. Trocar de modelo
-  é trocar o nome do arquivo e o `FACE_MODEL` (vetores de modelos diferentes não se comparam: exige recadastro).
+- **Modelos servidos pelo próprio app**: ficam no repositório em `packages/face-kit/models/` e, junto com o runtime
+  do onnxruntime-web, são copiados para o `public/` de cada app (`/models/` e `/ort/<versão>/`) por
+  `packages/face-kit/scripts/assets.mjs` no `dev`/`build` (as cópias não vão para o git). A versão do runtime é fixa em
+  `packages/face-kit/src/assets.ts` e o script recusa a build se ela não bater com a instalada. No app do professor os
+  arquivos não entram no pré-cache (ninguém baixa 11 MB ao instalar); o service worker guarda no primeiro uso
+  (`kog-face-models`) e depois funciona offline. Na academia (sem service worker) o navegador guarda por um ano
+  (cabeçalho `immutable`). Trocar de modelo é trocar o nome do arquivo e o `FACE_MODEL` (vetores de modelos diferentes
+  não se comparam: exige recadastro). Motor e tela de revisão: `packages/face-kit/src`; cada app só decide onde gravar
+  as respostas (fila offline no app do professor, direto no banco na academia).
 - **Foto do cadastro**: aluno que se cadastrou com foto de rosto (cadastro sem link) e aceitou o termo já chega com uma
   referência. Antes de analisar a foto da turma, com internet, o celular do professor baixa as fotos de cadastro de quem
   ainda não tem essa referência, acha o maior rosto (selfie numa moldura maior, para o detector) e grava só o vetor
@@ -451,6 +458,28 @@ separado do app do professor, com **login próprio** (e-mail e senha, e-mail con
 - **Cancelar contrato** cancela as cobranças abertas a partir de uma data; as anteriores continuam devidas.
 - Os alunos da academia só aparecem no sistema da academia: as policies novas exigem o cabeçalho `x-kog-app: academia`,
   que só esse app manda. No app do professor nada muda, inclusive para quem é das duas equipes.
+
+**Diários de aula** (menu Diários de aula; administrador e professor):
+
+- **Semana**: as aulas de segunda a domingo, com a situação de cada uma (agendada, em aberto, chamada pendente, concluída,
+  cancelada) e quantos vieram; filtro por turma. As aulas da grade são geradas sozinhas ao abrir a semana
+  (`ensure_academy_classes`, idempotente, no máximo 92 dias por vez). **Nova aula** lança uma aula avulsa (aulão,
+  reposição, aula passada sem registro) com turma, data, horário e professor.
+- **Grade de horários**: dia da semana, horário e turma de cada aula fixa, com início e fim. Só o administrador monta;
+  encerrar um horário não apaga as aulas nem as presenças já geradas.
+- **Chamada**: a aula com turma lista os alunos ativos daquela turma na data (entrada e saída da turma valem por dia); a aula
+  sem turma lista todos os ativos. Toque marca presente; o menu de cada aluno marca atraso, falta justificada ou falta.
+  **Aluno de fora da turma** inclui reposição e visitas. **Concluir chamada** (`conclude_academy_class`) põe falta em quem é
+  da turma e não foi marcado; reabrir volta a aula para em aberto. A chamada só abre no dia da aula.
+- **Fotos e reconhecimento facial**: igual ao app do professor (ver "Presença pelo rosto"). A foto da turma sobe comprimida; o
+  computador ou celular acha os rostos e pergunta "Esta pessoa é Fulano? (87%)"; a presença só é marcada depois da
+  confirmação, com origem "rosto". Aluno só entra no reconhecimento com **Uso de imagem** autorizado na ficha (Matrícula e
+  financeiro › Uso de imagem; menor de idade só com o termo do responsável, enviado pelo app do professor). A foto do
+  cadastro como primeira referência não existe aqui: o aluno começa sem referência e o app aprende com cada resposta.
+- **Banco** (migration `academy_diary`): `class_schedules.group_id` e `classes.group_id`; policies da equipe da academia em
+  grade, aulas, presenças, fotos, rostos e no bucket `class-photos`. Tudo, menos o arquivo da foto, só vale com o cabeçalho
+  `x-kog-app: academia`: quem é professor nas duas equipes não passa a ver as aulas da academia no app do professor.
+  Testes: `supabase/tests/database/academy_diary.test.sql`.
 
 **Importação do DojoWeb** (`supabase/scripts/import_dojoweb.py`, ver o cabeçalho do script): lê as planilhas de
 alunos, cobranças pagas, atrasadas, em aberto e o financeiro, e grava alunos com ficha, turmas, graduação atual, pagadores,
