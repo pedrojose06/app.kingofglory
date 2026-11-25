@@ -91,3 +91,99 @@ export function guardianTermFileName(studentName: string): string {
     .slice(0, 60)
   return `termo-responsavel${slug ? `-${slug}` : ''}.pdf`
 }
+
+// ── Assinatura eletrônica no app ──────────────────────────────────────────────
+
+/**
+ * Versão do texto do termo (GUARDIAN_TERM). Fica gravada com cada assinatura e entra no código de verificação:
+ * mudou o texto, mude a versão.
+ */
+export const GUARDIAN_TERM_VERSION = '2026-11-25'
+/** Página pública em que o responsável assina (o código vai no #, que não chega ao servidor nem aos logs). */
+export const GUARDIAN_SIGN_PATH = '/termo'
+export const guardianSignUrl = (origin: string, token: string) => `${origin}${GUARDIAN_SIGN_PATH}#${token}`
+
+export const GUARDIAN_RELATIONSHIPS = ['Mãe', 'Pai', 'Avó', 'Avô', 'Tutor legal'] as const
+
+/** Texto da declaração que o responsável marca antes de assinar. */
+export const GUARDIAN_SIGN_DECLARATION =
+  'Declaro que sou o responsável legal pelo aluno, que as informações acima são verdadeiras e que concordo em assinar este termo eletronicamente.'
+
+/** Só os dígitos do CPF. */
+export const cpfDigits = (cpf: string) => cpf.replace(/\D/g, '')
+
+/** CPF com os dois dígitos verificadores certos (e não todos iguais). Mesma regra de public.is_valid_cpf. */
+export function isValidCpf(cpf: string): boolean {
+  const d = cpfDigits(cpf)
+  if (!/^\d{11}$/.test(d) || /^(\d)\1{10}$/.test(d)) return false
+  const nums = [...d].map(Number)
+  const check = (len: number) => {
+    let sum = 0
+    for (let i = 0; i < len; i++) sum += nums[i]! * (len + 1 - i)
+    const r = (sum * 10) % 11
+    return r === 10 ? 0 : r
+  }
+  return check(9) === nums[9] && check(10) === nums[10]
+}
+
+/** Máscara enquanto digita: 000.000.000-00. */
+export function formatCpf(cpf: string): string {
+  const d = cpfDigits(cpf).slice(0, 11)
+  return d
+    .replace(/^(\d{3})(\d)/, '$1.$2')
+    .replace(/^(\d{3})\.(\d{3})(\d)/, '$1.$2.$3')
+    .replace(/\.(\d{3})(\d{1,2})$/, '.$1-$2')
+}
+
+/** CPF parcialmente escondido para telas (o PDF mostra inteiro): ***.982.247-** */
+export function maskCpf(cpf: string): string {
+  const d = cpfDigits(cpf)
+  return d.length === 11 ? `***.${d.slice(3, 6)}.${d.slice(6, 9)}-**` : '***'
+}
+
+export interface GuardianSignForm {
+  guardianName: string
+  guardianCpf: string
+  relationship: string
+  image: boolean | null
+  face: boolean | null
+  place: string
+  /** data:image/png;base64,... (vazio = não assinou) */
+  signature: string
+  declaration: boolean
+}
+
+/** Primeiro problema do formulário de assinatura, ou null. Mesmas regras de public.sign_guardian_term. */
+export function guardianSignFormIssue(f: GuardianSignForm): string | null {
+  const name = f.guardianName.trim().replace(/\s+/g, ' ')
+  if (name.length < 5 || name.length > 120 || !/\S+\s+\S+/.test(name)) return 'Informe o nome completo do responsável.'
+  if (!isValidCpf(f.guardianCpf)) return 'CPF do responsável inválido.'
+  const rel = f.relationship.trim()
+  if (rel.length < 2 || rel.length > 40) return 'Informe o parentesco com o aluno.'
+  if (f.image === null || f.face === null) return 'Responda às duas autorizações.'
+  const place = f.place.trim()
+  if (place.length < 2 || place.length > 80) return 'Informe a cidade.'
+  if (!f.signature.startsWith('data:image/png;base64,')) return 'Assine no quadro antes de enviar.'
+  if (!f.declaration) return 'Marque a declaração de responsável legal.'
+  return null
+}
+
+/** Dados do termo assinado no app (o que o PDF mostra). */
+export interface GuardianSignature {
+  student_name: string
+  birth_date: string
+  gym_name: string
+  status: GuardianConsentStatus
+  signed_at: string
+  guardian_name: string
+  guardian_cpf: string
+  guardian_relationship: string
+  image_authorized: boolean
+  face_authorized: boolean
+  signed_place: string
+  signature_png: string
+  signed_ip: string | null
+  signed_user_agent: string | null
+  term_version: string
+  document_sha256: string
+}

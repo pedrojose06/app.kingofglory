@@ -1,12 +1,19 @@
 import {
+  GUARDIAN_TERM_VERSION, cpfDigits, type GuardianConsentStatus, type GuardianSignForm, type GuardianSignature,
   GUARDIAN_CONSENT_BUCKET, GUARDIAN_CONSENT_TYPES, GUARDIAN_CONSENT_URL_SECONDS, type GuardianConsentMime, guardianConsentFileIssue, guardianConsentMime, guardianConsentPath,
 } from '../domain/guardian-consent'
 import type { Db, GuardianConsent } from '../types'
 import { unwrap } from './util'
 
+/** Colunas da lista (sem a imagem da assinatura, que é grande e só entra no PDF). */
+const CONSENT_COLUMNS =
+  'id, student_id, file_path, status, uploaded_at, uploaded_by, created_at, updated_at, reviewed_at, reviewed_by, rejected_reason, ' +
+  'rejected_at, sign_token, sign_token_expires_at, sign_token_created_by, signed_at, guardian_name, guardian_cpf, guardian_relationship, ' +
+  'image_authorized, face_authorized, signed_place, signed_ip, signed_user_agent, term_version, document_sha256'
+
 /** Termos dos alunos das academias do professor (RLS). Um por aluno menor de idade. */
 export async function listGuardianConsents(db: Db): Promise<GuardianConsent[]> {
-  return unwrap(await db.from('student_guardian_consents').select('*'))
+  return unwrap(await db.from('student_guardian_consents').select(CONSENT_COLUMNS)) as unknown as GuardianConsent[]
 }
 
 /**
@@ -110,4 +117,57 @@ export async function uploadMySignupTerm(db: Db, profileId: string, fileId: stri
     await db.storage.from(GUARDIAN_CONSENT_BUCKET).remove([path])
     throw res.error
   }
+}
+
+// ── Assinatura eletrônica no app ──────────────────────────────────────────────
+
+export interface GuardianSignLink {
+  token: string
+  expires_at: string
+}
+
+/** Link para o responsável assinar (professor do aluno ou a conta do aluno). Reaproveita o link em vigor. */
+export async function createGuardianSignLink(db: Db, studentId: string, renew = false): Promise<GuardianSignLink> {
+  return unwrap(await db.rpc('create_guardian_sign_link', { p_student_id: studentId, p_renew: renew })) as unknown as GuardianSignLink
+}
+
+export interface GuardianSignInfo {
+  student_name: string
+  birth_date: string
+  gym_name: string
+  minor: boolean
+  status: GuardianConsentStatus
+  /** Como o termo atual foi enviado: assinado no app ou arquivo (papel). null = nada enviado. */
+  kind: 'esign' | 'file' | null
+  signed_at: string | null
+  guardian_name: string | null
+  rejected_reason: string | null
+  expires_at: string
+}
+
+/** O que a página do link mostra (sem login). null = link inválido ou vencido. */
+export async function getGuardianSignInfo(db: Db, token: string): Promise<GuardianSignInfo | null> {
+  return (unwrap(await db.rpc('guardian_sign_info', { p_token: token })) as unknown as GuardianSignInfo | null) ?? null
+}
+
+/** Responsável assina pelo link. O banco grava data, IP e navegador e devolve o código de verificação. */
+export async function signGuardianTerm(db: Db, token: string, form: GuardianSignForm): Promise<{ signed_at: string; document_sha256: string }> {
+  const res = await db.rpc('sign_guardian_term', {
+    p_token: token,
+    p_guardian_name: form.guardianName.trim().replace(/\s+/g, ' '),
+    p_guardian_cpf: cpfDigits(form.guardianCpf),
+    p_relationship: form.relationship.trim(),
+    p_image: form.image === true,
+    p_face: form.face === true,
+    p_place: form.place.trim(),
+    p_signature: form.signature,
+    p_term_version: GUARDIAN_TERM_VERSION,
+  })
+  return unwrap(res) as unknown as { signed_at: string; document_sha256: string }
+}
+
+/** Dados do termo assinado no app (para o PDF): pelo link ou pelo aluno (professor dele ou a conta do aluno). */
+export async function getGuardianSignature(db: Db, by: { token: string } | { studentId: string }): Promise<GuardianSignature | null> {
+  const args = 'token' in by ? { p_token: by.token } : { p_student_id: by.studentId }
+  return (unwrap(await db.rpc('guardian_term_signature', args)) as unknown as GuardianSignature | null) ?? null
 }
