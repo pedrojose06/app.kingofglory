@@ -8,8 +8,9 @@ import { analyzePhoto, type FaceProgress } from '@kog/face-kit'
 import { Button } from '@kog/ui'
 import { toast, toastError } from '@kog/web-kit'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Camera, ImagePlus, Trash2, UserRound } from 'lucide-react'
+import { Camera, Crop, ImagePlus, Trash2, UserRound } from 'lucide-react'
 import { useRef, useState, type ChangeEvent } from 'react'
+import { PhotoCropDialog } from '@/components/photo-crop'
 import { useAcademy } from '@/lib/academy'
 import { keys } from '@/lib/queries'
 import { db } from '@/lib/supabase'
@@ -95,19 +96,39 @@ export function StudentPhoto({ student }: { student: Student }) {
   const [busy, setBusy] = useState<string | null>(null)
   const optedOut = Boolean(student.face_opt_out_at)
 
-  async function onFile(e: ChangeEvent<HTMLInputElement>) {
+  const [cropping, setCropping] = useState<File | null>(null)
+  const current = useStudentPhotoUrl(student.photo_path)
+
+  function onFile(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     e.target.value = ''
-    if (!file) return
+    if (file) setCropping(file)
+  }
+
+  /** Reenquadrar a foto já salva. */
+  async function adjust() {
+    if (!current.data) return
+    try {
+      setBusy('Abrindo a foto…')
+      const res = await fetch(current.data)
+      if (!res.ok) throw new Error('Não foi possível abrir a foto')
+      setCropping(new File([await res.blob()], 'foto.jpg', { type: 'image/jpeg' }))
+    } catch (error) {
+      toastError(error)
+    } finally {
+      setBusy(null)
+    }
+  }
+
+  /** Foto já recortada (quadrada, até 800 px): acha o rosto e salva. */
+  async function save(photo: Blob) {
+    setCropping(null)
     try {
       setBusy(progressLabel(null))
-      // O rosto sai da foto original (mais nítida); o que sobe é a versão reduzida.
-      const vector = optedOut ? null : await faceVectorOf(file, (p) => setBusy(progressLabel(p)))
+      const vector = optedOut ? null : await faceVectorOf(photo, (p) => setBusy(progressLabel(p)))
       if (!optedOut && !vector && !window.confirm('Não achei um rosto nesta foto. Salvar mesmo assim? Ela não vai ajudar o reconhecimento facial.')) return
       setBusy('Salvando a foto…')
-      const { default: compress } = await import('browser-image-compression')
-      const small = await compress(file, { maxWidthOrHeight: 800, maxSizeMB: 0.3, fileType: 'image/jpeg', useWebWorker: true })
-      await saveStudentPhoto(db(), student, { id: crypto.randomUUID(), file: small }, vector)
+      await saveStudentPhoto(db(), student, { id: crypto.randomUUID(), file: photo }, vector)
       await queryClient.invalidateQueries({ queryKey: keys.all(academy.gym_id) })
       toast(
         vector
@@ -154,6 +175,11 @@ export function StudentPhoto({ student }: { student: Student }) {
               <Button size="sm" variant="ghost" onPress={() => galleryRef.current?.click()}>
                 <ImagePlus className="size-4" /> {student.photo_path ? 'Trocar foto' : 'Enviar foto'}
               </Button>
+              {student.photo_path && current.data ? (
+                <Button size="sm" variant="ghost" onPress={adjust}>
+                  <Crop className="size-4" /> Ajustar
+                </Button>
+              ) : null}
               {student.photo_path ? (
                 <Button size="sm" variant="plain" onPress={remove}>
                   <Trash2 className="size-4" /> Remover
@@ -166,6 +192,7 @@ export function StudentPhoto({ student }: { student: Student }) {
           </p>
         </div>
       ) : null}
+      {cropping ? <PhotoCropDialog file={cropping} onCancel={() => setCropping(null)} onConfirm={save} /> : null}
     </div>
   )
 }
