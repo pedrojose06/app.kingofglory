@@ -4,7 +4,7 @@
 -- Apagar é para a aula avulsa que a própria academia desmarcou: some do diário com a chamada, as fotos e os rostos dela.
 -- Aula da grade não se apaga (seria gerada de novo): nela vale "Não houve aula" ou encerrar o horário.
 -- Devolve os caminhos das fotos para o app apagar os arquivos do Storage (bucket `class-photos`).
--- Rollback: supabase/rollback/20261127130100_academy_delete_class.down.sql
+-- Rollback: supabase/rollback/20261125200903_academy_delete_class.down.sql
 
 create or replace function public.delete_academy_class(p_class_id uuid)
 returns text[]
