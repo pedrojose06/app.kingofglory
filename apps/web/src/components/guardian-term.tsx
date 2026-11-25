@@ -11,7 +11,7 @@ import { ChevronRight, Clock, Copy, Download, Eye, FileCheck2, FileSignature, Fi
 import { useMemo, useRef, useState, type ChangeEvent } from 'react'
 import { formatDateTimeBR } from '@/components/student-account'
 import { Section } from '@/components/common'
-import { downloadGuardianTerm, downloadSignedGuardianTerm } from '@/lib/guardian-term'
+import { downloadGuardianTerm, openSignedGuardianTerm } from '@/lib/guardian-term'
 import { useGuardianConsents, useGyms, useSave, useStudents, useToday } from '@/lib/queries'
 import { db } from '@/lib/supabase'
 import { errorMessage, toast, toastError } from '@/lib/toast'
@@ -102,7 +102,8 @@ export function FilePicker({ file, onChange, label }: { file: File | null; onCha
 /** Abre o arquivo do termo por URL assinada de curta duração. */
 function useOpenGuardianFile() {
   const [opening, setOpening] = useState(false)
-  async function open(path: string) {
+  /** true = abriu. */
+  async function open(path: string): Promise<boolean> {
     // Abre a aba antes do await: no iPhone, window.open depois de uma espera é bloqueado.
     const tab = window.open('', '_blank')
     setOpening(true)
@@ -110,9 +111,11 @@ function useOpenGuardianFile() {
       const url = await guardianConsentUrl(db(), path)
       if (tab) tab.location.href = url
       else window.location.href = url
+      return true
     } catch (error) {
       tab?.close()
       toastError(error)
+      return false
     } finally {
       setOpening(false)
     }
@@ -120,19 +123,26 @@ function useOpenGuardianFile() {
   return { open, opening }
 }
 
-/** Baixa o PDF do termo assinado no app (professor do aluno ou a conta do aluno). */
-function SignedTermButton({ studentId, studentName, label = 'Ver termo assinado' }: { studentId: string; studentName: string; label?: string }) {
+/** Abre o PDF do termo assinado no app (professor do aluno ou a conta do aluno). */
+function SignedTermButton({ studentId, studentName, label = 'Ver termo assinado', onOpened, block = true }: {
+  studentId: string
+  studentName: string
+  label?: string
+  onOpened?: () => void
+  block?: boolean
+}) {
   const [busy, setBusy] = useState(false)
   return (
     <Button
       variant="ghost"
       size="sm"
-      block
+      block={block}
       loading={busy}
       onPress={async () => {
         setBusy(true)
         try {
-          await downloadSignedGuardianTerm({ studentId }, studentName)
+          await openSignedGuardianTerm(studentId, studentName)
+          onOpened?.()
         } catch (error) {
           toastError(error)
         } finally {
@@ -288,6 +298,8 @@ export function GuardianReviewSheet({ student, consent, open, onClose }: {
   // Assinado no app: a resposta já vem do termo (Sim só se autorizou as duas coisas).
   const signedYes = !!consent.image_authorized && !!consent.face_authorized
   const [image, setImage] = useState<boolean | null>(signed ? signedYes : null)
+  // Só aprova depois de abrir o termo (arquivo enviado ou PDF assinado no app).
+  const [viewed, setViewed] = useState(false)
   const [rejecting, setRejecting] = useState(false)
   const [reason, setReason] = useState('')
   const review = useSave(
@@ -296,6 +308,7 @@ export function GuardianReviewSheet({ student, consent, open, onClose }: {
     () => {
       onClose()
       setImage(signed ? signedYes : null)
+      setViewed(false)
       setRejecting(false)
       setReason('')
     },
@@ -314,15 +327,20 @@ export function GuardianReviewSheet({ student, consent, open, onClose }: {
           </p>
         </div>
         {consent.file_path ? (
-          <Button variant="ghost" block loading={file.opening} onPress={() => file.open(consent.file_path!)}>
-            <Eye className="size-4" /> Ver termo enviado
+          <Button variant={viewed ? 'ghost' : 'gold'} block loading={file.opening} onPress={async () => (await file.open(consent.file_path!)) && setViewed(true)}>
+            <Eye className="size-4" /> {viewed ? 'Abrir de novo' : 'Abrir termo enviado'}
           </Button>
         ) : null}
         {signed ? (
           <>
             <p className="flex items-center gap-2 text-sm font-bold text-text"><PenLine className="size-4 text-accent" /> Assinado pelo responsável no app</p>
             <SignedTermSummary consent={consent} />
-            <SignedTermButton studentId={student.id} studentName={student.name} />
+            <SignedTermButton
+              studentId={student.id}
+              studentName={student.name}
+              label={viewed ? 'Abrir de novo' : 'Abrir termo assinado'}
+              onOpened={() => setViewed(true)}
+            />
             <p className="text-sm text-soft">Confira se o responsável é mesmo do aluno (nome e parentesco) e se a assinatura está legível.</p>
           </>
         ) : (
@@ -347,9 +365,12 @@ export function GuardianReviewSheet({ student, consent, open, onClose }: {
                 </div>
               </Field>
             )}
-            <Button block disabled={image === null} loading={review.isPending} onPress={() => send({ approve: true, imageConsent: image === true })}>
+            <Button block disabled={image === null || !viewed} loading={review.isPending} onPress={() => send({ approve: true, imageConsent: image === true })}>
               Aprovar termo
             </Button>
+            {!viewed ? (
+              <p className="-mt-2 text-center text-xs text-dim">Abra o termo acima e confira antes de aprovar.</p>
+            ) : null}
             <Button variant="plain" block onPress={() => setRejecting(true)}>Recusar termo</Button>
           </>
         ) : (
@@ -394,7 +415,7 @@ export function GuardianReviewsSection() {
           </button>
         ))}
       </div>
-      {current ? <GuardianReviewSheet student={current.student} consent={current.consent} open onClose={() => setOpen(null)} /> : null}
+      {current ? <GuardianReviewSheet key={current.student.id} student={current.student} consent={current.consent} open onClose={() => setOpen(null)} /> : null}
     </Section>
   )
 }

@@ -47,3 +47,21 @@ export async function downloadSignedGuardianTerm(by: { token: string } | { stude
   const blob = await fetchTerm({ signed: by }, 'studentId' in by)
   save(blob, guardianTermFileName(studentName).replace('.pdf', '-assinado.pdf'))
 }
+
+/**
+ * Abre o termo assinado no app numa aba nova (para o professor ler antes de aprovar). A aba abre antes da espera:
+ * no iPhone, window.open depois de um await é bloqueado. Sem aba (bloqueada), baixa o arquivo.
+ */
+export async function openSignedGuardianTerm(studentId: string, studentName: string): Promise<void> {
+  const tab = window.open('', '_blank')
+  try {
+    const blob = await fetchTerm({ signed: { studentId } }, true)
+    if (!tab) return save(blob, guardianTermFileName(studentName).replace('.pdf', '-assinado.pdf'))
+    const url = URL.createObjectURL(blob)
+    tab.location.href = url
+    window.setTimeout(() => URL.revokeObjectURL(url), 5 * 60_000)
+  } catch (error) {
+    tab?.close()
+    throw error
+  }
+}
