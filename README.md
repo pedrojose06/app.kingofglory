@@ -105,6 +105,7 @@ As migrations em `supabase/migrations` já estão aplicadas no projeto remoto, c
 | `academy_face_contract` | na academia com gestão o contrato de matrícula já autoriza uso de imagem e reconhecimento facial: todo aluno entra no reconhecimento sem `image_consent_at`; quem pedir para ficar de fora tem `students.face_opt_out_at` (apaga os dados do rosto na hora). Academias parceiras: nada muda |
 | `academy_delete_class` | `delete_academy_class`: apagar aula avulsa (fora da grade) com chamada, fotos e rostos; devolve os caminhos das fotos para o app apagar do Storage. Aula da grade continua com "Não houve aula" |
 | `academy_student_photo` | foto do aluno na ficha (`students.photo_path`, bucket privado `student-photos` em `{gym_id}/{student_id}/{id}.jpg`; equipe vê, admin envia) e `set_student_photo`: a foto vira o rosto de referência `student_photo` do aluno (uma por aluno, fora da poda; o vetor é calculado no navegador). Trocar ou apagar a foto troca ou apaga a referência |
+| `fix_face_references_academy` | `face_references` volta a funcionar no sistema da academia: a pergunta "a academia tem gestão?" vai para `gym_has_management` (security definer), porque a equipe da academia não lê `gyms` pela RLS |
 
 Para criar uma migration nova e aplicar (com a CLI do Supabase):
 
