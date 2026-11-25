@@ -98,6 +98,8 @@ As migrations em `supabase/migrations` já estão aplicadas no projeto remoto, c
 | `minor_account_from_guardian` | aluno menor: aprovar o termo com uso de imagem também marca o aceite da conta (`account_consent_at`), sem a tela de aceite do aluno |
 | `my_face_photo` | `my_face_photo()`: caminho da foto do cadastro do próprio aluno logado (aprovado), mostrada na área do aluno |
 | `academy_members` | sistema da academia (`academia.kingofglory.com.br`): `gyms.management_enabled`, `academy_members` (papéis `admin`/`professor`/`membro`, separados do app do professor), convites por e-mail (`academy_invites`, só o hash do token) aceitos apenas pela conta com aquele e-mail confirmado, `create_academy`, `update_academy`, `set_academy_member_role` (nunca sem admin) e `my_academies()`; academia com gestão não aparece no app do professor de quem não dá aula nela. Testes em `supabase/tests/database` (`pnpm db:test`) |
+| `academy_catalog` | ficha do aluno (`student_details`: CPF, RG, endereço, e-mail; só admin e o próprio aluno), modalidades, turmas e membros (`class_groups`, `class_group_members`), faixas do jiu-jitsu (`belt_ranks`, `student_belts`) e policies da academia em `students`/`student_graduations` que só valem com o cabeçalho `x-kog-app: academia` (`request_app()`) |
+| `academy_billing` | pagadores e responsáveis (`payers`, `student_guardians`), planos, contratos de matrícula com os alunos, cobranças e pagamentos (centavos; pagamento nunca apagado, um válido por cobrança), view `charge_overview` (situação calculada: atrasada = aberta e vencida), `create_contract` e `cancel_contract`; coerência entre academias por trigger |
 
 Para criar uma migration nova e aplicar (com a CLI do Supabase):
 
@@ -434,6 +436,26 @@ separado do app do professor, com **login próprio** (e-mail e senha, e-mail con
 - Ser professor no app do professor não dá acesso à academia (e vice-versa). Academia com gestão não aparece no app do
   professor de quem não dá aula nela.
 - O administrador muda o nome e o endereço da academia e o papel de cada pessoa; a academia nunca fica sem administrador.
+
+**Cadastros** (Cadastros › Alunos, Responsáveis, Planos, Turmas; só o admin edita):
+
+- **Alunos**: busca por nome ou CPF, filtros por turma e situação e atalhos para menores, sem contrato, contrato a revisar
+  e sem data de nascimento. A ficha tem os dados cadastrais (CPF, RG, endereço, e-mail: só o admin vê), turmas,
+  graduação de muay thai (os mesmos graus do app do professor) e de jiu-jitsu (faixas e graus próprios), responsáveis,
+  matrícula e as mensalidades do aluno (pagas, em aberto e atrasadas).
+- **Matrícula** (contrato): quem paga (o próprio aluno, um responsável ou um novo), plano opcional, tipo (mensalidade,
+  isento ou Gympass/Totalpass), vigência, dia de vencimento (sugeridos 5, 10, 15, 20, 25 e 30; aceita qualquer dia),
+  valor, desconto, taxa de matrícula e outros alunos no mesmo contrato (família). A tela mostra a prévia das cobranças
+  antes de criar. Regras em `packages/core/src/domain/billing.ts`: sem proporcional, dia 30/31 vira o último dia em
+  meses curtos, atrasada = aberta e vencida antes de hoje.
+- **Cancelar contrato** cancela as cobranças abertas a partir de uma data; as anteriores continuam devidas.
+- Os alunos da academia só aparecem no sistema da academia: as policies novas exigem o cabeçalho `x-kog-app: academia`,
+  que só esse app manda. No app do professor nada muda, inclusive para quem é das duas equipes.
+
+**Importação do DojoWeb** (`supabase/scripts/import_dojoweb.py`, ver o cabeçalho do script): lê as planilhas de
+alunos, cobranças pagas, atrasadas, em aberto e o financeiro, e grava alunos com ficha, turmas, graduação atual, pagadores,
+contratos (marcados "Importado: revisar", vigência até 31/12/2026) e cobranças com os pagamentos. É idempotente e confere
+os totais. As planilhas e o SQL gerado têm dados pessoais: nunca dentro do repositório.
 
 Local (com o Supabase local rodando):
 
