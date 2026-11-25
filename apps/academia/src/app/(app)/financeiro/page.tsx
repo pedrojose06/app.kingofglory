@@ -139,7 +139,7 @@ function Charges() {
         />
       ) : (
         <>
-          <div className="mb-2 flex flex-wrap items-center gap-3 text-sm text-dim">
+          <div className="mb-2 flex min-h-9 flex-wrap items-center gap-3 text-sm text-dim">
             {selectable ? (
               <label className="flex cursor-pointer items-center gap-2 font-semibold text-soft">
                 <input
@@ -151,9 +151,20 @@ function Charges() {
                 Selecionar {term ? 'todas desta busca' : 'todas'}
               </label>
             ) : null}
-            <span>
-              {rows.length} {rows.length === 1 ? 'cobrança' : 'cobranças'} · <span className="font-bold text-text">{formatBRL(total)}</span>
-            </span>
+            {picked.length > 0 ? (
+              <>
+                <span className="text-text">
+                  <span className="font-bold">{picked.length}</span> {picked.length === 1 ? 'selecionada' : 'selecionadas'} ·{' '}
+                  <span className="font-bold">{formatBRL(pickedTotal)}</span>
+                </span>
+                <Button size="sm" onPress={() => setPayingMany(true)}>Dar baixa {picked.length === 1 ? 'nesta' : `nas ${picked.length}`}</Button>
+                <Button variant="ghost" size="sm" onPress={() => setSelected(new Set())}>Limpar</Button>
+              </>
+            ) : (
+              <span>
+                {rows.length} {rows.length === 1 ? 'cobrança' : 'cobranças'} · <span className="font-bold text-text">{formatBRL(total)}</span>
+              </span>
+            )}
           </div>
           <Card className="overflow-hidden">
             <ul className="divide-y divide-line">
@@ -171,16 +182,6 @@ function Charges() {
               ))}
             </ul>
           </Card>
-          {picked.length > 0 ? (
-            <div className="sticky bottom-0 z-20 mt-3 flex flex-wrap items-center gap-3 rounded-lg border border-gold bg-surface px-4 py-3 shadow-lg pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
-              <p className="min-w-0 flex-1 text-sm text-text">
-                <span className="font-bold">{picked.length}</span> {picked.length === 1 ? 'selecionada' : 'selecionadas'} ·{' '}
-                <span className="font-bold">{formatBRL(pickedTotal)}</span>
-              </p>
-              <Button variant="ghost" size="sm" onPress={() => setSelected(new Set())}>Limpar</Button>
-              <Button size="sm" onPress={() => setPayingMany(true)}>Dar baixa {picked.length === 1 ? 'nesta' : `nas ${picked.length}`}</Button>
-            </div>
-          ) : null}
         </>
       )}
       {payingMany ? (
