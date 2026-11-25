@@ -1,16 +1,17 @@
 'use client'
 
 import {
-  formatDateBR, GUARDIAN_CONSENT_ACCEPT, GUARDIAN_CONSENT_LABEL, guardianConsentFileIssue, guardianConsentUrl, guardianTermStatus, keys,
-  reviewGuardianConsent, submitMyGuardianConsent, uploadGuardianConsent, type GuardianConsent, type GuardianConsentStatus, type GuardianReview,
-  type MyStudentAccount, type Student,
+  createGuardianSignLink, formatDateBR, GUARDIAN_CONSENT_ACCEPT, GUARDIAN_CONSENT_LABEL, guardianConsentFileIssue, guardianConsentUrl,
+  guardianSignUrl, guardianTermStatus, keys, maskCpf, reviewGuardianConsent, submitMyGuardianConsent, uploadGuardianConsent,
+  type GuardianConsent, type GuardianConsentStatus, type GuardianReview, type GuardianSignLink, type MyStudentAccount, type Student,
 } from '@kog/core'
 import { Badge, Button, Card, Chip, Field, Sheet, Textarea } from '@kog/ui'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { ChevronRight, Clock, Download, Eye, FileCheck2, FileSignature, FileUp, X } from 'lucide-react'
+import { ChevronRight, Clock, Copy, Download, Eye, FileCheck2, FilePlus2, FileSignature, FileUp, MessageCircle, PenLine, Share2, X } from 'lucide-react'
 import { useMemo, useRef, useState, type ChangeEvent } from 'react'
+import { formatDateTimeBR } from '@/components/student-account'
 import { Section } from '@/components/common'
-import { downloadGuardianTerm } from '@/lib/guardian-term'
+import { downloadGuardianTerm, downloadSignedGuardianTerm, openSignedGuardianTerm } from '@/lib/guardian-term'
 import { useGuardianConsents, useGyms, useSave, useStudents, useToday } from '@/lib/queries'
 import { db } from '@/lib/supabase'
 import { errorMessage, toast, toastError } from '@/lib/toast'
@@ -43,11 +44,21 @@ export function useGuardianReviews() {
   }, [consents.data, students.data, today])
 }
 
-export function DownloadButton({ name, birthDate, block }: { name: string; birthDate: string; block?: boolean }) {
+/**
+ * Modelo do termo EM BRANCO (só com nome e nascimento do aluno), para imprimir e assinar à mão. Não é o termo que o
+ * aluno já enviou: esse é "Baixar termo" (TermDownloadButton).
+ */
+export function DownloadButton({ name, birthDate, block, label = 'Novo termo em branco', variant = 'ghost' }: {
+  name: string
+  birthDate: string
+  block?: boolean
+  label?: string
+  variant?: 'ghost' | 'plain'
+}) {
   const [busy, setBusy] = useState(false)
   return (
     <Button
-      variant="ghost"
+      variant={variant}
       size="sm"
       block={block}
       loading={busy}
@@ -56,6 +67,33 @@ export function DownloadButton({ name, birthDate, block }: { name: string; birth
         setBusy(true)
         try {
           await downloadGuardianTerm({ name, birthDate })
+        } catch (error) {
+          toastError(error)
+        } finally {
+          setBusy(false)
+        }
+      }}
+    >
+      <FilePlus2 className="size-4" /> {label}
+    </Button>
+  )
+}
+
+/** Baixa o termo que o aluno já tem (assinado na tela ou o arquivo enviado), preenchido e assinado. */
+function TermDownloadButton({ student, consent }: { student: Student; consent: GuardianConsent }) {
+  const [busy, setBusy] = useState(false)
+  const viewer = useOpenGuardianFile()
+  return (
+    <Button
+      variant="ghost"
+      size="sm"
+      block
+      loading={busy || viewer.opening}
+      onPress={async () => {
+        if (consent.file_path) return void viewer.open(consent.file_path)
+        setBusy(true)
+        try {
+          await downloadSignedGuardianTerm({ studentId: student.id }, student.name)
         } catch (error) {
           toastError(error)
         } finally {
@@ -99,9 +137,10 @@ export function FilePicker({ file, onChange, label }: { file: File | null; onCha
 }
 
 /** Abre o arquivo do termo por URL assinada de curta duração. */
-function useOpenGuardianFile() {
+export function useOpenGuardianFile() {
   const [opening, setOpening] = useState(false)
-  async function open(path: string) {
+  /** true = abriu. */
+  async function open(path: string): Promise<boolean> {
     // Abre a aba antes do await: no iPhone, window.open depois de uma espera é bloqueado.
     const tab = window.open('', '_blank')
     setOpening(true)
@@ -109,14 +148,150 @@ function useOpenGuardianFile() {
       const url = await guardianConsentUrl(db(), path)
       if (tab) tab.location.href = url
       else window.location.href = url
+      return true
     } catch (error) {
       tab?.close()
       toastError(error)
+      return false
     } finally {
       setOpening(false)
     }
   }
   return { open, opening }
+}
+
+/** Abre o PDF do termo assinado no app (professor do aluno ou a conta do aluno). */
+function SignedTermButton({ studentId, studentName, label = 'Ver termo assinado', onOpened, block = true }: {
+  studentId: string
+  studentName: string
+  label?: string
+  onOpened?: () => void
+  block?: boolean
+}) {
+  const [busy, setBusy] = useState(false)
+  return (
+    <Button
+      variant="ghost"
+      size="sm"
+      block={block}
+      loading={busy}
+      onPress={async () => {
+        setBusy(true)
+        try {
+          await openSignedGuardianTerm({ studentId }, studentName)
+          onOpened?.()
+        } catch (error) {
+          toastError(error)
+        } finally {
+          setBusy(false)
+        }
+      }}
+    >
+      <Eye className="size-4" /> {label}
+    </Button>
+  )
+}
+
+/** Respostas do termo assinado no app, para o professor conferir. */
+function SignedTermSummary({ consent }: { consent: GuardianConsent }) {
+  const yesNo = (v: boolean | null) => (v ? 'Autorizou' : 'Não autorizou')
+  return (
+    <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 rounded border border-line p-3 text-sm">
+      <dt className="text-dim">Responsável</dt>
+      <dd className="min-w-0 text-text">{consent.guardian_name} ({consent.guardian_relationship})</dd>
+      <dt className="text-dim">CPF</dt>
+      <dd className="text-text">{maskCpf(consent.guardian_cpf ?? '')}</dd>
+      <dt className="text-dim">Uso de imagem</dt>
+      <dd className={consent.image_authorized ? 'text-success' : 'text-danger'}>{yesNo(consent.image_authorized)}</dd>
+      <dt className="text-dim">Reconhecimento</dt>
+      <dd className={consent.face_authorized ? 'text-success' : 'text-danger'}>{yesNo(consent.face_authorized)}</dd>
+      <dt className="text-dim">Assinado</dt>
+      <dd className="min-w-0 text-text">
+        {consent.signed_at ? formatDateTimeBR(consent.signed_at) : ''}
+        {consent.signed_place ? `, ${consent.signed_place}` : ''}
+      </dd>
+    </dl>
+  )
+}
+
+/**
+ * Link para o responsável assinar o termo no celular (sem imprimir). Professor do aluno ou a conta do aluno geram;
+ * manda pelo WhatsApp ou copia. O link vale 30 dias e é o mesmo até vencer (ou "Gerar novo link").
+ */
+export function GuardianSignLinkCard({ studentId, studentName, phone }: { studentId: string; studentName: string; phone?: string | null }) {
+  const [link, setLink] = useState<GuardianSignLink | null>(null)
+  const create = useMutation({
+    mutationFn: (renew: boolean) => createGuardianSignLink(db(), studentId, renew),
+    networkMode: 'online',
+    onSuccess: setLink,
+    onError: toastError,
+  })
+  const first = studentName.trim().split(/\s+/)[0]
+  const url = link ? guardianSignUrl(window.location.origin, link.token) : ''
+  const message =
+    `Olá! Para ${first} usar o app da King of Glory, o responsável precisa autorizar. ` +
+    `É só abrir o link, preencher e assinar na tela do celular (leva 2 minutos): ${url}`
+  const digits = (phone ?? '').replace(/\D/g, '')
+  const wa = `https://wa.me/${digits.length === 10 || digits.length === 11 ? `55${digits}` : digits}?text=${encodeURIComponent(message)}`
+  const canShare = typeof navigator !== 'undefined' && typeof navigator.share === 'function'
+
+  async function copy() {
+    try {
+      await navigator.clipboard.writeText(url)
+      toast('Link copiado')
+    } catch (error) {
+      toastError(error)
+    }
+  }
+
+  if (!link) {
+    return (
+      <div className="rounded-lg border border-accent/60 bg-tint p-3">
+        <p className="flex items-center gap-2 text-sm font-bold text-text"><PenLine className="size-4 text-accent" /> Assinar pelo celular</p>
+        <p className="mt-1 text-xs text-soft">
+          O responsável recebe um link, preenche e assina na tela, sem imprimir. O termo volta para o professor conferir.
+        </p>
+        <Button block size="sm" className="mt-2" loading={create.isPending} onPress={() => create.mutate(false)}>
+          Enviar link ao responsável
+        </Button>
+      </div>
+    )
+  }
+  return (
+    <div className="rounded-lg border border-accent/60 bg-tint p-3">
+      <p className="flex items-center gap-2 text-sm font-bold text-text"><PenLine className="size-4 text-accent" /> Link para o responsável assinar</p>
+      <p className="mt-1.5 truncate rounded border border-line bg-surface-2 px-3 py-2 font-mono text-xs text-soft">{url}</p>
+      <p className="mt-1 text-xs text-dim">Vale até {formatDateTimeBR(link.expires_at)}.</p>
+      <div className="mt-2 grid grid-cols-2 gap-2">
+        <a
+          href={wa}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="bg-gold-gradient inline-flex h-10 items-center justify-center gap-2 rounded px-3 text-xs font-bold uppercase tracking-[0.08em] text-ink shadow-gold"
+        >
+          <MessageCircle className="size-4" /> WhatsApp
+        </a>
+        {canShare ? (
+          <Button variant="ghost" size="sm" onPress={() => void navigator.share({ title: 'Termo do responsável', text: message }).catch(() => undefined)}>
+            <Share2 className="size-4" /> Compartilhar
+          </Button>
+        ) : (
+          <Button variant="ghost" size="sm" onPress={() => void copy()}><Copy className="size-4" /> Copiar</Button>
+        )}
+      </div>
+      <div className="mt-1 flex justify-between">
+        {canShare ? <Button variant="plain" size="sm" onPress={() => void copy()}>Copiar link</Button> : <span />}
+        <Button
+          variant="plain"
+          size="sm"
+          loading={create.isPending}
+          onPress={() => window.confirm('Gerar um novo link? O link atual para de funcionar.') && create.mutate(true)}
+        >
+          Gerar novo link
+        </Button>
+      </div>
+    </div>
+  )
 }
 
 /**
@@ -156,7 +331,12 @@ export function GuardianReviewSheet({ student, consent, open, onClose }: {
   onClose: () => void
 }) {
   const file = useOpenGuardianFile()
-  const [image, setImage] = useState<boolean | null>(null)
+  const signed = !!consent.signed_at
+  // Assinado no app: a resposta já vem do termo (Sim só se autorizou as duas coisas).
+  const signedYes = !!consent.image_authorized && !!consent.face_authorized
+  const [image, setImage] = useState<boolean | null>(signed ? signedYes : null)
+  // Só aprova depois de abrir o termo (arquivo enviado ou PDF assinado no app).
+  const [viewed, setViewed] = useState(false)
   const [rejecting, setRejecting] = useState(false)
   const [reason, setReason] = useState('')
   const review = useSave(
@@ -164,7 +344,8 @@ export function GuardianReviewSheet({ student, consent, open, onClose }: {
     [keys.guardianConsents, keys.students],
     () => {
       onClose()
-      setImage(null)
+      setImage(signed ? signedYes : null)
+      setViewed(false)
       setRejecting(false)
       setReason('')
     },
@@ -183,30 +364,55 @@ export function GuardianReviewSheet({ student, consent, open, onClose }: {
           </p>
         </div>
         {consent.file_path ? (
-          <Button variant="ghost" block loading={file.opening} onPress={() => file.open(consent.file_path!)}>
-            <Eye className="size-4" /> Ver termo enviado
+          <Button variant={viewed ? 'ghost' : 'gold'} block loading={file.opening} onPress={async () => (await file.open(consent.file_path!)) && setViewed(true)}>
+            <Eye className="size-4" /> {viewed ? 'Abrir de novo' : 'Abrir termo enviado'}
           </Button>
         ) : null}
-        <p className="text-sm text-soft">
-          Confira se é o termo do aluno, se tem nome e CPF do responsável, local e data e a assinatura.
-        </p>
+        {signed ? (
+          <>
+            <p className="flex items-center gap-2 text-sm font-bold text-text"><PenLine className="size-4 text-accent" /> Assinado pelo responsável no app</p>
+            <SignedTermSummary consent={consent} />
+            <SignedTermButton
+              studentId={student.id}
+              studentName={student.name}
+              label={viewed ? 'Abrir de novo' : 'Abrir termo assinado'}
+              onOpened={() => setViewed(true)}
+            />
+            <p className="text-sm text-soft">Confira se o responsável é mesmo do aluno (nome e parentesco) e se a assinatura está legível.</p>
+          </>
+        ) : (
+          <p className="text-sm text-soft">
+            Confira se é o termo do aluno, se tem nome e CPF do responsável, local e data e a assinatura.
+          </p>
+        )}
 
         {!rejecting ? (
           <>
-            <Field label="O responsável autorizou uso de imagem e reconhecimento facial?" hint="Marque Sim só se ele marcou Sim nas duas linhas do termo.">
-              <div className="flex gap-2">
-                <Chip active={image === true} onPress={() => setImage(true)}>Sim</Chip>
-                <Chip active={image === false} onPress={() => setImage(false)}>Não</Chip>
-              </div>
-            </Field>
-            <Button block disabled={image === null} loading={review.isPending} onPress={() => send({ approve: true, imageConsent: image === true })}>
+            {signed ? (
+              <p className="text-sm text-text">
+                {signedYes
+                  ? 'Ao aprovar, o uso de imagem e o reconhecimento facial passam a valer para o aluno.'
+                  : 'O responsável não autorizou as duas coisas: ao aprovar, o uso de imagem e o reconhecimento facial ficam desligados.'}
+              </p>
+            ) : (
+              <Field label="O responsável autorizou uso de imagem e reconhecimento facial?" hint="Marque Sim só se ele marcou Sim nas duas linhas do termo.">
+                <div className="flex gap-2">
+                  <Chip active={image === true} onPress={() => setImage(true)}>Sim</Chip>
+                  <Chip active={image === false} onPress={() => setImage(false)}>Não</Chip>
+                </div>
+              </Field>
+            )}
+            <Button block disabled={image === null || !viewed} loading={review.isPending} onPress={() => send({ approve: true, imageConsent: image === true })}>
               Aprovar termo
             </Button>
+            {!viewed ? (
+              <p className="-mt-2 text-center text-xs text-dim">Abra o termo acima e confira antes de aprovar.</p>
+            ) : null}
             <Button variant="plain" block onPress={() => setRejecting(true)}>Recusar termo</Button>
           </>
         ) : (
           <>
-            <Field label="O que o aluno precisa corrigir?" hint="O aluno vê esta mensagem e envia outro arquivo.">
+            <Field label="O que precisa corrigir?" hint={signed ? 'O aluno e o responsável (pelo mesmo link) veem esta mensagem e assinam de novo.' : 'O aluno vê esta mensagem e envia outro arquivo.'}>
               <Textarea value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Ex.: falta a assinatura do responsável" />
             </Field>
             <Button variant="danger" block disabled={!reason.trim()} loading={review.isPending} onPress={() => send({ approve: false, reason })}>
@@ -246,7 +452,7 @@ export function GuardianReviewsSection() {
           </button>
         ))}
       </div>
-      {current ? <GuardianReviewSheet student={current.student} consent={current.consent} open onClose={() => setOpen(null)} /> : null}
+      {current ? <GuardianReviewSheet key={current.student.id} student={current.student} consent={current.consent} open onClose={() => setOpen(null)} /> : null}
     </Section>
   )
 }
@@ -257,7 +463,6 @@ export function GuardianTermSection({ student, consent }: { student: Student; co
   const status = guardianTermStatus(student, consent, today)
   const [file, setFile] = useState<File | null>(null)
   const [reviewOpen, setReviewOpen] = useState(false)
-  const viewer = useOpenGuardianFile()
   const upload = useSave(
     (f: File) => uploadGuardianConsent(db(), { studentId: student.id, fileId: crypto.randomUUID(), file: f }),
     [keys.guardianConsents, keys.students],
@@ -272,7 +477,9 @@ export function GuardianTermSection({ student, consent }: { student: Student; co
     status === 'enviado'
       ? `Termo aprovado${consent?.reviewed_at ? ` em ${formatDateBR(consent.reviewed_at.slice(0, 10))}` : ''}. O uso de imagem vale só se o responsável autorizou (marcado abaixo, em Cadastro).`
       : status === 'em_analise'
-        ? `O aluno enviou o termo assinado${consent?.uploaded_at ? ` em ${formatDateBR(consent.uploaded_at.slice(0, 10))}` : ''}. Confira e aprove ou recuse.`
+        ? consent?.signed_at
+          ? `O responsável assinou o termo no app em ${formatDateTimeBR(consent.signed_at)}. Confira e aprove ou recuse.`
+          : `O aluno enviou o termo assinado${consent?.uploaded_at ? ` em ${formatDateBR(consent.uploaded_at.slice(0, 10))}` : ''}. Confira e aprove ou recuse.`
         : `Aluno menor de 18 anos sem o termo aprovado. Ele treina normalmente; uso de imagem e reconhecimento facial ficam desligados até a aprovação.${consent?.rejected_reason ? ` Último envio recusado: "${consent.rejected_reason}".` : ''}`
 
   return (
@@ -282,14 +489,20 @@ export function GuardianTermSection({ student, consent }: { student: Student; co
         {status === 'em_analise' && consent ? (
           <Button block onPress={() => setReviewOpen(true)}><FileSignature className="size-4" /> Conferir termo</Button>
         ) : null}
-        <div className="grid grid-cols-2 gap-2">
-          {student.birth_date ? <DownloadButton name={student.name} birthDate={student.birth_date} block /> : null}
-          {status !== 'pendente' && consent?.file_path ? (
-            <Button variant="ghost" size="sm" block loading={viewer.opening} onPress={() => viewer.open(consent.file_path!)}>
-              <Eye className="size-4" /> Ver termo
-            </Button>
-          ) : null}
-        </div>
+        {status === 'pendente' ? <GuardianSignLinkCard studentId={student.id} studentName={student.name} phone={student.phone} /> : null}
+        {status === 'pendente' ? <p className="text-xs font-bold uppercase tracking-[0.08em] text-dim">Ou em papel</p> : null}
+        {/* "Baixar termo" = o que o aluno já enviou (preenchido e assinado). O modelo em branco tem outro nome. */}
+        {status !== 'pendente' && consent && (consent.signed_at || consent.file_path) ? (
+          <TermDownloadButton student={student} consent={consent} />
+        ) : null}
+        {student.birth_date ? (
+          <DownloadButton
+            name={student.name}
+            birthDate={student.birth_date}
+            block
+            variant={status === 'pendente' ? 'ghost' : 'plain'}
+          />
+        ) : null}
         <FilePicker file={file} onChange={setFile} label={status === 'pendente' ? 'Enviar termo assinado' : 'Substituir termo'} />
         {file ? (
           <Button block loading={upload.isPending} onPress={() => upload.mutate(file)}>Enviar (já aprovado)</Button>
@@ -349,7 +562,10 @@ export function StudentGuardianScreen({ account, onSignOut }: { account: MyStude
         <div className="mt-4 flex items-start gap-3 rounded-lg border border-line p-3">
           <Clock className="mt-0.5 size-5 shrink-0 text-accent" />
           <div className="text-sm">
-            <p className="font-bold text-text">Termo enviado{consent?.uploaded_at ? ` em ${formatDateBR(consent.uploaded_at.slice(0, 10))}` : ''}</p>
+            <p className="font-bold text-text">
+              Termo enviado
+              {consent?.uploaded_at ? ` em ${formatDateBR(consent.uploaded_at.slice(0, 10))}` : ''}
+            </p>
             <p className="text-soft">Aguardando o professor conferir. Quando ele aprovar, é só abrir o app de novo.</p>
           </div>
         </div>
@@ -361,14 +577,22 @@ export function StudentGuardianScreen({ account, onSignOut }: { account: MyStude
         </div>
       ) : null}
 
-      <ol className="mt-4 list-decimal space-y-1 pl-5 text-sm text-soft">
+      {status !== 'em_analise' ? (
+        <>
+          <p className="mt-4 text-sm font-bold text-text">Jeito mais rápido: seu responsável assina pelo celular</p>
+          <div className="mt-2"><GuardianSignLinkCard studentId={account.student_id} studentName={account.name} /></div>
+          <p className="mt-4 text-sm font-bold text-text">Ou em papel</p>
+        </>
+      ) : null}
+
+      <ol className="mt-2 list-decimal space-y-1 pl-5 text-sm text-soft">
         <li>Baixe o termo (já vem com seu nome e data de nascimento).</li>
         <li>Imprima e peça ao seu responsável para preencher e assinar.</li>
         <li>Tire uma foto bem nítida do termo assinado (ou escaneie em PDF) e envie aqui.</li>
       </ol>
 
       <div className="mt-4 space-y-2">
-        <DownloadButton name={account.name} birthDate={account.birth_date ?? ''} block />
+        <DownloadButton name={account.name} birthDate={account.birth_date ?? ''} block label="Baixar termo em branco" />
         <FilePicker file={file} onChange={setFile} label={status === 'em_analise' ? 'Enviar outro arquivo' : 'Escolher termo assinado'} />
         {file ? (
           <Button block loading={submit.isPending} onPress={() => submit.mutate(file)}>Enviar termo</Button>

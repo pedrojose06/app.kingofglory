@@ -37,6 +37,11 @@ export interface StudentRequest {
   /** Data de nascimento informada no cadastro (opcional). */
   birth_date: string | null
   created_at: string
+  /** Menor de 18 anos: o professor confere o termo do responsável antes de aprovar. */
+  minor?: boolean
+  /** Termo que veio no cadastro: assinado na tela, arquivo (papel) ou nenhum. */
+  guardian_term?: 'esign' | 'file' | null
+  guardian_file_path?: string | null
 }
 
 /** Grau para o aluno escolher no cadastro (lista pública, sem login). */

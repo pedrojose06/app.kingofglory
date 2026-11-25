@@ -22,7 +22,8 @@ export type ClassPhoto = Row<'class_photos'>
 export type AttendanceReminder = Row<'attendance_reminders'>
 export type LessonPlanReminder = Row<'lesson_plan_reminders'>
 export type StudentClassReminder = Row<'student_class_reminders'>
-export type GuardianConsent = Row<'student_guardian_consents'>
+/** Termo do responsável como a lista traz (sem a imagem da assinatura). */
+export type GuardianConsent = Omit<Row<'student_guardian_consents'>, 'signature_png'>
 /** Linha de student_progress. O Postgres reporta colunas de view como anuláveis; aqui só as que de fato podem ser nulas. */
 export interface StudentProgress {
   student_id: string

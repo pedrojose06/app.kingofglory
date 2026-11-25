@@ -89,6 +89,11 @@ As migrations em `supabase/migrations` já estão aplicadas no projeto remoto, c
 | `schedule_start_date` | `set_schedule_start`: corrigir a data de início de um horário da grade (aulas vazias antes da nova data são removidas) |
 | `signup_image_consent` | autorização de uso de imagem no cadastro sem link (`student_signup_requests.image_consent_at`), levada ao aluno na aprovação (maior de idade) |
 | `signup_guardian_term` | termo do responsável anexado já no cadastro do aluno menor (`student_signup_requests.guardian_file_path`, também sem login pelo código do cadastro); aprovado o aluno, vira "Termo para conferir"; policies do Storage pelo registro do termo |
+| `guardian_esign` | termo do responsável assinado no próprio app: link secreto `/termo#código` (`create_guardian_sign_link`, 30 dias), página sem login (`guardian_sign_info`, `sign_guardian_term`: nome, CPF validado, parentesco, as duas autorizações, cidade e assinatura na tela; guarda data, IP, navegador e SHA-256) e PDF gerado sob demanda (`guardian_term_signature`); fica "para conferir" e a aprovação com uso de imagem exige Sim nas duas autorizações |
+| `signup_guardian_esign` | o responsável também assina na tela já no cadastro do aluno menor (`sign_signup_guardian_term`, sem login pelo código do cadastro ou pela conta logada; fica em `student_signup_requests.guardian_esign`); aprovado o aluno, vira "Termo para conferir" |
+| `signup_request_term_view` | aprovação do cadastro de aluno menor com o termo: `list_student_requests` diz se é menor e qual termo veio (`guardian_term`, `guardian_file_path`) e `signup_guardian_signature` dá os dados do termo assinado na tela para o PDF |
+| `fix_anon_storage_upload` | corrige o envio sem login da foto e do termo no cadastro (a policy do termo chamava uma função que `anon` não podia executar e derrubava todo envio sem login) |
+| `minor_account_from_guardian` | aluno menor: aprovar o termo com uso de imagem também marca o aceite da conta (`account_consent_at`), sem a tela de aceite do aluno |
 | `my_face_photo` | `my_face_photo()`: caminho da foto do cadastro do próprio aluno logado (aprovado), mostrada na área do aluno |
 
 Para criar uma migration nova e aplicar (com a CLI do Supabase):

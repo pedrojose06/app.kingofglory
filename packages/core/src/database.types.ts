@@ -655,6 +655,21 @@ export type Database = {
           reviewed_by: string | null
           rejected_reason: string | null
           rejected_at: string | null
+          sign_token: string | null
+          sign_token_expires_at: string | null
+          sign_token_created_by: string | null
+          signed_at: string | null
+          guardian_name: string | null
+          guardian_cpf: string | null
+          guardian_relationship: string | null
+          image_authorized: boolean | null
+          face_authorized: boolean | null
+          signed_place: string | null
+          signature_png: string | null
+          signed_ip: string | null
+          signed_user_agent: string | null
+          term_version: string | null
+          document_sha256: string | null
         }
         Insert: {
           id?: string
@@ -669,6 +684,21 @@ export type Database = {
           reviewed_by?: string | null
           rejected_reason?: string | null
           rejected_at?: string | null
+          sign_token?: string | null
+          sign_token_expires_at?: string | null
+          sign_token_created_by?: string | null
+          signed_at?: string | null
+          guardian_name?: string | null
+          guardian_cpf?: string | null
+          guardian_relationship?: string | null
+          image_authorized?: boolean | null
+          face_authorized?: boolean | null
+          signed_place?: string | null
+          signature_png?: string | null
+          signed_ip?: string | null
+          signed_user_agent?: string | null
+          term_version?: string | null
+          document_sha256?: string | null
         }
         Update: {
           id?: string
@@ -683,6 +713,21 @@ export type Database = {
           reviewed_by?: string | null
           rejected_reason?: string | null
           rejected_at?: string | null
+          sign_token?: string | null
+          sign_token_expires_at?: string | null
+          sign_token_created_by?: string | null
+          signed_at?: string | null
+          guardian_name?: string | null
+          guardian_cpf?: string | null
+          guardian_relationship?: string | null
+          image_authorized?: boolean | null
+          face_authorized?: boolean | null
+          signed_place?: string | null
+          signature_png?: string | null
+          signed_ip?: string | null
+          signed_user_agent?: string | null
+          term_version?: string | null
+          document_sha256?: string | null
         }
         Relationships: []
       }
@@ -855,6 +900,40 @@ export type Database = {
         Args: { p_student_id: string; p_approve: boolean; p_image_consent?: boolean; p_reason?: string }
         Returns: string | null
       }
+      create_guardian_sign_link: { Args: { p_student_id: string; p_renew?: boolean }; Returns: Json }
+      guardian_sign_info: { Args: { p_token: string }; Returns: Json }
+      sign_guardian_term: {
+        Args: {
+          p_token: string
+          p_guardian_name: string
+          p_guardian_cpf: string
+          p_relationship: string
+          p_image: boolean
+          p_face: boolean
+          p_place: string
+          p_signature: string
+          p_term_version: string
+        }
+        Returns: Json
+      }
+      guardian_term_signature: { Args: { p_student_id?: string; p_token?: string }; Returns: Json }
+      signup_guardian_signature: { Args: { p_request_id: string }; Returns: Json }
+      sign_signup_guardian_term: {
+        Args: {
+          p_profile_id: string
+          p_token: string | null
+          p_guardian_name: string
+          p_guardian_cpf: string
+          p_relationship: string
+          p_image: boolean
+          p_face: boolean
+          p_place: string
+          p_signature: string
+          p_term_version: string
+        }
+        Returns: undefined
+      }
+      is_valid_cpf: { Args: { p_cpf: string }; Returns: boolean }
       list_student_requests: { Args: never; Returns: Json }
       approve_student_request: { Args: { p_request_id: string; p_student_id?: string }; Returns: string }
       reject_student_request: { Args: { p_request_id: string }; Returns: undefined }

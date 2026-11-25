@@ -1,15 +1,21 @@
 'use client'
 
-import { approveStudentRequest, formatDateBR, keys, rejectStudentRequest, signFaceUrls, type StudentRequest } from '@kog/core'
-import { Button, Card, Input, Sheet, cn } from '@kog/ui'
+import {
+  approveStudentRequest, formatDateBR, getGuardianSignature, keys, maskCpf, rejectStudentRequest, reviewGuardianConsent, signFaceUrls,
+  type StudentRequest,
+} from '@kog/core'
+import { Badge, Button, Card, Chip, Input, Sheet, cn } from '@kog/ui'
 import { useQuery } from '@tanstack/react-query'
-import { Award, Cake, Check, Mail, Phone, Search, UserPlus, UserRound } from 'lucide-react'
+import { Award, Cake, Check, Eye, FileSignature, Mail, Phone, Search, UserPlus, UserRound } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { Section } from '@/components/common'
+import { useOpenGuardianFile } from '@/components/guardian-term'
+import { formatDateTimeBR } from '@/components/student-account'
 import { Loading } from '@/components/shell'
 import { useGyms, useSave, useStudentRequests, useStudents } from '@/lib/queries'
 import { db } from '@/lib/supabase'
-import { toast } from '@/lib/toast'
+import { openSignedGuardianTerm } from '@/lib/guardian-term'
+import { toast, toastError } from '@/lib/toast'
 
 const norm = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim()
 
@@ -53,6 +59,11 @@ export function StudentRequestsSection() {
               <Award className="size-3.5 shrink-0" /> {rankLabel(r)}
             </p>
             {r.birth_date ? <p className="mt-0.5 flex items-center gap-1.5 text-sm text-soft"><Cake className="size-3.5 shrink-0" /> Nascimento: {formatDateBR(r.birth_date)}</p> : null}
+            {r.minor ? (
+              <p className="mt-1.5">
+                <Badge tone="warning">{r.guardian_term ? 'Menor · termo do responsável para conferir' : 'Menor · sem termo do responsável'}</Badge>
+              </p>
+            ) : null}
             <div className="mt-3 grid grid-cols-2 gap-2">
               <Button variant="ghost" className="text-danger" loading={reject.isPending && reject.variables === r.id}
                 onPress={() => window.confirm(`Recusar o pedido de ${r.name}?`) && reject.mutate(r.id)}>
@@ -78,14 +89,39 @@ function ApproveSheet({ request, faceUrl, gymName, onClose }: { request: Student
   const students = useStudents()
   const [search, setSearch] = useState('')
   const [choice, setChoice] = useState<string | 'new' | null>(null)
+  // Aluno menor: antes de aprovar, a etapa do termo (abrir, conferir e só então aprovar).
+  const [step, setStep] = useState<'pick' | 'term'>('pick')
+  const [viewed, setViewed] = useState(false)
+  // Termo em papel: o professor diz se o responsável autorizou. Assinado na tela: a resposta vem do termo.
+  const [paperImage, setPaperImage] = useState<boolean | null>(null)
+  const term = request.minor ? (request.guardian_term ?? null) : null
+  const signature = useQuery({
+    queryKey: [...keys.studentRequests, 'term', request.id],
+    queryFn: () => getGuardianSignature(db(), { requestId: request.id }),
+    enabled: term === 'esign',
+    networkMode: 'online',
+  })
+  const esignYes = !!signature.data?.image_authorized && !!signature.data?.face_authorized
   const approve = useSave(
-    () => approveStudentRequest(db(), request.id, choice && choice !== 'new' ? choice : undefined),
-    [keys.studentRequests, keys.students],
-    () => {
-      toast('Acesso aprovado')
+    async () => {
+      const studentId = await approveStudentRequest(db(), request.id, choice && choice !== 'new' ? choice : undefined)
+      // Termo conferido aqui: já sai aprovado (o professor não precisa conferir de novo).
+      if (!term) return true
+      try {
+        await reviewGuardianConsent(db(), studentId, { approve: true, imageConsent: term === 'esign' ? esignYes : paperImage === true })
+        return true
+      } catch {
+        // Aluno já aprovado; o termo continua "para conferir" na ficha dele.
+        return false
+      }
+    },
+    [keys.studentRequests, keys.students, keys.guardianConsents],
+    (termOk) => {
+      toast(!term ? 'Acesso aprovado' : termOk ? 'Acesso e termo do responsável aprovados' : 'Acesso aprovado. Confira o termo do responsável na ficha do aluno.')
       onClose()
     },
   )
+  const canApprove = !term || (viewed && (term === 'esign' ? !!signature.data : paperImage !== null))
 
   const candidates = useMemo(() => {
     const words = norm(request.name).split(/\s+/).filter((w) => w.length > 2)
@@ -95,6 +131,34 @@ function ApproveSheet({ request, faceUrl, gymName, onClose }: { request: Student
       .filter((s) => s.gym_id === request.gym_id && !s.profile_id && (!q || norm(s.name).includes(q)))
       .sort((a, b) => score(b.name) - score(a.name) || Number(b.active) - Number(a.active) || a.name.localeCompare(b.name, 'pt-BR'))
   }, [students.data, request, search])
+
+  if (step === 'term') {
+    return (
+      <Sheet open onClose={() => setStep('pick')} title="Termo do responsável">
+        <TermStep
+          request={request}
+          term={term}
+          signature={signature.data ?? null}
+          signatureLoading={signature.isPending && term === 'esign'}
+          viewed={viewed}
+          onViewed={() => setViewed(true)}
+          paperImage={paperImage}
+          onPaperImage={setPaperImage}
+        />
+        <div className="mt-4 space-y-2">
+          <Button block size="lg" disabled={!canApprove} loading={approve.isPending} onPress={() => approve.mutate()}>
+            {choice === 'new' ? 'Cadastrar e aprovar aluno' : 'Aprovar aluno'}
+          </Button>
+          {!canApprove ? (
+            <p className="text-center text-xs text-dim">
+              {!viewed ? 'Abra o termo e confira antes de aprovar.' : 'Responda se o responsável autorizou.'}
+            </p>
+          ) : null}
+          <Button variant="plain" block onPress={() => setStep('pick')}>Fechar</Button>
+        </div>
+      </Sheet>
+    )
+  }
 
   return (
     <Sheet open onClose={onClose} title={`Quem é ${request.name.split(/\s+/)[0]}?`}>
@@ -136,7 +200,14 @@ function ApproveSheet({ request, faceUrl, gymName, onClose }: { request: Student
           ))
         )}
       </div>
-      <Button block size="lg" className="mt-4" disabled={!choice} loading={approve.isPending} onPress={() => approve.mutate()}>
+      <Button
+        block
+        size="lg"
+        className="mt-4"
+        disabled={!choice}
+        loading={approve.isPending}
+        onPress={() => (request.minor ? setStep('term') : approve.mutate())}
+      >
         {choice === 'new' ? 'Cadastrar e aprovar' : 'Aprovar acesso'}
       </Button>
     </Sheet>
@@ -164,4 +235,99 @@ function rankLabel(r: StudentRequest): string {
   if (!r.rank_name) return 'Sem graduação'
   const track = r.rank_track === 'infantil' ? ' (infantil)' : ''
   return `${r.rank_name}${track}${r.graduated_at ? ` · desde ${formatDateBR(r.graduated_at)}` : ''}`
+}
+
+/** Etapa do termo na aprovação do aluno menor: aviso, abrir o termo (PDF ou arquivo) e as respostas do responsável. */
+function TermStep({ request, term, signature, signatureLoading, viewed, onViewed, paperImage, onPaperImage }: {
+  request: StudentRequest
+  term: 'esign' | 'file' | null
+  signature: Awaited<ReturnType<typeof getGuardianSignature>>
+  signatureLoading: boolean
+  viewed: boolean
+  onViewed: () => void
+  paperImage: boolean | null
+  onPaperImage: (v: boolean) => void
+}) {
+  const first = request.name.split(/\s+/)[0]
+  const file = useOpenGuardianFile()
+  const [opening, setOpening] = useState(false)
+
+  async function open() {
+    if (term === 'file' && request.guardian_file_path) {
+      if (await file.open(request.guardian_file_path)) onViewed()
+      return
+    }
+    setOpening(true)
+    try {
+      await openSignedGuardianTerm({ requestId: request.id }, request.name)
+      onViewed()
+    } catch (error) {
+      toastError(error)
+    } finally {
+      setOpening(false)
+    }
+  }
+
+  if (!term) {
+    return (
+      <div className="space-y-3">
+        <div className="flex items-start gap-3 rounded-lg border border-warning p-3">
+          <FileSignature className="mt-0.5 size-5 shrink-0 text-warning" />
+          <p className="text-sm text-text">
+            {first} é menor de idade e o termo do responsável não veio no cadastro. Você pode aprovar: o termo fica pendente e o
+            uso de imagem e o reconhecimento facial ficam desligados até ele ser enviado e aprovado.
+          </p>
+        </div>
+      </div>
+    )
+  }
+
+  const yesNo = (v: boolean | undefined) => (v ? 'Autorizou' : 'Não autorizou')
+  return (
+    <div className="space-y-3">
+      <div className="flex items-start gap-3 rounded-lg border border-warning p-3">
+        <FileSignature className="mt-0.5 size-5 shrink-0 text-warning" />
+        <p className="text-sm text-text">
+          {first} é menor de idade. Antes de aprovar, você precisa abrir e conferir o termo de autorização
+          {term === 'esign' ? ' que o responsável assinou na tela, no cadastro.' : ' assinado pelo responsável, enviado no cadastro.'}
+        </p>
+      </div>
+
+      <Button variant={viewed ? 'ghost' : 'gold'} block loading={opening || file.opening} onPress={() => void open()}>
+        <Eye className="size-4" /> {viewed ? 'Abrir o termo de novo' : 'Abrir termo'}
+      </Button>
+      {viewed ? <p className="flex items-center justify-center gap-1.5 text-xs text-success"><Check className="size-3.5" /> Termo aberto</p> : null}
+
+      {term === 'esign' ? (
+        signatureLoading ? (
+          <Loading />
+        ) : signature ? (
+          <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 rounded border border-line p-3 text-sm">
+            <dt className="text-dim">Responsável</dt>
+            <dd className="min-w-0 text-text">{signature.guardian_name} ({signature.guardian_relationship})</dd>
+            <dt className="text-dim">CPF</dt>
+            <dd className="text-text">{maskCpf(signature.guardian_cpf)}</dd>
+            <dt className="text-dim">Uso de imagem</dt>
+            <dd className={signature.image_authorized ? 'text-success' : 'text-danger'}>{yesNo(signature.image_authorized)}</dd>
+            <dt className="text-dim">Reconhecimento</dt>
+            <dd className={signature.face_authorized ? 'text-success' : 'text-danger'}>{yesNo(signature.face_authorized)}</dd>
+            <dt className="text-dim">Assinado</dt>
+            <dd className="min-w-0 text-text">{formatDateTimeBR(signature.signed_at)}, {signature.signed_place}</dd>
+          </dl>
+        ) : (
+          <p className="text-sm text-danger">Não foi possível carregar o termo. Confira a internet.</p>
+        )
+      ) : (
+        <div>
+          <p className="text-sm text-text">O responsável autorizou uso de imagem e reconhecimento facial?</p>
+          <p className="text-xs text-dim">Marque Sim só se ele marcou Sim nas duas linhas do termo.</p>
+          <div className="mt-2 flex gap-2">
+            <Chip active={paperImage === true} onPress={() => onPaperImage(true)}>Sim</Chip>
+            <Chip active={paperImage === false} onPress={() => onPaperImage(false)}>Não</Chip>
+          </div>
+        </div>
+      )}
+      <p className="text-xs text-dim">Aprovando aqui, o aluno e o termo saem aprovados juntos.</p>
+    </div>
+  )
 }
