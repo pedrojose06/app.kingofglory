@@ -148,6 +148,11 @@ function StudentForm({ data }: { data: AcademyStudent | null }) {
   const disabled = !isAdmin
   return (
     <form onSubmit={submit} className="space-y-6">
+      {data ? (
+        <Section title="Foto">
+          <StudentPhoto student={data.student} />
+        </Section>
+      ) : null}
       <Section title="Dados pessoais">
         <fieldset disabled={disabled} className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <Field label="Nome completo" className="sm:col-span-2">
@@ -334,9 +339,6 @@ function StudentDetail({ id }: { id: string }) {
             <AttendanceSection data={data} />
             <GraduationSection data={data} />
             <GuardiansSection data={data} />
-            <Section title="Foto">
-              <StudentPhoto student={s} />
-            </Section>
             <FaceSection data={data} />
           </div>
         </div>
