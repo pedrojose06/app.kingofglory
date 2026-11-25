@@ -6,7 +6,7 @@
 
 import { addSignupFaceReference, listSignupFacePhotos, signFaceUrls, type StoredReference } from '@kog/core'
 import { db } from '@/lib/supabase'
-import { analyzePhoto, type FaceProgress } from './engine'
+import { analyzePhoto, type FaceProgress } from '@kog/face-kit'
 
 /** Fotos já tentadas sem rosto encontrado (por aparelho): não insistir a cada foto da turma. */
 const TRIED_KEY = 'kog-signup-face-tried'
