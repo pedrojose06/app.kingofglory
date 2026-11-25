@@ -5,6 +5,9 @@ import {
   listAcademySchedules, listAcademyStudents, listBeltRanks, listClassAttendance, listClassGroups, listClassPhotos, listDiaryStudents,
   listFaceReferences, listGroupMemberships, listModalities, listPayers, listPlans, listRanks, listStudentCharges, listStudentContracts,
 } from '@kog/core'
+import {
+  getGraduationEvent, listEventCandidates, listGraduationEvents, listGraduationPhotos,
+} from '@kog/core'
 import { useQuery } from '@tanstack/react-query'
 import { useMemo } from 'react'
 import { academyKeys, useAcademy } from './academy'
@@ -34,6 +37,10 @@ export const keys = {
   dashboard: (gymId: string, today: string) => ['academia', gymId, 'painel', today] as const,
   progress: (gymId: string) => ['academia', gymId, 'progresso'] as const,
   charges: (gymId: string, list: string, month: string) => ['academia', gymId, 'mensalidades', list, month] as const,
+  graduationEvents: (gymId: string) => ['academia', gymId, 'graduacoes'] as const,
+  graduationEvent: (gymId: string, id: string) => ['academia', gymId, 'graduacao', id] as const,
+  graduationPhotos: (gymId: string, id: string) => ['academia', gymId, 'graduacao', id, 'fotos'] as const,
+  graduationCandidates: (gymId: string, id: string) => ['academia', gymId, 'graduacao', id, 'candidatos'] as const,
 }
 
 export function useStudents() {
@@ -211,4 +218,26 @@ export function useAcademyCharges(list: ChargeList, month: string) {
 export function useActiveStudentIds() {
   const students = useStudents()
   return useMemo(() => (students.data ? new Set(students.data.filter((s) => s.active).map((s) => s.id)) : undefined), [students.data])
+}
+
+// ── graduações ──────────────────────────────────────────────────────────────
+
+export function useGraduationEvents() {
+  const { academy } = useAcademy()
+  return useQuery({ queryKey: keys.graduationEvents(academy.gym_id), queryFn: () => listGraduationEvents(db(), academy.gym_id) })
+}
+
+export function useGraduationEvent(id: string) {
+  const { academy } = useAcademy()
+  return useQuery({ queryKey: keys.graduationEvent(academy.gym_id, id), queryFn: () => getGraduationEvent(db(), id), enabled: Boolean(id) })
+}
+
+export function useGraduationPhotos(id: string) {
+  const { academy } = useAcademy()
+  return useQuery({ queryKey: keys.graduationPhotos(academy.gym_id, id), queryFn: () => listGraduationPhotos(db(), id), enabled: Boolean(id) })
+}
+
+export function useGraduationCandidates(id: string) {
+  const { academy } = useAcademy()
+  return useQuery({ queryKey: keys.graduationCandidates(academy.gym_id, id), queryFn: () => listEventCandidates(db(), id), enabled: Boolean(id) })
 }

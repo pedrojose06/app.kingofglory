@@ -575,6 +575,42 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"graduation_events": {
+                  Row: {
+                    "created_at": string,"created_by": string | null,"gym_id": string,"held_on": string,"id": string,"notes": string | null,"title": string | null,"track": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"created_by"?: string | null,"gym_id": string,"held_on": string,"id"?: string,"notes"?: string | null,"title"?: string | null,"track"?: string
+                  }
+                  Update: {
+                    "created_at"?: string,"created_by"?: string | null,"gym_id"?: string,"held_on"?: string,"id"?: string,"notes"?: string | null,"title"?: string | null,"track"?: string
+                  }
+                  Relationships: []
+                },"graduation_event_photos": {
+                  Row: {
+                    "created_at": string,"event_id": string,"id": string,"storage_path": string,"uploaded_by": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"event_id": string,"id"?: string,"storage_path": string,"uploaded_by"?: string | null
+                  }
+                  Update: {
+                    "created_at"?: string,"event_id"?: string,"id"?: string,"storage_path"?: string,"uploaded_by"?: string | null
+                  }
+                  Relationships: []
+                },"graduation_candidates": {
+                  Row: {
+                    "bbox": Json | null,"created_at": string,"created_by": string | null,"decided_at": string | null,"decided_by": string | null,"decided_via": string | null,"event_id": string,"from_rank_id": string | null,"graduation_id": string | null,"id": string,"notify_pending": boolean,"photo_id": string | null,"score": number | null,"source": string,"status": string,"student_id": string,"to_rank_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "bbox"?: Json | null,"created_at"?: string,"created_by"?: string | null,"decided_at"?: string | null,"decided_by"?: string | null,"decided_via"?: string | null,"event_id": string,"from_rank_id"?: string | null,"graduation_id"?: string | null,"id"?: string,"notify_pending"?: boolean,"photo_id"?: string | null,"score"?: number | null,"source": string,"status"?: string,"student_id": string,"to_rank_id": string
+                  }
+                  Update: {
+                    "bbox"?: Json | null,"created_at"?: string,"created_by"?: string | null,"decided_at"?: string | null,"decided_by"?: string | null,"decided_via"?: string | null,"event_id"?: string,"from_rank_id"?: string | null,"graduation_id"?: string | null,"id"?: string,"notify_pending"?: boolean,"photo_id"?: string | null,"score"?: number | null,"source"?: string,"status"?: string,"student_id"?: string,"to_rank_id"?: string
+                  }
+                  Relationships: []
                 },"face_embeddings": {
                   Row: {
                     "created_at": string,"created_by": string | null,"embedding": string,"id": string,"model": string,"source": string,"source_photo_id": string | null,"student_id": string
@@ -1567,6 +1603,37 @@ isOneToOne: false
                            },
 "ensure_classes":
 { Args: { "p_until"?: string }; Returns: number
+                           },
+"graduation_face_match":
+{ Args: { "p_event_id": string,"p_faces": Json }; Returns: Json
+                           },
+"graduation_student_search":
+{ Args: { "p_event_id": string,"p_query": string }; Returns: {
+              "current_rank_id": string | null,"gym_id": string,"gym_name": string,"name": string,"next_rank_id": string | null,"student_id": string
+            }[]
+                           },
+"propose_graduation_candidates":
+{ Args: { "p_event_id": string,"p_items": Json }; Returns: {
+              "bbox": Json | null,"created_at": string,"created_by": string | null,"decided_at": string | null,"decided_by": string | null,"decided_via": string | null,"event_id": string,"from_rank_id": string | null,"graduation_id": string | null,"id": string,"notify_pending": boolean,"photo_id": string | null,"score": number | null,"source": string,"status": string,"student_id": string,"to_rank_id": string
+            }[]
+                           },
+"decide_graduation_candidate":
+{ Args: { "p_candidate_id": string,"p_approve": boolean,"p_to_rank_id"?: string }; Returns: {
+              "bbox": Json | null,"created_at": string,"created_by": string | null,"decided_at": string | null,"decided_by": string | null,"decided_via": string | null,"event_id": string,"from_rank_id": string | null,"graduation_id": string | null,"id": string,"notify_pending": boolean,"photo_id": string | null,"score": number | null,"source": string,"status": string,"student_id": string,"to_rank_id": string
+            }
+                           },
+"dismiss_graduation_candidate":
+{ Args: { "p_candidate_id": string }; Returns: boolean
+                           },
+"graduation_event_candidates":
+{ Args: { "p_event_id": string }; Returns: {
+              "bbox": Json | null,"created_at": string,"decided_at": string | null,"decided_via": string | null,"from_rank_id": string | null,"gym_id": string,"gym_name": string,"has_instructor": boolean,"id": string,"photo_id": string | null,"score": number | null,"source": string,"status": string,"storage_path": string | null,"student_id": string,"student_name": string,"to_rank_id": string
+            }[]
+                           },
+"my_graduation_candidates":
+{ Args: Record<PropertyKey, never>; Returns: {
+              "bbox": Json | null,"created_at": string,"decided_at": string | null,"decided_via": string | null,"event_id": string,"from_rank_id": string | null,"gym_id": string,"held_on": string,"host_gym_name": string,"id": string,"score": number | null,"source": string,"status": string,"storage_path": string | null,"student_id": string,"student_name": string,"to_rank_id": string
+            }[]
                            },
 "face_references":
 { Args: { "p_gym_id": string }; Returns: {

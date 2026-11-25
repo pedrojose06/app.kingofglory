@@ -1,10 +1,11 @@
 // Envia os lembretes de chamada e do plano de aula, o aviso de revisão do plano pelo mestre e o lembrete de aula
-// do aluno, por Web Push; e o aviso de acesso aprovado ao aluno, por Web Push e e-mail.
+// do aluno, por Web Push; o aviso de acesso aprovado ao aluno, por Web Push e e-mail; e o aviso ao professor de aluno
+// reconhecido numa graduação, por Web Push.
 //
 // Dois jeitos de chamar:
 //  - pg_cron ou banco (header x-cron-secret): envia os lembretes vencidos e as revisões pendentes, via
 //    claim_attendance_reminders(), claim_lesson_plan_reminders(), claim_plan_review_notifications(),
-//    claim_student_class_reminders() e claim_student_approval_notifications().
+//    claim_student_class_reminders(), claim_student_approval_notifications() e claim_graduation_notifications().
 //  - app (Authorization: Bearer <sessão>): envia uma notificação de teste aos aparelhos do próprio usuário.
 //
 // Deploy sem verificação de JWT (a função valida por conta própria):
@@ -17,7 +18,7 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import webpush from 'npm:web-push@3.6.7'
 import { approvalEmail, type EmailMessage } from './email.ts'
-import { approvalMessage, lessonPlanMessage, planReviewMessage, reminderMessage, studentClassMessage, type OpenClass, type PlanClass, type PlanReview, type PushMessage } from './message.ts'
+import { approvalMessage, graduationMessage, lessonPlanMessage, planReviewMessage, reminderMessage, studentClassMessage, type OpenClass, type PlanClass, type GraduationStudent, type PlanReview, type PushMessage } from './message.ts'
 
 interface Subscription {
   id: string
@@ -49,6 +50,12 @@ interface ClaimedApproval {
   name: string | null
   email: string | null
   gym: string
+  subscriptions: Subscription[]
+}
+
+interface ClaimedGraduation {
+  profile_id: string
+  students: GraduationStudent[]
   subscriptions: Subscription[]
 }
 
@@ -142,15 +149,16 @@ Deno.serve(async (req) => {
     const { data: ok, error: checkError } = await admin.rpc('cron_secret_matches', { p_secret: cronHeader })
     if (checkError) return json({ error: checkError.message }, 500)
     if (!ok) return json({ error: 'unauthorized' }, 401)
-    const [attendance, plans, reviews, students, approvals] = await Promise.all([
+    const [attendance, plans, reviews, students, approvals, graduations] = await Promise.all([
       admin.rpc('claim_attendance_reminders'),
       admin.rpc('claim_lesson_plan_reminders'),
       admin.rpc('claim_plan_review_notifications'),
       admin.rpc('claim_student_class_reminders'),
       admin.rpc('claim_student_approval_notifications'),
+      admin.rpc('claim_graduation_notifications'),
     ])
     // Um claim que falhou não impede o envio dos outros (o que já foi marcado como enviado não se perde).
-    const error = attendance.error ?? plans.error ?? reviews.error ?? students.error ?? approvals.error
+    const error = attendance.error ?? plans.error ?? reviews.error ?? students.error ?? approvals.error ?? graduations.error
     const approved = (approvals.data ?? []) as ClaimedApproval[]
     const messages = [
       ...((attendance.data ?? []) as Claimed[]).map((c) => ({ to: c.subscriptions, msg: reminderMessage(c.reminder_id, c.classes) })),
@@ -158,6 +166,7 @@ Deno.serve(async (req) => {
       ...((reviews.data ?? []) as ClaimedReview[]).map((c) => ({ to: c.subscriptions, msg: planReviewMessage(c) })),
       ...((students.data ?? []) as ClaimedStudent[]).map((c) => ({ to: c.subscriptions, msg: studentClassMessage(c.profile_id, c.classes) })),
       ...approved.filter((c) => c.subscriptions.length > 0).map((c) => ({ to: c.subscriptions, msg: approvalMessage(c.profile_id, c.gym) })),
+      ...((graduations.data ?? []) as ClaimedGraduation[]).map((c) => ({ to: c.subscriptions, msg: graduationMessage(c.profile_id, c.students) })),
     ]
     const totals = { reminders: messages.length, sent: 0, failed: 0, emails: 0 }
     for (const { to, msg } of messages) {
