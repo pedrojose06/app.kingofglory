@@ -26,7 +26,7 @@ const ortVersion = JSON.parse(readFileSync(new URL('./node_modules/onnxruntime-w
 
 const nextConfig: NextConfig = {
   env: { NEXT_PUBLIC_ORT_VERSION: ortVersion },
-  transpilePackages: ['@kog/core', '@kog/ui'],
+  transpilePackages: ['@kog/core', '@kog/ui', '@kog/web-kit'],
   // O Serwist injeta config de webpack (usada no build). Em dev o service worker fica desligado,
   // então o Turbopack roda sem configuração extra; sem esta linha o `next dev` aborta.
   turbopack: {},

@@ -39,8 +39,8 @@ export async function getPlanTemplate(db: Db): Promise<PlanTemplate | null> {
 }
 
 export async function savePlanTemplate(db: Db, id: string | null, content: Json): Promise<void> {
-  if (id) unwrap(await db.from('lesson_templates').update({ content }).eq('id', id))
-  else unwrap(await db.from('lesson_templates').insert({ title: 'Plano de aula', content }))
+  if (id) unwrap(await db.from('lesson_templates').update({ content: content ?? {} }).eq('id', id))
+  else unwrap(await db.from('lesson_templates').insert({ title: 'Plano de aula', content: content ?? {} }))
 }
 
 /** Volta ao esqueleto padrão da equipe (apaga o modelo do professor). */

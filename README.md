@@ -10,10 +10,12 @@ presença avulsa, foto do treino e controle de graduação (kruang/prajied).
 ## Estrutura
 
 ```
-apps/web          Next.js PWA (só telas e integração com o browser)
+apps/web          Next.js PWA do professor (só telas e integração com o browser)
+apps/academia     Next.js do sistema de gestão da academia (academia.kingofglory.com.br), web responsivo, sem PWA
 apps/mobile       reservado para o app Expo (Fase 5)
 packages/core     tipos do banco, schemas Zod, regras de negócio, cliente e queries do Supabase, fila offline
 packages/ui       tokens de design (tema claro/escuro) e componentes compartilháveis
+packages/web-kit  React para os apps web: cliente do Supabase no browser, sessão (AuthProvider) e avisos (toast)
 supabase/         migrations versionadas e seed de desenvolvimento
 ```
 
@@ -95,6 +97,7 @@ As migrations em `supabase/migrations` já estão aplicadas no projeto remoto, c
 | `fix_anon_storage_upload` | corrige o envio sem login da foto e do termo no cadastro (a policy do termo chamava uma função que `anon` não podia executar e derrubava todo envio sem login) |
 | `minor_account_from_guardian` | aluno menor: aprovar o termo com uso de imagem também marca o aceite da conta (`account_consent_at`), sem a tela de aceite do aluno |
 | `my_face_photo` | `my_face_photo()`: caminho da foto do cadastro do próprio aluno logado (aprovado), mostrada na área do aluno |
+| `academy_members` | sistema da academia (`academia.kingofglory.com.br`): `gyms.management_enabled`, `academy_members` (papéis `admin`/`professor`/`membro`, separados do app do professor), convites por e-mail (`academy_invites`, só o hash do token) aceitos apenas pela conta com aquele e-mail confirmado, `create_academy`, `update_academy`, `set_academy_member_role` (nunca sem admin) e `my_academies()`; academia com gestão não aparece no app do professor de quem não dá aula nela. Testes em `supabase/tests/database` (`pnpm db:test`) |
 
 Para criar uma migration nova e aplicar (com a CLI do Supabase):
 
@@ -116,7 +119,12 @@ pnpm db:types
 
 `pnpm db:types` regenera `packages/core/src/database.types.ts`. Para um banco local com dados de exemplo:
 `supabase start` e `supabase db reset` (aplica as migrations e o `supabase/seed.sql`; login
-`professor@example.com` / `senha123`).
+`professor@example.com` / `senha123`). A configuração local fica em `supabase/config.jsonc` (Postgres 17, igual à
+produção, e confirmação de e-mail ligada).
+
+**Toda migration nova é testada no banco local antes de ir para produção** e tem o rollback em
+`supabase/rollback/` (ver o README de lá). O histórico local e o de produção têm as mesmas versões; uma migration
+aplicada direto no painel ou pelo SQL Editor precisa ganhar o arquivo correspondente aqui com a mesma versão.
 
 ### Regras que o banco garante
 
@@ -413,6 +421,45 @@ altere apenas `parseAttendanceExport` em `packages/core/src/domain/import.ts`.
    precisa ficar ligado para alunos e professores criarem conta. Conta nova começa sem acesso: vira aluno pelo
    link do aluno ou professor pelo convite (Mais › Convidar professor).
 8. **Instalar no celular**: abrir `https://app.kingofglory.com.br` e usar "Adicionar à tela de início".
+
+## Sistema da academia (`apps/academia`)
+
+Gestão da academia (King of Glory Academy): cadastros, mensalidades, diários de aula, painel e contratos. É um app
+separado do app do professor, com **login próprio** (e-mail e senha, e-mail confirmado) e no mesmo projeto Supabase
+(alunos, turmas e presenças são os mesmos dados).
+
+- **Acesso só por convite**: em Configurações › Convites o administrador gera um link para um e-mail, com o papel
+  (**Administrador**, **Professor** ou **Aluno ou responsável**). A pessoa abre o link, cria a conta com aquele e-mail,
+  confirma pelo e-mail e já entra. O link vale 14 dias e só a conta com o e-mail convidado consegue aceitar.
+- Ser professor no app do professor não dá acesso à academia (e vice-versa). Academia com gestão não aparece no app do
+  professor de quem não dá aula nela.
+- O administrador muda o nome e o endereço da academia e o papel de cada pessoa; a academia nunca fica sem administrador.
+
+Local (com o Supabase local rodando):
+
+```bash
+cp apps/academia/.env.example apps/academia/.env.local
+```
+
+```bash
+pnpm --filter @kog/academia dev
+```
+
+Sobe em http://localhost:3001. Com o banco local, os e-mails (confirmação, senha) chegam no Mailpit:
+http://127.0.0.1:54324.
+
+### Deploy do sistema da academia (Vercel)
+
+1. vercel.com › Add New › Project › importar `pedrojose06/app.kingofglory` de novo, com **Root Directory
+   `apps/academia`** (projeto separado do app do professor).
+2. Variáveis (Production e Preview): as mesmas `NEXT_PUBLIC_SUPABASE_URL` e `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`.
+3. Settings › Git › **Ignored Build Step**: `npx turbo-ignore` nos **dois** projetos, para um não redeployar quando só o
+   outro mudou.
+4. Domínio `academia.kingofglory.com.br` e, no cPanel, o CNAME `academia` → `cname.vercel-dns.com.` (ou o valor que a
+   Vercel mostrar).
+5. **Supabase › Authentication › URL Configuration › Redirect URLs**: adicionar
+   `https://academia.kingofglory.com.br/**`. Sem isso o link de confirmação de e-mail e o de nova senha voltam para o
+   app do professor em vez da academia.
 
 ## Fases seguintes
 

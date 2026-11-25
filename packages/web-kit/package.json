@@ -1,0 +1,16 @@
+{
+  "name": "@kog/web-kit",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "sideEffects": false,
+  "exports": { ".": "./src/index.ts" },
+  "scripts": { "typecheck": "tsc --noEmit" },
+  "peerDependencies": { "react": "^19.0.0" },
+  "dependencies": {
+    "@kog/core": "workspace:*",
+    "@kog/ui": "workspace:*",
+    "@supabase/supabase-js": "^2.119.0"
+  },
+  "devDependencies": { "@types/react": "^19.3.0", "react": "^19.3.1", "typescript": "~5.9.3" }
+}

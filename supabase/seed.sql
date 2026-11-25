@@ -18,6 +18,9 @@ values (
   '{"sub":"11111111-1111-1111-1111-111111111111","email":"professor@example.com"}', 'email', now(), now(), now()
 );
 
+-- Conta nova começa como aluno (instructor_invites); o professor de exemplo é promovido aqui.
+update public.profiles set role = 'instructor' where id = '11111111-1111-1111-1111-111111111111';
+
 insert into public.gyms (id, name, address, created_by) values
   ('aaaaaaaa-0000-0000-0000-000000000001', 'Academia Centro', 'Rua Exemplo, 100 — Bauru', '11111111-1111-1111-1111-111111111111'),
   ('aaaaaaaa-0000-0000-0000-000000000002', 'Academia Jardim', 'Av. Exemplo, 200 — Bauru', '11111111-1111-1111-1111-111111111111');

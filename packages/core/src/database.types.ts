@@ -1,964 +1,1343 @@
-// Tipos do banco, conferidos com a saída do `supabase gen types typescript` do projeto real.
-// Versão enxuta: sem os metadados de Relationships (o app não usa selects embutidos).
-// `pnpm db:types` sobrescreve este arquivo com a saída completa do gerador.
 
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[]
 
 export type Database = {
-  __InternalSupabase: {
-    PostgrestVersion: "14.18"
-  }
-  public: {
-    Tables: {
-      attendance_reminders: {
-        Row: {
-          id: string
-          profile_id: string
-          schedule_id: string | null
-          remind_at: string
-          last_sent_on: string | null
-          created_at: string
-        }
-        Insert: {
-          id?: string
-          profile_id?: string
-          schedule_id?: string | null
-          remind_at: string
-          last_sent_on?: string | null
-          created_at?: string
-        }
-        Update: {
-          id?: string
-          profile_id?: string
-          schedule_id?: string | null
-          remind_at?: string
-          last_sent_on?: string | null
-          created_at?: string
-        }
-        Relationships: []
-      }
-      student_class_reminders: {
-        Row: {
-          profile_id: string
-          enabled: boolean
-          lead_minutes: number
-          last_sent_on: string | null
-          created_at: string
-        }
-        Insert: {
-          profile_id?: string
-          enabled?: boolean
-          lead_minutes?: number
-          last_sent_on?: string | null
-          created_at?: string
-        }
-        Update: {
-          profile_id?: string
-          enabled?: boolean
-          lead_minutes?: number
-          last_sent_on?: string | null
-          created_at?: string
-        }
-        Relationships: []
-      }
-      lesson_plan_reminders: {
-        Row: {
-          profile_id: string
-          remind_at: string
-          last_sent_on: string | null
-          created_at: string
-        }
-        Insert: {
-          profile_id?: string
-          remind_at?: string
-          last_sent_on?: string | null
-          created_at?: string
-        }
-        Update: {
-          profile_id?: string
-          remind_at?: string
-          last_sent_on?: string | null
-          created_at?: string
-        }
-        Relationships: []
-      }
-      push_subscriptions: {
-        Row: {
-          id: string
-          profile_id: string
-          endpoint: string
-          p256dh: string
-          auth: string
-          user_agent: string | null
-          created_at: string
-        }
-        Insert: {
-          id?: string
-          profile_id: string
-          endpoint: string
-          p256dh: string
-          auth: string
-          user_agent?: string | null
-          created_at?: string
-        }
-        Update: {
-          id?: string
-          profile_id?: string
-          endpoint?: string
-          p256dh?: string
-          auth?: string
-          user_agent?: string | null
-          created_at?: string
-        }
-        Relationships: []
-      }
-      attendance: {
-        Row: {
-          id: string
-          class_id: string | null
-          student_id: string
-          gym_id: string
-          date: string
-          status: Database["public"]["Enums"]["attendance_status"]
-          source: Database["public"]["Enums"]["attendance_source"]
-          location_label: string | null
-          marked_by: string
-          marked_at: string
-          credits: number
-          walk_in_period: string
-        }
-        Insert: {
-          id?: string
-          class_id?: string | null
-          student_id: string
-          gym_id?: string
-          date?: string
-          status?: Database["public"]["Enums"]["attendance_status"]
-          source?: Database["public"]["Enums"]["attendance_source"]
-          location_label?: string | null
-          marked_by?: string
-          marked_at?: string
-          credits?: number
-          walk_in_period?: string
-        }
-        Update: {
-          id?: string
-          class_id?: string | null
-          student_id?: string
-          gym_id?: string
-          date?: string
-          status?: Database["public"]["Enums"]["attendance_status"]
-          source?: Database["public"]["Enums"]["attendance_source"]
-          location_label?: string | null
-          marked_by?: string
-          marked_at?: string
-          credits?: number
-          walk_in_period?: string
-        }
-        Relationships: []
-      }
-      class_photos: {
-        Row: {
-          id: string
-          class_id: string
-          storage_path: string
-          taken_at: string
-          uploaded_by: string
-        }
-        Insert: {
-          id?: string
-          class_id: string
-          storage_path: string
-          taken_at?: string
-          uploaded_by?: string
-        }
-        Update: {
-          id?: string
-          class_id?: string
-          storage_path?: string
-          taken_at?: string
-          uploaded_by?: string
-        }
-        Relationships: []
-      }
-      class_schedules: {
-        Row: {
-          id: string
-          gym_id: string
-          instructor_id: string
-          weekday: number
-          start_time: string
-          title: string
-          starts_on: string
-          ends_on: string | null
-          active: boolean
-          created_at: string
-        }
-        Insert: {
-          id?: string
-          gym_id: string
-          instructor_id?: string
-          weekday: number
-          start_time: string
-          title?: string
-          starts_on?: string
-          ends_on?: string | null
-          active?: boolean
-          created_at?: string
-        }
-        Update: {
-          id?: string
-          gym_id?: string
-          instructor_id?: string
-          weekday?: number
-          start_time?: string
-          title?: string
-          starts_on?: string
-          ends_on?: string | null
-          active?: boolean
-          created_at?: string
-        }
-        Relationships: []
-      }
-      classes: {
-        Row: {
-          id: string
-          gym_id: string
-          instructor_id: string
-          schedule_id: string | null
-          date: string
-          start_time: string | null
-          title: string
-          status: Database["public"]["Enums"]["class_status"]
-          created_at: string
-        }
-        Insert: {
-          id?: string
-          gym_id: string
-          instructor_id?: string
-          schedule_id?: string | null
-          date: string
-          start_time?: string | null
-          title?: string
-          status?: Database["public"]["Enums"]["class_status"]
-          created_at?: string
-        }
-        Update: {
-          id?: string
-          gym_id?: string
-          instructor_id?: string
-          schedule_id?: string | null
-          date?: string
-          start_time?: string | null
-          title?: string
-          status?: Database["public"]["Enums"]["class_status"]
-          created_at?: string
-        }
-        Relationships: []
-      }
-      face_embeddings: {
-        Row: {
-          id: string
-          student_id: string
-          /** pgvector como texto: "[0.1,0.2,…]" */
-          embedding: string
-          model: string
-          source: string
-          source_photo_id: string | null
-          created_by: string | null
-          created_at: string
-        }
-        Insert: {
-          id?: string
-          student_id: string
-          embedding: string
-          model?: string
-          source?: string
-          source_photo_id?: string | null
-          created_by?: string | null
-          created_at?: string
-        }
-        Update: {
-          id?: string
-          student_id?: string
-          embedding?: string
-          model?: string
-          source?: string
-          source_photo_id?: string | null
-          created_by?: string | null
-          created_at?: string
-        }
-        Relationships: []
-      }
-      face_detections: {
-        Row: {
-          id: string
-          photo_id: string
-          face_index: number
-          bbox: Json
-          suggested_student_id: string | null
-          score: number | null
-          student_id: string | null
-          decision: Database["public"]["Enums"]["face_decision"]
-          embedding_id: string | null
-          decided_by: string | null
-          decided_at: string
-        }
-        Insert: {
-          id?: string
-          photo_id: string
-          face_index: number
-          bbox: Json
-          suggested_student_id?: string | null
-          score?: number | null
-          student_id?: string | null
-          decision: Database["public"]["Enums"]["face_decision"]
-          embedding_id?: string | null
-          decided_by?: string | null
-          decided_at?: string
-        }
-        Update: {
-          id?: string
-          photo_id?: string
-          face_index?: number
-          bbox?: Json
-          suggested_student_id?: string | null
-          score?: number | null
-          student_id?: string | null
-          decision?: Database["public"]["Enums"]["face_decision"]
-          embedding_id?: string | null
-          decided_by?: string | null
-          decided_at?: string
-        }
-        Relationships: []
-      }
-      gym_instructors: {
-        Row: {
-          gym_id: string
-          profile_id: string
-          role: Database["public"]["Enums"]["gym_role"]
-          created_at: string
-          started_on: string | null
-        }
-        Insert: {
-          gym_id: string
-          profile_id: string
-          role?: Database["public"]["Enums"]["gym_role"]
-          created_at?: string
-          started_on?: string | null
-        }
-        Update: {
-          gym_id?: string
-          profile_id?: string
-          role?: Database["public"]["Enums"]["gym_role"]
-          created_at?: string
-          started_on?: string | null
-        }
-        Relationships: []
-      }
-      gyms: {
-        Row: {
-          id: string
-          name: string
-          address: string | null
-          created_by: string
-          created_at: string
-          next_graduation_on: string | null
-        }
-        Insert: {
-          id?: string
-          name: string
-          address?: string | null
-          created_by?: string
-          created_at?: string
-          next_graduation_on?: string | null
-        }
-        Update: {
-          id?: string
-          name?: string
-          address?: string | null
-          created_by?: string
-          created_at?: string
-          next_graduation_on?: string | null
-        }
-        Relationships: []
-      }
-      graduation_schedule: {
-        Row: {
-          track: string
-          next_on: string | null
-          updated_at: string
-        }
-        Insert: {
-          track: string
-          next_on?: string | null
-          updated_at?: string
-        }
-        Update: {
-          track?: string
-          next_on?: string | null
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      lesson_plans: {
-        Row: {
-          id: string
-          class_id: string
-          content: Json
-          template_id: string | null
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          class_id: string
-          content?: Json
-          template_id?: string | null
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          class_id?: string
-          content?: Json
-          template_id?: string | null
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      lesson_templates: {
-        Row: {
-          id: string
-          owner_id: string
-          title: string
-          content: Json
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          owner_id?: string
-          title: string
-          content?: Json
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          owner_id?: string
-          title?: string
-          content?: Json
-          created_at?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      profiles: {
-        Row: {
-          id: string
-          name: string
-          role: Database["public"]["Enums"]["profile_role"]
-          avatar_url: string | null
-          absence_alert_threshold: number
-          face_auto_approve_min: number | null
-          created_at: string
-        }
-        Insert: {
-          id: string
-          name?: string
-          role?: Database["public"]["Enums"]["profile_role"]
-          avatar_url?: string | null
-          absence_alert_threshold?: number
-          face_auto_approve_min?: number | null
-          created_at?: string
-        }
-        Update: {
-          id?: string
-          name?: string
-          role?: Database["public"]["Enums"]["profile_role"]
-          avatar_url?: string | null
-          absence_alert_threshold?: number
-          face_auto_approve_min?: number | null
-          created_at?: string
-        }
-        Relationships: []
-      }
-      ranks: {
-        Row: {
-          id: string
-          grade: number
-          name: string
-          level: string
-          colors: string[]
-          min_months: number | null
-          required_classes: number | null
-          min_percent: number | null
-          track: string
-          min_age: number | null
-        }
-        Insert: {
-          id?: string
-          grade: number
-          name: string
-          level: string
-          colors?: string[]
-          min_months?: number | null
-          required_classes?: number | null
-          min_percent?: number | null
-          track?: string
-          min_age?: number | null
-        }
-        Update: {
-          id?: string
-          grade?: number
-          name?: string
-          level?: string
-          colors?: string[]
-          min_months?: number | null
-          required_classes?: number | null
-          min_percent?: number | null
-          track?: string
-          min_age?: number | null
-        }
-        Relationships: []
-      }
-      student_graduations: {
-        Row: {
-          id: string
-          student_id: string
-          rank_id: string
-          graduated_at: string
-          notes: string | null
-          recorded_by: string
-          created_at: string
-        }
-        Insert: {
-          id?: string
-          student_id: string
-          rank_id: string
-          graduated_at: string
-          notes?: string | null
-          recorded_by?: string
-          created_at?: string
-        }
-        Update: {
-          id?: string
-          student_id?: string
-          rank_id?: string
-          graduated_at?: string
-          notes?: string | null
-          recorded_by?: string
-          created_at?: string
-        }
-        Relationships: []
-      }
-      lesson_plan_shares: {
-        Row: {
-          class_id: string
-          token: string
-          created_by: string
-          created_at: string
-          last_seen_at: string | null
-          review_status: string | null
-          review_note: string | null
-          reviewer_name: string | null
-          reviewed_at: string | null
-        }
-        Insert: {
-          class_id: string
-          token?: string
-          created_by?: string
-          created_at?: string
-          last_seen_at?: string | null
-          review_status?: string | null
-          review_note?: string | null
-          reviewer_name?: string | null
-          reviewed_at?: string | null
-        }
-        Update: {
-          class_id?: string
-          token?: string
-          created_by?: string
-          created_at?: string
-          last_seen_at?: string | null
-          review_status?: string | null
-          review_note?: string | null
-          reviewer_name?: string | null
-          reviewed_at?: string | null
-        }
-        Relationships: []
-      }
-      instructor_invites: {
-        Row: {
-          token: string
-          created_by: string
-          created_at: string
-          expires_at: string
-          used_by: string | null
-          used_at: string | null
-        }
-        Insert: {
-          token?: string
-          created_by?: string
-          created_at?: string
-          expires_at?: string
-          used_by?: string | null
-          used_at?: string | null
-        }
-        Update: {
-          token?: string
-          created_by?: string
-          created_at?: string
-          expires_at?: string
-          used_by?: string | null
-          used_at?: string | null
-        }
-        Relationships: []
-      }
-      student_access: {
-        Row: {
-          student_id: string
-          token: string
-          created_by: string
-          created_at: string
-          last_seen_at: string | null
-          expires_at: string
-        }
-        Insert: {
-          student_id: string
-          token?: string
-          created_by?: string
-          created_at?: string
-          last_seen_at?: string | null
-          expires_at?: string
-        }
-        Update: {
-          student_id?: string
-          token?: string
-          created_by?: string
-          created_at?: string
-          last_seen_at?: string | null
-          expires_at?: string
-        }
-        Relationships: []
-      }
-      student_guardian_consents: {
-        Row: {
-          id: string
-          student_id: string
-          file_path: string | null
-          status: string
-          uploaded_at: string | null
-          uploaded_by: string | null
-          created_at: string
-          updated_at: string
-          reviewed_at: string | null
-          reviewed_by: string | null
-          rejected_reason: string | null
-          rejected_at: string | null
-          sign_token: string | null
-          sign_token_expires_at: string | null
-          sign_token_created_by: string | null
-          signed_at: string | null
-          guardian_name: string | null
-          guardian_cpf: string | null
-          guardian_relationship: string | null
-          image_authorized: boolean | null
-          face_authorized: boolean | null
-          signed_place: string | null
-          signature_png: string | null
-          signed_ip: string | null
-          signed_user_agent: string | null
-          term_version: string | null
-          document_sha256: string | null
-        }
-        Insert: {
-          id?: string
-          student_id: string
-          file_path?: string | null
-          status?: string
-          uploaded_at?: string | null
-          uploaded_by?: string | null
-          created_at?: string
-          updated_at?: string
-          reviewed_at?: string | null
-          reviewed_by?: string | null
-          rejected_reason?: string | null
-          rejected_at?: string | null
-          sign_token?: string | null
-          sign_token_expires_at?: string | null
-          sign_token_created_by?: string | null
-          signed_at?: string | null
-          guardian_name?: string | null
-          guardian_cpf?: string | null
-          guardian_relationship?: string | null
-          image_authorized?: boolean | null
-          face_authorized?: boolean | null
-          signed_place?: string | null
-          signature_png?: string | null
-          signed_ip?: string | null
-          signed_user_agent?: string | null
-          term_version?: string | null
-          document_sha256?: string | null
-        }
-        Update: {
-          id?: string
-          student_id?: string
-          file_path?: string | null
-          status?: string
-          uploaded_at?: string | null
-          uploaded_by?: string | null
-          created_at?: string
-          updated_at?: string
-          reviewed_at?: string | null
-          reviewed_by?: string | null
-          rejected_reason?: string | null
-          rejected_at?: string | null
-          sign_token?: string | null
-          sign_token_expires_at?: string | null
-          sign_token_created_by?: string | null
-          signed_at?: string | null
-          guardian_name?: string | null
-          guardian_cpf?: string | null
-          guardian_relationship?: string | null
-          image_authorized?: boolean | null
-          face_authorized?: boolean | null
-          signed_place?: string | null
-          signature_png?: string | null
-          signed_ip?: string | null
-          signed_user_agent?: string | null
-          term_version?: string | null
-          document_sha256?: string | null
-        }
-        Relationships: []
-      }
-      students: {
-        Row: {
-          id: string
-          gym_id: string
-          name: string
-          phone: string | null
-          birth_date: string | null
-          active: boolean
-          profile_id: string | null
-          image_consent_at: string | null
-          account_consent_at: string | null
-          notes: string | null
-          created_at: string
-          opening_present: number
-          opening_absent: number
-          opening_until: string | null
-          started_on: string
-          opening_from: string | null
-          opening_after_grad: number | null
-          track: string
-        }
-        Insert: {
-          id?: string
-          gym_id: string
-          name: string
-          phone?: string | null
-          birth_date?: string | null
-          active?: boolean
-          profile_id?: string | null
-          image_consent_at?: string | null
-          account_consent_at?: string | null
-          notes?: string | null
-          created_at?: string
-          opening_present?: number
-          opening_absent?: number
-          opening_until?: string | null
-          started_on?: string
-          opening_from?: string | null
-          opening_after_grad?: number | null
-          track?: string
-        }
-        Update: {
-          id?: string
-          gym_id?: string
-          name?: string
-          phone?: string | null
-          birth_date?: string | null
-          active?: boolean
-          profile_id?: string | null
-          image_consent_at?: string | null
-          account_consent_at?: string | null
-          notes?: string | null
-          created_at?: string
-          opening_present?: number
-          opening_absent?: number
-          opening_until?: string | null
-          started_on?: string
-          opening_from?: string | null
-          opening_after_grad?: number | null
-          track?: string
-        }
-        Relationships: []
-      }
+  
+  "public": {
+          Tables: {
+            "academy_invites": {
+                  Row: {
+                    "accepted_at": string | null,"accepted_by": string | null,"cancelled_at": string | null,"created_at": string,"created_by": string,"email": string,"expires_at": string,"gym_id": string,"id": string,"role": string,"token_sha256": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "accepted_at"?: string | null,"accepted_by"?: string | null,"cancelled_at"?: string | null,"created_at"?: string,"created_by": string,"email": string,"expires_at"?: string,"gym_id": string,"id"?: string,"role": string,"token_sha256": string
+                  }
+                  Update: {
+                    "accepted_at"?: string | null,"accepted_by"?: string | null,"cancelled_at"?: string | null,"created_at"?: string,"created_by"?: string,"email"?: string,"expires_at"?: string,"gym_id"?: string,"id"?: string,"role"?: string,"token_sha256"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "academy_invites_accepted_by_fkey"
+      columns: ["accepted_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "academy_invites_created_by_fkey"
+      columns: ["created_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "academy_invites_gym_id_fkey"
+      columns: ["gym_id"]
+isOneToOne: false
+      referencedRelation: "gyms"
+      referencedColumns: ["id"]
     }
-    Views: {
-      student_absence_streaks: {
-        Row: {
-          student_id: string | null
-          gym_id: string | null
-          last_present_on: string | null
-          absences_in_row: number | null
-        }
-        Relationships: []
-      }
-      class_turnout: {
-        Row: {
-          class_id: string | null
-          gym_id: string | null
-          date: string | null
-          start_time: string | null
-          present: number | null
-        }
-        Relationships: []
-      }
-      student_progress: {
-        Row: {
-          student_id: string | null
-          gym_id: string | null
-          current_rank_id: string | null
-          last_graduated_at: string | null
-          attendance_since: number | null
-          attendance_total: number | null
-          last_attendance_on: string | null
-          classes_since: number | null
-        }
-        Relationships: []
-      }
+                  ]
+                },"academy_members": {
+                  Row: {
+                    "created_at": string,"created_by": string | null,"gym_id": string,"profile_id": string,"role": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"created_by"?: string | null,"gym_id": string,"profile_id": string,"role": string
+                  }
+                  Update: {
+                    "created_at"?: string,"created_by"?: string | null,"gym_id"?: string,"profile_id"?: string,"role"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "academy_members_created_by_fkey"
+      columns: ["created_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "academy_members_gym_id_fkey"
+      columns: ["gym_id"]
+isOneToOne: false
+      referencedRelation: "gyms"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "academy_members_profile_id_fkey"
+      columns: ["profile_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
     }
-    Functions: {
-      today_sp: { Args: never; Returns: string }
-      ensure_classes: { Args: { p_until?: string }; Returns: number }
-      mark_attendance_batch: { Args: { p_items: Json }; Returns: number }
-      save_face_decisions: { Args: { p_items: Json; p_max_refs?: number }; Returns: number }
-      student_face_photos: { Args: never; Returns: { student_id: string; photo_path: string }[] }
-      my_face_photo: { Args: never; Returns: string | null }
-      face_signup_photos: { Args: { p_gym_id: string }; Returns: { student_id: string; photo_path: string }[] }
-      add_signup_face_reference: { Args: { p_student_id: string; p_id: string; p_embedding: Json }; Returns: boolean }
-      face_references: {
-        Args: { p_gym_id: string }
-        Returns: { id: string; student_id: string; embedding: string; model: string; created_at: string }[]
-      }
-      add_walk_ins: {
-        Args: {
-          p_student_ids: string[]
-          p_date: string
-          p_location: string
-          p_source?: Database["public"]["Enums"]["attendance_source"]
-        }
-        Returns: number
-      }
-      conclude_class: { Args: { p_class_id: string }; Returns: undefined }
-      walk_in_locations: {
-        Args: never
-        Returns: { location_label: string; uses: number }[]
-      }
-      is_gym_member: { Args: { p_gym_id: string }; Returns: boolean }
-      is_gym_owner: { Args: { p_gym_id: string }; Returns: boolean }
-      is_instructor: { Args: never; Returns: boolean }
-      is_own_student: { Args: { p_student_id: string }; Returns: boolean }
-      can_manage_student: { Args: { p_student_id: string }; Returns: boolean }
-      storage_path_gym: { Args: { p_name: string }; Returns: string }
-      can_manage_class: { Args: { p_class_id: string }; Returns: boolean }
-      register_walk_ins: {
-        Args: {
-          p_student_ids: string[]
-          p_date: string
-          p_location: string
-          p_credits?: number
-          p_source?: Database["public"]["Enums"]["attendance_source"]
-          p_period?: string
-        }
-        Returns: number
-      }
-      rotate_student_access: { Args: { p_student_id: string; p_hours?: number }; Returns: string }
-      claim_student_account: { Args: { p_token: string }; Returns: undefined }
-      my_student_account: { Args: never; Returns: Json }
-      accept_image_consent: { Args: never; Returns: undefined }
-      my_student_portal: { Args: never; Returns: Json }
-      create_instructor_invite: { Args: never; Returns: string }
-      instructor_invite_info: { Args: { p_token: string }; Returns: Json }
-      accept_instructor_invite: { Args: { p_token: string }; Returns: undefined }
-      signup_directory: { Args: never; Returns: Json }
-      signup_ranks: { Args: never; Returns: Json }
-      request_student_access: { Args: { p_gym_id: string; p_name: string; p_phone?: string; p_rank_id?: string; p_graduated_at?: string; p_birth_date?: string }; Returns: undefined }
-      my_signup_request: { Args: never; Returns: Json }
-      set_signup_photo: { Args: { p_path: string }; Returns: undefined }
-      set_pending_signup_term: { Args: { p_profile_id: string; p_token: string; p_ext: string }; Returns: undefined }
-      set_my_signup_term: { Args: { p_path: string }; Returns: undefined }
-      set_my_signup_image_consent: { Args: never; Returns: undefined }
-      set_schedule_start: { Args: { p_schedule_id: string; p_starts_on: string }; Returns: number }
-      set_my_gym_start: { Args: { p_gym_id: string; p_started_on: string | null }; Returns: undefined }
-      set_pending_signup_photo: { Args: { p_profile_id: string; p_token: string }; Returns: undefined }
-      set_guardian_consent_file: { Args: { p_student_id: string; p_path: string }; Returns: string | null }
-      is_minor: { Args: { p_birth: string; p_today: string }; Returns: boolean }
-      submit_guardian_consent_file: { Args: { p_path: string }; Returns: string | null }
-      review_guardian_consent: {
-        Args: { p_student_id: string; p_approve: boolean; p_image_consent?: boolean; p_reason?: string }
-        Returns: string | null
-      }
-      create_guardian_sign_link: { Args: { p_student_id: string; p_renew?: boolean }; Returns: Json }
-      guardian_sign_info: { Args: { p_token: string }; Returns: Json }
-      sign_guardian_term: {
-        Args: {
-          p_token: string
-          p_guardian_name: string
-          p_guardian_cpf: string
-          p_relationship: string
-          p_image: boolean
-          p_face: boolean
-          p_place: string
-          p_signature: string
-          p_term_version: string
-        }
-        Returns: Json
-      }
-      guardian_term_signature: { Args: { p_student_id?: string; p_token?: string }; Returns: Json }
-      signup_guardian_signature: { Args: { p_request_id: string }; Returns: Json }
-      sign_signup_guardian_term: {
-        Args: {
-          p_profile_id: string
-          p_token: string | null
-          p_guardian_name: string
-          p_guardian_cpf: string
-          p_relationship: string
-          p_image: boolean
-          p_face: boolean
-          p_place: string
-          p_signature: string
-          p_term_version: string
-        }
-        Returns: undefined
-      }
-      is_valid_cpf: { Args: { p_cpf: string }; Returns: boolean }
-      list_student_requests: { Args: never; Returns: Json }
-      approve_student_request: { Args: { p_request_id: string; p_student_id?: string }; Returns: string }
-      reject_student_request: { Args: { p_request_id: string }; Returns: undefined }
-      student_portal: { Args: { p_token: string }; Returns: Json }
-      rotate_lesson_plan_share: { Args: { p_class_id: string }; Returns: string }
-      shared_lesson_plan: { Args: { p_token: string }; Returns: Json }
-      review_shared_lesson_plan: {
-        Args: { p_token: string; p_status: string; p_note?: string; p_reviewer_name?: string }
-        Returns: boolean
-      }
-      save_push_subscription: {
-        Args: { p_endpoint: string; p_p256dh: string; p_auth: string; p_user_agent?: string }
-        Returns: undefined
-      }
+                  ]
+                },"attendance": {
+                  Row: {
+                    "class_id": string | null,"credits": number,"date": string,"gym_id": string,"id": string,"location_label": string | null,"marked_at": string,"marked_by": string,"source": Database["public"]['Enums']["attendance_source"],"status": Database["public"]['Enums']["attendance_status"],"student_id": string,"walk_in_period": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "class_id"?: string | null,"credits"?: number,"date": string,"gym_id": string,"id"?: string,"location_label"?: string | null,"marked_at"?: string,"marked_by"?: string,"source"?: Database["public"]['Enums']["attendance_source"],"status"?: Database["public"]['Enums']["attendance_status"],"student_id": string,"walk_in_period"?: string
+                  }
+                  Update: {
+                    "class_id"?: string | null,"credits"?: number,"date"?: string,"gym_id"?: string,"id"?: string,"location_label"?: string | null,"marked_at"?: string,"marked_by"?: string,"source"?: Database["public"]['Enums']["attendance_source"],"status"?: Database["public"]['Enums']["attendance_status"],"student_id"?: string,"walk_in_period"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "attendance_class_id_fkey"
+      columns: ["class_id"]
+isOneToOne: false
+      referencedRelation: "class_turnout"
+      referencedColumns: ["class_id"]
+    },{
+      foreignKeyName: "attendance_class_id_fkey"
+      columns: ["class_id"]
+isOneToOne: false
+      referencedRelation: "classes"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "attendance_gym_id_fkey"
+      columns: ["gym_id"]
+isOneToOne: false
+      referencedRelation: "gyms"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "attendance_marked_by_fkey"
+      columns: ["marked_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "attendance_student_id_fkey"
+      columns: ["student_id"]
+isOneToOne: false
+      referencedRelation: "student_absence_streaks"
+      referencedColumns: ["student_id"]
+    },{
+      foreignKeyName: "attendance_student_id_fkey"
+      columns: ["student_id"]
+isOneToOne: false
+      referencedRelation: "student_progress"
+      referencedColumns: ["student_id"]
+    },{
+      foreignKeyName: "attendance_student_id_fkey"
+      columns: ["student_id"]
+isOneToOne: false
+      referencedRelation: "students"
+      referencedColumns: ["id"]
     }
-    Enums: {
-      profile_role: "instructor" | "student"
-      gym_role: "owner" | "instructor"
-      class_status: "scheduled" | "done" | "cancelled"
-      attendance_status: "present" | "absent" | "late" | "justified"
-      attendance_source: "manual" | "walk_in" | "import" | "face" | "student_checkin"
-      face_decision: "confirmed" | "corrected" | "ignored" | "auto"
+                  ]
+                },"attendance_reminders": {
+                  Row: {
+                    "created_at": string,"id": string,"last_sent_on": string | null,"profile_id": string,"remind_at": string,"schedule_id": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"id"?: string,"last_sent_on"?: string | null,"profile_id"?: string,"remind_at": string,"schedule_id"?: string | null
+                  }
+                  Update: {
+                    "created_at"?: string,"id"?: string,"last_sent_on"?: string | null,"profile_id"?: string,"remind_at"?: string,"schedule_id"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "attendance_reminders_profile_id_fkey"
+      columns: ["profile_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "attendance_reminders_schedule_id_fkey"
+      columns: ["schedule_id"]
+isOneToOne: false
+      referencedRelation: "class_schedules"
+      referencedColumns: ["id"]
     }
-    CompositeTypes: {
-      [_ in never]: never
+                  ]
+                },"class_photos": {
+                  Row: {
+                    "class_id": string,"id": string,"storage_path": string,"taken_at": string,"uploaded_by": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "class_id": string,"id"?: string,"storage_path": string,"taken_at"?: string,"uploaded_by"?: string
+                  }
+                  Update: {
+                    "class_id"?: string,"id"?: string,"storage_path"?: string,"taken_at"?: string,"uploaded_by"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "class_photos_class_id_fkey"
+      columns: ["class_id"]
+isOneToOne: false
+      referencedRelation: "class_turnout"
+      referencedColumns: ["class_id"]
+    },{
+      foreignKeyName: "class_photos_class_id_fkey"
+      columns: ["class_id"]
+isOneToOne: false
+      referencedRelation: "classes"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "class_photos_uploaded_by_fkey"
+      columns: ["uploaded_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
     }
-  }
+                  ]
+                },"class_schedules": {
+                  Row: {
+                    "active": boolean,"created_at": string,"ends_on": string | null,"gym_id": string,"id": string,"instructor_id": string,"start_time": string,"starts_on": string,"title": string,"weekday": number
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "active"?: boolean,"created_at"?: string,"ends_on"?: string | null,"gym_id": string,"id"?: string,"instructor_id"?: string,"start_time": string,"starts_on"?: string,"title"?: string,"weekday": number
+                  }
+                  Update: {
+                    "active"?: boolean,"created_at"?: string,"ends_on"?: string | null,"gym_id"?: string,"id"?: string,"instructor_id"?: string,"start_time"?: string,"starts_on"?: string,"title"?: string,"weekday"?: number
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "class_schedules_gym_id_fkey"
+      columns: ["gym_id"]
+isOneToOne: false
+      referencedRelation: "gyms"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "class_schedules_instructor_id_fkey"
+      columns: ["instructor_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"classes": {
+                  Row: {
+                    "created_at": string,"date": string,"gym_id": string,"id": string,"instructor_id": string,"schedule_id": string | null,"start_time": string | null,"status": Database["public"]['Enums']["class_status"],"title": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"date": string,"gym_id": string,"id"?: string,"instructor_id"?: string,"schedule_id"?: string | null,"start_time"?: string | null,"status"?: Database["public"]['Enums']["class_status"],"title"?: string
+                  }
+                  Update: {
+                    "created_at"?: string,"date"?: string,"gym_id"?: string,"id"?: string,"instructor_id"?: string,"schedule_id"?: string | null,"start_time"?: string | null,"status"?: Database["public"]['Enums']["class_status"],"title"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "classes_gym_id_fkey"
+      columns: ["gym_id"]
+isOneToOne: false
+      referencedRelation: "gyms"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "classes_instructor_id_fkey"
+      columns: ["instructor_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "classes_schedule_id_fkey"
+      columns: ["schedule_id"]
+isOneToOne: false
+      referencedRelation: "class_schedules"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"face_detections": {
+                  Row: {
+                    "bbox": NonNullable<Json>,"decided_at": string,"decided_by": string | null,"decision": Database["public"]['Enums']["face_decision"],"embedding_id": string | null,"face_index": number,"id": string,"photo_id": string,"score": number | null,"student_id": string | null,"suggested_student_id": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "bbox": NonNullable<Json>,"decided_at"?: string,"decided_by"?: string | null,"decision": Database["public"]['Enums']["face_decision"],"embedding_id"?: string | null,"face_index": number,"id"?: string,"photo_id": string,"score"?: number | null,"student_id"?: string | null,"suggested_student_id"?: string | null
+                  }
+                  Update: {
+                    "bbox"?: NonNullable<Json>,"decided_at"?: string,"decided_by"?: string | null,"decision"?: Database["public"]['Enums']["face_decision"],"embedding_id"?: string | null,"face_index"?: number,"id"?: string,"photo_id"?: string,"score"?: number | null,"student_id"?: string | null,"suggested_student_id"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "face_detections_decided_by_fkey"
+      columns: ["decided_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "face_detections_embedding_id_fkey"
+      columns: ["embedding_id"]
+isOneToOne: false
+      referencedRelation: "face_embeddings"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "face_detections_photo_id_fkey"
+      columns: ["photo_id"]
+isOneToOne: false
+      referencedRelation: "class_photos"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "face_detections_student_id_fkey"
+      columns: ["student_id"]
+isOneToOne: false
+      referencedRelation: "student_absence_streaks"
+      referencedColumns: ["student_id"]
+    },{
+      foreignKeyName: "face_detections_student_id_fkey"
+      columns: ["student_id"]
+isOneToOne: false
+      referencedRelation: "student_progress"
+      referencedColumns: ["student_id"]
+    },{
+      foreignKeyName: "face_detections_student_id_fkey"
+      columns: ["student_id"]
+isOneToOne: false
+      referencedRelation: "students"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "face_detections_suggested_student_id_fkey"
+      columns: ["suggested_student_id"]
+isOneToOne: false
+      referencedRelation: "student_absence_streaks"
+      referencedColumns: ["student_id"]
+    },{
+      foreignKeyName: "face_detections_suggested_student_id_fkey"
+      columns: ["suggested_student_id"]
+isOneToOne: false
+      referencedRelation: "student_progress"
+      referencedColumns: ["student_id"]
+    },{
+      foreignKeyName: "face_detections_suggested_student_id_fkey"
+      columns: ["suggested_student_id"]
+isOneToOne: false
+      referencedRelation: "students"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"face_embeddings": {
+                  Row: {
+                    "created_at": string,"created_by": string | null,"embedding": string,"id": string,"model": string,"source": string,"source_photo_id": string | null,"student_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"created_by"?: string | null,"embedding": string,"id"?: string,"model"?: string,"source"?: string,"source_photo_id"?: string | null,"student_id": string
+                  }
+                  Update: {
+                    "created_at"?: string,"created_by"?: string | null,"embedding"?: string,"id"?: string,"model"?: string,"source"?: string,"source_photo_id"?: string | null,"student_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "face_embeddings_created_by_fkey"
+      columns: ["created_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "face_embeddings_source_photo_id_fkey"
+      columns: ["source_photo_id"]
+isOneToOne: false
+      referencedRelation: "class_photos"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "face_embeddings_student_id_fkey"
+      columns: ["student_id"]
+isOneToOne: false
+      referencedRelation: "student_absence_streaks"
+      referencedColumns: ["student_id"]
+    },{
+      foreignKeyName: "face_embeddings_student_id_fkey"
+      columns: ["student_id"]
+isOneToOne: false
+      referencedRelation: "student_progress"
+      referencedColumns: ["student_id"]
+    },{
+      foreignKeyName: "face_embeddings_student_id_fkey"
+      columns: ["student_id"]
+isOneToOne: false
+      referencedRelation: "students"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"graduation_schedule": {
+                  Row: {
+                    "next_on": string | null,"track": string,"updated_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "next_on"?: string | null,"track": string,"updated_at"?: string
+                  }
+                  Update: {
+                    "next_on"?: string | null,"track"?: string,"updated_at"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"gym_instructors": {
+                  Row: {
+                    "created_at": string,"gym_id": string,"profile_id": string,"role": Database["public"]['Enums']["gym_role"],"started_on": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"gym_id": string,"profile_id": string,"role"?: Database["public"]['Enums']["gym_role"],"started_on"?: string | null
+                  }
+                  Update: {
+                    "created_at"?: string,"gym_id"?: string,"profile_id"?: string,"role"?: Database["public"]['Enums']["gym_role"],"started_on"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "gym_instructors_gym_id_fkey"
+      columns: ["gym_id"]
+isOneToOne: false
+      referencedRelation: "gyms"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "gym_instructors_profile_id_fkey"
+      columns: ["profile_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"gyms": {
+                  Row: {
+                    "address": string | null,"created_at": string,"created_by": string,"id": string,"management_enabled": boolean,"name": string,"next_graduation_on": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "address"?: string | null,"created_at"?: string,"created_by"?: string,"id"?: string,"management_enabled"?: boolean,"name": string,"next_graduation_on"?: string | null
+                  }
+                  Update: {
+                    "address"?: string | null,"created_at"?: string,"created_by"?: string,"id"?: string,"management_enabled"?: boolean,"name"?: string,"next_graduation_on"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "gyms_created_by_fkey"
+      columns: ["created_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"instructor_invites": {
+                  Row: {
+                    "created_at": string,"created_by": string,"expires_at": string,"token": string,"used_at": string | null,"used_by": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"created_by"?: string,"expires_at"?: string,"token"?: string,"used_at"?: string | null,"used_by"?: string | null
+                  }
+                  Update: {
+                    "created_at"?: string,"created_by"?: string,"expires_at"?: string,"token"?: string,"used_at"?: string | null,"used_by"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "instructor_invites_created_by_fkey"
+      columns: ["created_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "instructor_invites_used_by_fkey"
+      columns: ["used_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"lesson_plan_reminders": {
+                  Row: {
+                    "created_at": string,"last_sent_on": string | null,"profile_id": string,"remind_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"last_sent_on"?: string | null,"profile_id"?: string,"remind_at"?: string
+                  }
+                  Update: {
+                    "created_at"?: string,"last_sent_on"?: string | null,"profile_id"?: string,"remind_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "lesson_plan_reminders_profile_id_fkey"
+      columns: ["profile_id"]
+isOneToOne: true
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"lesson_plan_shares": {
+                  Row: {
+                    "class_id": string,"created_at": string,"created_by": string,"last_seen_at": string | null,"review_note": string | null,"review_notify_pending": boolean,"review_status": string | null,"reviewed_at": string | null,"reviewer_name": string | null,"token": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "class_id": string,"created_at"?: string,"created_by"?: string,"last_seen_at"?: string | null,"review_note"?: string | null,"review_notify_pending"?: boolean,"review_status"?: string | null,"reviewed_at"?: string | null,"reviewer_name"?: string | null,"token"?: string
+                  }
+                  Update: {
+                    "class_id"?: string,"created_at"?: string,"created_by"?: string,"last_seen_at"?: string | null,"review_note"?: string | null,"review_notify_pending"?: boolean,"review_status"?: string | null,"reviewed_at"?: string | null,"reviewer_name"?: string | null,"token"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "lesson_plan_shares_class_id_fkey"
+      columns: ["class_id"]
+isOneToOne: true
+      referencedRelation: "class_turnout"
+      referencedColumns: ["class_id"]
+    },{
+      foreignKeyName: "lesson_plan_shares_class_id_fkey"
+      columns: ["class_id"]
+isOneToOne: true
+      referencedRelation: "classes"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "lesson_plan_shares_created_by_fkey"
+      columns: ["created_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"lesson_plans": {
+                  Row: {
+                    "class_id": string,"content": NonNullable<Json>,"id": string,"template_id": string | null,"updated_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "class_id": string,"content"?: NonNullable<Json>,"id"?: string,"template_id"?: string | null,"updated_at"?: string
+                  }
+                  Update: {
+                    "class_id"?: string,"content"?: NonNullable<Json>,"id"?: string,"template_id"?: string | null,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "lesson_plans_class_id_fkey"
+      columns: ["class_id"]
+isOneToOne: true
+      referencedRelation: "class_turnout"
+      referencedColumns: ["class_id"]
+    },{
+      foreignKeyName: "lesson_plans_class_id_fkey"
+      columns: ["class_id"]
+isOneToOne: true
+      referencedRelation: "classes"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "lesson_plans_template_id_fkey"
+      columns: ["template_id"]
+isOneToOne: false
+      referencedRelation: "lesson_templates"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"lesson_templates": {
+                  Row: {
+                    "content": NonNullable<Json>,"created_at": string,"id": string,"owner_id": string,"title": string,"updated_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "content"?: NonNullable<Json>,"created_at"?: string,"id"?: string,"owner_id"?: string,"title": string,"updated_at"?: string
+                  }
+                  Update: {
+                    "content"?: NonNullable<Json>,"created_at"?: string,"id"?: string,"owner_id"?: string,"title"?: string,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "lesson_templates_owner_id_fkey"
+      columns: ["owner_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"profiles": {
+                  Row: {
+                    "absence_alert_threshold": number,"avatar_url": string | null,"created_at": string,"face_auto_approve_min": number | null,"id": string,"name": string,"role": Database["public"]['Enums']["profile_role"]
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "absence_alert_threshold"?: number,"avatar_url"?: string | null,"created_at"?: string,"face_auto_approve_min"?: number | null,"id": string,"name"?: string,"role"?: Database["public"]['Enums']["profile_role"]
+                  }
+                  Update: {
+                    "absence_alert_threshold"?: number,"avatar_url"?: string | null,"created_at"?: string,"face_auto_approve_min"?: number | null,"id"?: string,"name"?: string,"role"?: Database["public"]['Enums']["profile_role"]
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"push_subscriptions": {
+                  Row: {
+                    "auth": string,"created_at": string,"endpoint": string,"id": string,"p256dh": string,"profile_id": string,"user_agent": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "auth": string,"created_at"?: string,"endpoint": string,"id"?: string,"p256dh": string,"profile_id": string,"user_agent"?: string | null
+                  }
+                  Update: {
+                    "auth"?: string,"created_at"?: string,"endpoint"?: string,"id"?: string,"p256dh"?: string,"profile_id"?: string,"user_agent"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "push_subscriptions_profile_id_fkey"
+      columns: ["profile_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"ranks": {
+                  Row: {
+                    "colors": (string)[],"grade": number,"id": string,"level": string,"min_age": number | null,"min_months": number | null,"min_percent": number | null,"name": string,"required_classes": number | null,"track": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "colors"?: (string)[],"grade": number,"id"?: string,"level": string,"min_age"?: number | null,"min_months"?: number | null,"min_percent"?: number | null,"name": string,"required_classes"?: number | null,"track"?: string
+                  }
+                  Update: {
+                    "colors"?: (string)[],"grade"?: number,"id"?: string,"level"?: string,"min_age"?: number | null,"min_months"?: number | null,"min_percent"?: number | null,"name"?: string,"required_classes"?: number | null,"track"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"student_access": {
+                  Row: {
+                    "created_at": string,"created_by": string,"expires_at": string,"last_seen_at": string | null,"student_id": string,"token": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"created_by"?: string,"expires_at"?: string,"last_seen_at"?: string | null,"student_id": string,"token"?: string
+                  }
+                  Update: {
+                    "created_at"?: string,"created_by"?: string,"expires_at"?: string,"last_seen_at"?: string | null,"student_id"?: string,"token"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "student_access_created_by_fkey"
+      columns: ["created_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "student_access_student_id_fkey"
+      columns: ["student_id"]
+isOneToOne: true
+      referencedRelation: "student_absence_streaks"
+      referencedColumns: ["student_id"]
+    },{
+      foreignKeyName: "student_access_student_id_fkey"
+      columns: ["student_id"]
+isOneToOne: true
+      referencedRelation: "student_progress"
+      referencedColumns: ["student_id"]
+    },{
+      foreignKeyName: "student_access_student_id_fkey"
+      columns: ["student_id"]
+isOneToOne: true
+      referencedRelation: "students"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"student_class_reminders": {
+                  Row: {
+                    "created_at": string,"enabled": boolean,"last_sent_on": string | null,"lead_minutes": number,"profile_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"enabled"?: boolean,"last_sent_on"?: string | null,"lead_minutes"?: number,"profile_id"?: string
+                  }
+                  Update: {
+                    "created_at"?: string,"enabled"?: boolean,"last_sent_on"?: string | null,"lead_minutes"?: number,"profile_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "student_class_reminders_profile_id_fkey"
+      columns: ["profile_id"]
+isOneToOne: true
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"student_graduations": {
+                  Row: {
+                    "created_at": string,"graduated_at": string,"id": string,"notes": string | null,"rank_id": string,"recorded_by": string,"student_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"graduated_at": string,"id"?: string,"notes"?: string | null,"rank_id": string,"recorded_by"?: string,"student_id": string
+                  }
+                  Update: {
+                    "created_at"?: string,"graduated_at"?: string,"id"?: string,"notes"?: string | null,"rank_id"?: string,"recorded_by"?: string,"student_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "student_graduations_rank_id_fkey"
+      columns: ["rank_id"]
+isOneToOne: false
+      referencedRelation: "ranks"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "student_graduations_recorded_by_fkey"
+      columns: ["recorded_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "student_graduations_student_id_fkey"
+      columns: ["student_id"]
+isOneToOne: false
+      referencedRelation: "student_absence_streaks"
+      referencedColumns: ["student_id"]
+    },{
+      foreignKeyName: "student_graduations_student_id_fkey"
+      columns: ["student_id"]
+isOneToOne: false
+      referencedRelation: "student_progress"
+      referencedColumns: ["student_id"]
+    },{
+      foreignKeyName: "student_graduations_student_id_fkey"
+      columns: ["student_id"]
+isOneToOne: false
+      referencedRelation: "students"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"student_guardian_consents": {
+                  Row: {
+                    "created_at": string,"document_sha256": string | null,"face_authorized": boolean | null,"file_path": string | null,"guardian_cpf": string | null,"guardian_name": string | null,"guardian_relationship": string | null,"id": string,"image_authorized": boolean | null,"rejected_at": string | null,"rejected_reason": string | null,"reviewed_at": string | null,"reviewed_by": string | null,"sign_token": string | null,"sign_token_created_by": string | null,"sign_token_expires_at": string | null,"signature_png": string | null,"signed_at": string | null,"signed_ip": string | null,"signed_place": string | null,"signed_user_agent": string | null,"status": string,"student_id": string,"term_version": string | null,"updated_at": string,"uploaded_at": string | null,"uploaded_by": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"document_sha256"?: string | null,"face_authorized"?: boolean | null,"file_path"?: string | null,"guardian_cpf"?: string | null,"guardian_name"?: string | null,"guardian_relationship"?: string | null,"id"?: string,"image_authorized"?: boolean | null,"rejected_at"?: string | null,"rejected_reason"?: string | null,"reviewed_at"?: string | null,"reviewed_by"?: string | null,"sign_token"?: string | null,"sign_token_created_by"?: string | null,"sign_token_expires_at"?: string | null,"signature_png"?: string | null,"signed_at"?: string | null,"signed_ip"?: string | null,"signed_place"?: string | null,"signed_user_agent"?: string | null,"status"?: string,"student_id": string,"term_version"?: string | null,"updated_at"?: string,"uploaded_at"?: string | null,"uploaded_by"?: string | null
+                  }
+                  Update: {
+                    "created_at"?: string,"document_sha256"?: string | null,"face_authorized"?: boolean | null,"file_path"?: string | null,"guardian_cpf"?: string | null,"guardian_name"?: string | null,"guardian_relationship"?: string | null,"id"?: string,"image_authorized"?: boolean | null,"rejected_at"?: string | null,"rejected_reason"?: string | null,"reviewed_at"?: string | null,"reviewed_by"?: string | null,"sign_token"?: string | null,"sign_token_created_by"?: string | null,"sign_token_expires_at"?: string | null,"signature_png"?: string | null,"signed_at"?: string | null,"signed_ip"?: string | null,"signed_place"?: string | null,"signed_user_agent"?: string | null,"status"?: string,"student_id"?: string,"term_version"?: string | null,"updated_at"?: string,"uploaded_at"?: string | null,"uploaded_by"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "student_guardian_consents_reviewed_by_fkey"
+      columns: ["reviewed_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "student_guardian_consents_sign_token_created_by_fkey"
+      columns: ["sign_token_created_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "student_guardian_consents_student_id_fkey"
+      columns: ["student_id"]
+isOneToOne: true
+      referencedRelation: "student_absence_streaks"
+      referencedColumns: ["student_id"]
+    },{
+      foreignKeyName: "student_guardian_consents_student_id_fkey"
+      columns: ["student_id"]
+isOneToOne: true
+      referencedRelation: "student_progress"
+      referencedColumns: ["student_id"]
+    },{
+      foreignKeyName: "student_guardian_consents_student_id_fkey"
+      columns: ["student_id"]
+isOneToOne: true
+      referencedRelation: "students"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "student_guardian_consents_uploaded_by_fkey"
+      columns: ["uploaded_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"student_signup_requests": {
+                  Row: {
+                    "approval_notify_pending": boolean,"birth_date": string | null,"created_at": string,"decided_at": string | null,"decided_by": string | null,"graduated_at": string | null,"guardian_esign": Json | null,"guardian_file_path": string | null,"guardian_upload_token": string | null,"gym_id": string,"id": string,"image_consent_at": string | null,"name": string,"phone": string | null,"photo_path": string | null,"photo_upload_token": string | null,"profile_id": string,"rank_id": string | null,"status": string,"student_id": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "approval_notify_pending"?: boolean,"birth_date"?: string | null,"created_at"?: string,"decided_at"?: string | null,"decided_by"?: string | null,"graduated_at"?: string | null,"guardian_esign"?: Json | null,"guardian_file_path"?: string | null,"guardian_upload_token"?: string | null,"gym_id": string,"id"?: string,"image_consent_at"?: string | null,"name": string,"phone"?: string | null,"photo_path"?: string | null,"photo_upload_token"?: string | null,"profile_id": string,"rank_id"?: string | null,"status"?: string,"student_id"?: string | null
+                  }
+                  Update: {
+                    "approval_notify_pending"?: boolean,"birth_date"?: string | null,"created_at"?: string,"decided_at"?: string | null,"decided_by"?: string | null,"graduated_at"?: string | null,"guardian_esign"?: Json | null,"guardian_file_path"?: string | null,"guardian_upload_token"?: string | null,"gym_id"?: string,"id"?: string,"image_consent_at"?: string | null,"name"?: string,"phone"?: string | null,"photo_path"?: string | null,"photo_upload_token"?: string | null,"profile_id"?: string,"rank_id"?: string | null,"status"?: string,"student_id"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "student_signup_requests_decided_by_fkey"
+      columns: ["decided_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "student_signup_requests_gym_id_fkey"
+      columns: ["gym_id"]
+isOneToOne: false
+      referencedRelation: "gyms"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "student_signup_requests_profile_id_fkey"
+      columns: ["profile_id"]
+isOneToOne: true
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "student_signup_requests_rank_id_fkey"
+      columns: ["rank_id"]
+isOneToOne: false
+      referencedRelation: "ranks"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "student_signup_requests_student_id_fkey"
+      columns: ["student_id"]
+isOneToOne: false
+      referencedRelation: "student_absence_streaks"
+      referencedColumns: ["student_id"]
+    },{
+      foreignKeyName: "student_signup_requests_student_id_fkey"
+      columns: ["student_id"]
+isOneToOne: false
+      referencedRelation: "student_progress"
+      referencedColumns: ["student_id"]
+    },{
+      foreignKeyName: "student_signup_requests_student_id_fkey"
+      columns: ["student_id"]
+isOneToOne: false
+      referencedRelation: "students"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"students": {
+                  Row: {
+                    "account_consent_at": string | null,"active": boolean,"birth_date": string | null,"created_at": string,"gym_id": string,"id": string,"image_consent_at": string | null,"name": string,"notes": string | null,"opening_absent": number,"opening_after_grad": number | null,"opening_from": string | null,"opening_present": number,"opening_until": string | null,"phone": string | null,"profile_id": string | null,"started_on": string,"track": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "account_consent_at"?: string | null,"active"?: boolean,"birth_date"?: string | null,"created_at"?: string,"gym_id": string,"id"?: string,"image_consent_at"?: string | null,"name": string,"notes"?: string | null,"opening_absent"?: number,"opening_after_grad"?: number | null,"opening_from"?: string | null,"opening_present"?: number,"opening_until"?: string | null,"phone"?: string | null,"profile_id"?: string | null,"started_on"?: string,"track"?: string
+                  }
+                  Update: {
+                    "account_consent_at"?: string | null,"active"?: boolean,"birth_date"?: string | null,"created_at"?: string,"gym_id"?: string,"id"?: string,"image_consent_at"?: string | null,"name"?: string,"notes"?: string | null,"opening_absent"?: number,"opening_after_grad"?: number | null,"opening_from"?: string | null,"opening_present"?: number,"opening_until"?: string | null,"phone"?: string | null,"profile_id"?: string | null,"started_on"?: string,"track"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "students_gym_id_fkey"
+      columns: ["gym_id"]
+isOneToOne: false
+      referencedRelation: "gyms"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "students_profile_id_fkey"
+      columns: ["profile_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
+                }
+          }
+          Views: {
+            "class_turnout": {
+                  Row: {
+                    "class_id": string,"date": string,"gym_id": string,"present": number | null,"start_time": string | null
+                  }
+                  ComputedFields: never
+                  Relationships: [
+                    {
+      foreignKeyName: "classes_gym_id_fkey"
+      columns: ["gym_id"]
+isOneToOne: false
+      referencedRelation: "gyms"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"student_absence_streaks": {
+                  Row: {
+                    "absences_in_row": number | null,"gym_id": string,"last_present_on": string | null,"student_id": string
+                  }
+                  ComputedFields: never
+                  Relationships: [
+                    {
+      foreignKeyName: "students_gym_id_fkey"
+      columns: ["gym_id"]
+isOneToOne: false
+      referencedRelation: "gyms"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"student_progress": {
+                  Row: {
+                    "attendance_since": number | null,"attendance_total": number | null,"classes_since": number | null,"current_rank_id": string | null,"gym_id": string,"last_attendance_on": string | null,"last_graduated_at": string | null,"student_id": string
+                  }
+                  ComputedFields: never
+                  Relationships: [
+                    {
+      foreignKeyName: "student_graduations_rank_id_fkey"
+      columns: ["current_rank_id"]
+isOneToOne: false
+      referencedRelation: "ranks"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "students_gym_id_fkey"
+      columns: ["gym_id"]
+isOneToOne: false
+      referencedRelation: "gyms"
+      referencedColumns: ["id"]
+    }
+                  ]
+                }
+          }
+          Functions: {
+            "academy_invite_hash":
+{ Args: { "p_token": string }; Returns: string
+                           },
+"academy_invite_info":
+{ Args: { "p_token": string }; Returns: {
+              "academy": string,"email": string,"role": string,"status": string
+            }[]
+                           },
+"academy_role":
+{ Args: { "p_gym_id": string }; Returns: string
+                           },
+"accept_academy_invite":
+{ Args: { "p_token": string }; Returns: string
+                           },
+"accept_image_consent":
+{ Args: Record<PropertyKey, never>; Returns: undefined
+                           },
+"accept_instructor_invite":
+{ Args: { "p_token": string }; Returns: undefined
+                           },
+"add_signup_face_reference":
+{ Args: { "p_embedding": Json,"p_id": string,"p_student_id": string }; Returns: boolean
+                           },
+"add_walk_ins":
+{ Args: { "p_date": string,"p_location": string,"p_source"?: Database["public"]['Enums']["attendance_source"],"p_student_ids": (string)[] }; Returns: number
+                           },
+"approve_student_request":
+{ Args: { "p_request_id": string,"p_student_id"?: string }; Returns: string
+                           },
+"attendance_reminder_is_due":
+{ Args: { "p_last_sent_on": string,"p_remind_at": string }; Returns: boolean
+                           },
+"can_delete_own_guardian_file":
+{ Args: { "p_name": string }; Returns: boolean
+                           },
+"can_manage_class":
+{ Args: { "p_class_id": string }; Returns: boolean
+                           },
+"can_manage_guardian_file":
+{ Args: { "p_name": string }; Returns: boolean
+                           },
+"can_manage_photo":
+{ Args: { "p_photo_id": string }; Returns: boolean
+                           },
+"can_manage_student":
+{ Args: { "p_student_id": string }; Returns: boolean
+                           },
+"can_upload_own_signup_term":
+{ Args: { "p_name": string }; Returns: boolean
+                           },
+"can_upload_pending_signup_face":
+{ Args: { "p_name": string }; Returns: boolean
+                           },
+"can_upload_pending_signup_term":
+{ Args: { "p_name": string }; Returns: boolean
+                           },
+"can_view_signup_face":
+{ Args: { "p_owner": string }; Returns: boolean
+                           },
+"cancel_academy_invite":
+{ Args: { "p_invite_id": string }; Returns: undefined
+                           },
+"claim_attendance_reminders":
+{ Args: Record<PropertyKey, never>; Returns: Json
+                           },
+"claim_lesson_plan_reminders":
+{ Args: Record<PropertyKey, never>; Returns: Json
+                           },
+"claim_plan_review_notifications":
+{ Args: Record<PropertyKey, never>; Returns: Json
+                           },
+"claim_student_account":
+{ Args: { "p_token": string }; Returns: undefined
+                           },
+"claim_student_approval_notifications":
+{ Args: Record<PropertyKey, never>; Returns: Json
+                           },
+"claim_student_class_reminders":
+{ Args: Record<PropertyKey, never>; Returns: Json
+                           },
+"conclude_class":
+{ Args: { "p_class_id": string }; Returns: undefined
+                           },
+"create_academy":
+{ Args: { "p_address"?: string,"p_name": string }; Returns: string
+                           },
+"create_academy_invite":
+{ Args: { "p_email": string,"p_gym_id": string,"p_role": string }; Returns: string
+                           },
+"create_guardian_sign_link":
+{ Args: { "p_renew"?: boolean,"p_student_id": string }; Returns: Json
+                           },
+"create_instructor_invite":
+{ Args: Record<PropertyKey, never>; Returns: string
+                           },
+"cron_secret_matches":
+{ Args: { "p_secret": string }; Returns: boolean
+                           },
+"dispatch_attendance_reminders":
+{ Args: Record<PropertyKey, never>; Returns: undefined
+                           },
+"email_verified":
+{ Args: Record<PropertyKey, never>; Returns: boolean
+                           },
+"ensure_classes":
+{ Args: { "p_until"?: string }; Returns: number
+                           },
+"face_references":
+{ Args: { "p_gym_id": string }; Returns: {
+              "created_at": string,"embedding": string,"id": string,"model": string,"student_id": string
+            }[]
+                           },
+"face_signup_photos":
+{ Args: { "p_gym_id": string }; Returns: {
+              "photo_path": string,"student_id": string
+            }[]
+                           },
+"guardian_consent_by_token":
+{ Args: { "p_token": string }; Returns: {
+              "created_at": string,
+"document_sha256": string | null,
+"face_authorized": boolean | null,
+"file_path": string | null,
+"guardian_cpf": string | null,
+"guardian_name": string | null,
+"guardian_relationship": string | null,
+"id": string,
+"image_authorized": boolean | null,
+"rejected_at": string | null,
+"rejected_reason": string | null,
+"reviewed_at": string | null,
+"reviewed_by": string | null,
+"sign_token": string | null,
+"sign_token_created_by": string | null,
+"sign_token_expires_at": string | null,
+"signature_png": string | null,
+"signed_at": string | null,
+"signed_ip": string | null,
+"signed_place": string | null,
+"signed_user_agent": string | null,
+"status": string,
+"student_id": string,
+"term_version": string | null,
+"updated_at": string,
+"uploaded_at": string | null,
+"uploaded_by": string | null
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "student_guardian_consents"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
+"guardian_esign_record":
+{ Args: { "p_birth_date": string,"p_face": boolean,"p_guardian_cpf": string,"p_guardian_name": string,"p_image": boolean,"p_place": string,"p_ref": string,"p_relationship": string,"p_signature": string,"p_student_name": string,"p_term_version": string }; Returns: Json
+                           },
+"guardian_sign_info":
+{ Args: { "p_token": string }; Returns: Json
+                           },
+"guardian_term_signature":
+{ Args: { "p_student_id"?: string,"p_token"?: string }; Returns: Json
+                           },
+"has_guardian_consent":
+{ Args: { "p_student_id": string }; Returns: boolean
+                           },
+"has_image_consent":
+{ Args: { "p_student_id": string }; Returns: boolean
+                           },
+"instructor_invite_info":
+{ Args: { "p_token": string }; Returns: Json
+                           },
+"is_academy_admin":
+{ Args: { "p_gym_id": string }; Returns: boolean
+                           },
+"is_academy_staff":
+{ Args: { "p_gym_id": string }; Returns: boolean
+                           },
+"is_gym_member":
+{ Args: { "p_gym_id": string }; Returns: boolean
+                           },
+"is_gym_owner":
+{ Args: { "p_gym_id": string }; Returns: boolean
+                           },
+"is_instructor":
+{ Args: Record<PropertyKey, never>; Returns: boolean
+                           },
+"is_minor":
+{ Args: { "p_birth": string,"p_today": string }; Returns: boolean
+                           },
+"is_own_student":
+{ Args: { "p_student_id": string }; Returns: boolean
+                           },
+"is_student_account":
+{ Args: { "p_student_id": string }; Returns: boolean
+                           },
+"is_valid_cpf":
+{ Args: { "p_cpf": string }; Returns: boolean
+                           },
+"lesson_plan_has_content":
+{ Args: { "p_content": Json }; Returns: boolean
+                           },
+"list_student_requests":
+{ Args: Record<PropertyKey, never>; Returns: Json
+                           },
+"mark_attendance_batch":
+{ Args: { "p_items": Json }; Returns: number
+                           },
+"my_academies":
+{ Args: Record<PropertyKey, never>; Returns: {
+              "address": string,"gym_id": string,"name": string,"role": string
+            }[]
+                           },
+"my_face_photo":
+{ Args: Record<PropertyKey, never>; Returns: string
+                           },
+"my_signup_request":
+{ Args: Record<PropertyKey, never>; Returns: Json
+                           },
+"my_student_account":
+{ Args: Record<PropertyKey, never>; Returns: Json
+                           },
+"my_student_portal":
+{ Args: Record<PropertyKey, never>; Returns: Json
+                           },
+"portal_payload":
+{ Args: { "p_student_id": string }; Returns: Json
+                           },
+"register_walk_ins":
+{ Args: { "p_credits"?: number,"p_date": string,"p_location": string,"p_period"?: string,"p_source"?: Database["public"]['Enums']["attendance_source"],"p_student_ids": (string)[] }; Returns: number
+                           },
+"reject_student_request":
+{ Args: { "p_request_id": string }; Returns: undefined
+                           },
+"request_student_access":
+{ Args: { "p_birth_date"?: string,"p_graduated_at"?: string,"p_gym_id": string,"p_name": string,"p_phone"?: string,"p_rank_id"?: string }; Returns: undefined
+                           },
+"review_guardian_consent":
+{ Args: { "p_approve": boolean,"p_image_consent"?: boolean,"p_reason"?: string,"p_student_id": string }; Returns: string
+                           },
+"review_shared_lesson_plan":
+{ Args: { "p_note"?: string,"p_reviewer_name"?: string,"p_status": string,"p_token": string }; Returns: boolean
+                           },
+"rotate_lesson_plan_share":
+{ Args: { "p_class_id": string }; Returns: string
+                           },
+"rotate_student_access":
+{ Args: { "p_hours"?: number,"p_student_id": string }; Returns: string
+                           },
+"save_face_decisions":
+{ Args: { "p_items": Json,"p_max_refs"?: number }; Returns: number
+                           },
+"save_push_subscription":
+{ Args: { "p_auth": string,"p_endpoint": string,"p_p256dh": string,"p_user_agent"?: string }; Returns: undefined
+                           },
+"set_academy_member_role":
+{ Args: { "p_gym_id": string,"p_profile_id": string,"p_role": string }; Returns: undefined
+                           },
+"set_guardian_consent_file":
+{ Args: { "p_path": string,"p_student_id": string }; Returns: string
+                           },
+"set_my_gym_start":
+{ Args: { "p_gym_id": string,"p_started_on": string }; Returns: undefined
+                           },
+"set_my_signup_image_consent":
+{ Args: Record<PropertyKey, never>; Returns: undefined
+                           },
+"set_my_signup_term":
+{ Args: { "p_path": string }; Returns: undefined
+                           },
+"set_pending_signup_photo":
+{ Args: { "p_profile_id": string,"p_token": string }; Returns: undefined
+                           },
+"set_pending_signup_term":
+{ Args: { "p_ext": string,"p_profile_id": string,"p_token": string }; Returns: undefined
+                           },
+"set_schedule_start":
+{ Args: { "p_schedule_id": string,"p_starts_on": string }; Returns: number
+                           },
+"set_signup_photo":
+{ Args: { "p_path": string }; Returns: undefined
+                           },
+"shared_lesson_plan":
+{ Args: { "p_token": string }; Returns: Json
+                           },
+"sign_guardian_term":
+{ Args: { "p_face": boolean,"p_guardian_cpf": string,"p_guardian_name": string,"p_image": boolean,"p_place": string,"p_relationship": string,"p_signature": string,"p_term_version": string,"p_token": string }; Returns: Json
+                           },
+"sign_signup_guardian_term":
+{ Args: { "p_face": boolean,"p_guardian_cpf": string,"p_guardian_name": string,"p_image": boolean,"p_place": string,"p_profile_id": string,"p_relationship": string,"p_signature": string,"p_term_version": string,"p_token": string }; Returns: undefined
+                           },
+"signup_directory":
+{ Args: Record<PropertyKey, never>; Returns: Json
+                           },
+"signup_guardian_signature":
+{ Args: { "p_request_id": string }; Returns: Json
+                           },
+"signup_ranks":
+{ Args: Record<PropertyKey, never>; Returns: Json
+                           },
+"storage_path_gym":
+{ Args: { "p_name": string }; Returns: string
+                           },
+"storage_path_owner":
+{ Args: { "p_name": string }; Returns: string
+                           },
+"student_class_reminder_due_profiles":
+{ Args: Record<PropertyKey, never>; Returns: {
+              "profile_id": string
+            }[]
+                           },
+"student_face_photos":
+{ Args: Record<PropertyKey, never>; Returns: {
+              "photo_path": string,"student_id": string
+            }[]
+                           },
+"student_portal":
+{ Args: { "p_token": string }; Returns: Json
+                           },
+"student_reminder_classes":
+{ Args: Record<PropertyKey, never>; Returns: {
+              "gym": string,"lead_minutes": number,"profile_id": string,"start_at": string,"title": string
+            }[]
+                           },
+"submit_guardian_consent_file":
+{ Args: { "p_path": string }; Returns: string
+                           },
+"today_sp":
+{ Args: Record<PropertyKey, never>; Returns: string
+                           },
+"update_academy":
+{ Args: { "p_address"?: string,"p_gym_id": string,"p_name": string }; Returns: undefined
+                           },
+"wake_push_reminders":
+{ Args: Record<PropertyKey, never>; Returns: undefined
+                           },
+"walk_in_locations":
+{ Args: Record<PropertyKey, never>; Returns: {
+              "location_label": string,"uses": number
+            }[]
+                           }
+          }
+          Enums: {
+            "attendance_source": "manual"|"walk_in"|"import"|"face"|"student_checkin","attendance_status": "present"|"absent"|"late"|"justified","class_status": "scheduled"|"done"|"cancelled","face_decision": "confirmed"|"corrected"|"ignored"|"auto","gym_role": "owner"|"instructor","profile_role": "instructor"|"student"
+          }
+          CompositeTypes: {
+            [_ in never]: never
+          }
+        }
 }
+
+type DatabaseWithoutInternals = Omit<Database, '__InternalSupabase'>
+
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
+
+export type Tables<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    : never = never
+> = DefaultSchemaTableNameOrOptions extends { schema: keyof DatabaseWithoutInternals }
+  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+      Row: infer R
+    }
+    ? R
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+  ? (DefaultSchema["Tables"] & DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+      Row: infer R
+    }
+    ? R
+    : never
+  : never
+
+export type TablesInsert<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never
+> = DefaultSchemaTableNameOrOptions extends { schema: keyof DatabaseWithoutInternals }
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Insert: infer I
+    }
+    ? I
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+  ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+      Insert: infer I
+    }
+    ? I
+    : never
+  : never
+
+export type TablesUpdate<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never
+> = DefaultSchemaTableNameOrOptions extends { schema: keyof DatabaseWithoutInternals }
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Update: infer U
+    }
+    ? U
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+  ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+      Update: infer U
+    }
+    ? U
+    : never
+  : never
+
+export type Enums<
+  DefaultSchemaEnumNameOrOptions extends
+    | keyof DefaultSchema["Enums"]
+    | { schema: keyof DatabaseWithoutInternals },
+  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    : never = never
+> = DefaultSchemaEnumNameOrOptions extends { schema: keyof DatabaseWithoutInternals }
+  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
+  ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
+  : never
+
+export type CompositeTypes<
+  PublicCompositeTypeNameOrOptions extends
+    | keyof DefaultSchema["CompositeTypes"]
+    | { schema: keyof DatabaseWithoutInternals },
+  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    : never = never
+> = PublicCompositeTypeNameOrOptions extends { schema: keyof DatabaseWithoutInternals }
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
+  ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+  : never
+
+export const Constants = {
+  "public": {
+          Enums: {
+            "attendance_source": ["manual", "walk_in", "import", "face", "student_checkin"],"attendance_status": ["present", "absent", "late", "justified"],"class_status": ["scheduled", "done", "cancelled"],"face_decision": ["confirmed", "corrected", "ignored", "auto"],"gym_role": ["owner", "instructor"],"profile_role": ["instructor", "student"]
+          }
+        }
+} as const

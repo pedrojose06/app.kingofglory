@@ -1,0 +1,23 @@
+@import 'tailwindcss';
+@import '@kog/ui/tokens.css';
+@source '../../../../packages/ui/src';
+@source '../../../../packages/web-kit/src';
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    background: var(--kog-bg);
+    color: var(--kog-text);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+  ::selection {
+    background: var(--kog-gold);
+    color: var(--kog-ink);
+  }
+  button {
+    cursor: pointer;
+  }
+}

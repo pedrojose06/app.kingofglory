@@ -168,7 +168,7 @@ const signArgs = (form: GuardianSignForm) => ({
  * foto, uma vez, até 24 h). Com a conta logada: `token` null. Vira "Termo para conferir" quando o professor aprovar.
  */
 export async function signSignupGuardianTerm(db: Db, profileId: string, token: string | null, form: GuardianSignForm): Promise<void> {
-  const res = await db.rpc('sign_signup_guardian_term', { p_profile_id: profileId, p_token: token, ...signArgs(form) })
+  const res = await db.rpc('sign_signup_guardian_term', { p_profile_id: profileId, p_token: token as string /* null = conta logada */, ...signArgs(form) })
   if (res.error) throw res.error
 }
 

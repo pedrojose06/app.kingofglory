@@ -95,6 +95,6 @@ export async function getLessonPlan(db: Db, classId: string): Promise<LessonPlan
 
 export async function saveLessonPlan(db: Db, classId: string, content: Json, updatedAt: string): Promise<void> {
   unwrap(
-    await db.from('lesson_plans').upsert({ class_id: classId, content, updated_at: updatedAt }, { onConflict: 'class_id' }),
+    await db.from('lesson_plans').upsert({ class_id: classId, content: content ?? {}, updated_at: updatedAt }, { onConflict: 'class_id' }),
   )
 }
