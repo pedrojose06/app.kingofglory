@@ -413,3 +413,10 @@ export async function payCharge(db: Db, chargeId: string, input: PaymentInput): 
 export async function reversePayment(db: Db, chargeId: string, reason: string): Promise<void> {
   unwrap(await db.rpc('reverse_payment', { p_charge_id: chargeId, p_reason: reason }))
 }
+
+/** Baixa em lote: cada cobrança pelo próprio valor, numa transação (se uma falhar, nenhuma entra). Devolve quantas. */
+export async function payCharges(db: Db, chargeIds: readonly string[], input: Omit<PaymentInput, 'amountCents'>): Promise<number> {
+  return unwrap(
+    await db.rpc('pay_charges', { p_charge_ids: [...chargeIds], p_paid_on: input.paidOn, p_method: input.method, p_notes: input.notes ?? undefined }),
+  )
+}

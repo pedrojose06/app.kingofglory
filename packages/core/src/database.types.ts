@@ -1691,6 +1691,9 @@ isOneToOne: false
 "pay_charge":
 { Args: { "p_amount_cents": number,"p_charge_id": string,"p_method": string,"p_notes"?: string,"p_paid_on": string }; Returns: string
                            },
+"pay_charges":
+{ Args: { "p_charge_ids": string[],"p_method": string,"p_notes"?: string,"p_paid_on": string }; Returns: number
+                           },
 "portal_payload":
 { Args: { "p_student_id": string }; Returns: Json
                            },

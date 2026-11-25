@@ -2,7 +2,7 @@
 
 import {
   addMonths, CHARGE_KIND_LABEL, type ChargeKind, type ChargeList, type ChargeOverview, formatBRL, formatDateBR, formatMonth, PAYMENT_METHOD_LABEL,
-  payCharge, type PaymentMethod, reversePayment, todayISO,
+  payCharge, payCharges, type PaymentMethod, reversePayment, todayISO,
 } from '@kog/core'
 import { Badge, Button, Card, Chip, DateInput, EmptyState, Field, Input, Select } from '@kog/ui'
 import { toast, toastError } from '@kog/web-kit'
@@ -45,6 +45,8 @@ function Charges() {
   const [q, setQ] = useState('')
   const [paying, setPaying] = useState<ChargeOverview | null>(null)
   const [reversing, setReversing] = useState<ChargeOverview | null>(null)
+  const [selected, setSelected] = useState<ReadonlySet<string>>(new Set())
+  const [payingMany, setPayingMany] = useState(false)
 
   const open = useAcademyCharges('em_aberto', month)
   const late = useAcademyCharges('atrasadas', month)
@@ -59,6 +61,17 @@ function Charges() {
   const term = strip(q.trim())
   const rows = (tab === 'atrasadas' && !withFormer ? lateCurrent : (query.data ?? [])).filter((c) => matches(c, term))
   const total = rows.reduce((sum, c) => sum + (tab === 'pagas' ? (c.paid_cents ?? c.amount_cents) : c.amount_cents), 0)
+  const selectable = tab !== 'pagas'
+  // Só conta o que está na tela: trocar de aba, buscar outro nome ou a cobrança já baixada tira da seleção.
+  const picked = selectable ? rows.filter((c) => selected.has(c.id)) : []
+  const pickedTotal = picked.reduce((sum, c) => sum + c.amount_cents, 0)
+  const allPicked = rows.length > 0 && picked.length === rows.length
+  const toggle = (id: string) => {
+    const next = new Set(selected)
+    if (next.has(id)) next.delete(id)
+    else next.add(id)
+    setSelected(next)
+  }
   const count = (t: ChargeList) => (t === 'em_aberto' ? open.data?.length : t === 'atrasadas' ? lateCurrent.length : paid.data?.length)
 
   if (!isAdmin) return <EmptyState title="Só o administrador vê as mensalidades." />
@@ -126,9 +139,22 @@ function Charges() {
         />
       ) : (
         <>
-          <p className="mb-2 text-sm text-dim">
-            {rows.length} {rows.length === 1 ? 'cobrança' : 'cobranças'} · <span className="font-bold text-text">{formatBRL(total)}</span>
-          </p>
+          <div className="mb-2 flex flex-wrap items-center gap-3 text-sm text-dim">
+            {selectable ? (
+              <label className="flex cursor-pointer items-center gap-2 font-semibold text-soft">
+                <input
+                  type="checkbox"
+                  className="size-4 accent-[var(--kog-gold)]"
+                  checked={allPicked}
+                  onChange={() => setSelected(allPicked ? new Set() : new Set(rows.map((c) => c.id)))}
+                />
+                Selecionar {term ? 'todas desta busca' : 'todas'}
+              </label>
+            ) : null}
+            <span>
+              {rows.length} {rows.length === 1 ? 'cobrança' : 'cobranças'} · <span className="font-bold text-text">{formatBRL(total)}</span>
+            </span>
+          </div>
           <Card className="overflow-hidden">
             <ul className="divide-y divide-line">
               {rows.map((c) => (
@@ -137,14 +163,36 @@ function Charges() {
                   charge={c}
                   tab={tab}
                   former={!isCurrent(c)}
+                  checked={selectable ? selected.has(c.id) : undefined}
+                  onToggle={() => toggle(c.id)}
                   onPay={() => setPaying(c)}
                   onReverse={() => setReversing(c)}
                 />
               ))}
             </ul>
           </Card>
+          {picked.length > 0 ? (
+            <div className="sticky bottom-0 z-20 mt-3 flex flex-wrap items-center gap-3 rounded-lg border border-gold bg-surface px-4 py-3 shadow-lg pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
+              <p className="min-w-0 flex-1 text-sm text-text">
+                <span className="font-bold">{picked.length}</span> {picked.length === 1 ? 'selecionada' : 'selecionadas'} ·{' '}
+                <span className="font-bold">{formatBRL(pickedTotal)}</span>
+              </p>
+              <Button variant="ghost" size="sm" onPress={() => setSelected(new Set())}>Limpar</Button>
+              <Button size="sm" onPress={() => setPayingMany(true)}>Dar baixa {picked.length === 1 ? 'nesta' : `nas ${picked.length}`}</Button>
+            </div>
+          ) : null}
         </>
       )}
+      {payingMany ? (
+        <PayManyDialog
+          charges={picked}
+          onClose={() => setPayingMany(false)}
+          onDone={() => {
+            setPayingMany(false)
+            setSelected(new Set())
+          }}
+        />
+      ) : null}
       {paying ? <PayDialog charge={paying} onClose={() => setPaying(null)} /> : null}
       {reversing ? <ReverseDialog charge={reversing} onClose={() => setReversing(null)} /> : null}
     </>
@@ -217,6 +265,73 @@ function PayDialog({ charge: c, onClose }: { charge: ChargeOverview; onClose: ()
   )
 }
 
+function PayManyDialog({ charges, onClose, onDone }: { charges: ChargeOverview[]; onClose: () => void; onDone: () => void }) {
+  const today = todayISO()
+  const refresh = useRefreshCharges()
+  const [paidOn, setPaidOn] = useState(today)
+  const [method, setMethod] = useState<PaymentMethod>('pix')
+  const [notes, setNotes] = useState('')
+  const total = charges.reduce((sum, c) => sum + c.amount_cents, 0)
+  const pay = useMutation({
+    mutationFn: () => payCharges(db(), charges.map((c) => c.id), { paidOn, method, notes }),
+    onSuccess: async (n) => {
+      await refresh()
+      toast(n === 1 ? 'Pagamento registrado.' : `${n} pagamentos registrados.`)
+      onDone()
+    },
+    onError: toastError,
+  })
+  const names = [...new Set(charges.flatMap((c) => (c.student_names.length ? c.student_names : [c.payer_name])))]
+
+  return (
+    <Dialog
+      open
+      onClose={onClose}
+      title="Dar baixa em lote"
+      footer={
+        <>
+          <Button variant="ghost" onPress={onClose}>Cancelar</Button>
+          <Button onPress={() => pay.mutate()} loading={pay.isPending} disabled={!paidOn || paidOn > today}>
+            Confirmar {charges.length} {charges.length === 1 ? 'pagamento' : 'pagamentos'}
+          </Button>
+        </>
+      }
+    >
+      <p className="font-semibold text-text">{names.length <= 3 ? names.join(', ') : `${names.slice(0, 3).join(', ')} e mais ${names.length - 3}`}</p>
+      <p className="mb-3 text-sm text-dim">
+        {charges.length} {charges.length === 1 ? 'cobrança' : 'cobranças'} · total <span className="font-bold text-text">{formatBRL(total)}</span>. Cada uma é
+        baixada pelo próprio valor; tudo entra junto ou nada entra.
+      </p>
+      <ul className="mb-4 max-h-40 divide-y divide-line overflow-y-auto rounded border border-line text-sm">
+        {charges.map((c) => (
+          <li key={c.id} className="flex justify-between gap-3 px-3 py-1.5">
+            <span className="truncate text-soft">
+              {c.competence ? formatMonth(c.competence.slice(0, 7)) : CHARGE_KIND_LABEL[c.kind as ChargeKind] ?? c.kind}
+              {names.length > 1 ? ` · ${c.student_names[0] ?? c.payer_name}` : ''}
+            </span>
+            <span className="shrink-0 text-text">{formatBRL(c.amount_cents)}</span>
+          </li>
+        ))}
+      </ul>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Field label="Data do pagamento">
+          <DateInput value={paidOn} max={today} onChange={(e) => setPaidOn(e.target.value)} />
+        </Field>
+        <Field label="Forma de pagamento">
+          <Select value={method} onChange={(e) => setMethod(e.target.value as PaymentMethod)}>
+            {METHODS.map((m) => (
+              <option key={m} value={m}>{PAYMENT_METHOD_LABEL[m]}</option>
+            ))}
+          </Select>
+        </Field>
+        <Field label="Observação (opcional)" className="sm:col-span-2">
+          <Input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Ex.: quitou os atrasados" />
+        </Field>
+      </div>
+    </Dialog>
+  )
+}
+
 function ReverseDialog({ charge: c, onClose }: { charge: ChargeOverview; onClose: () => void }) {
   const refresh = useRefreshCharges()
   const [reason, setReason] = useState('')
@@ -253,10 +368,13 @@ function ReverseDialog({ charge: c, onClose }: { charge: ChargeOverview; onClose
   )
 }
 
-function ChargeRow({ charge: c, tab, former, onPay, onReverse }: {
+function ChargeRow({ charge: c, tab, former, checked, onToggle, onPay, onReverse }: {
   charge: ChargeOverview
   tab: ChargeList
   former: boolean
+  /** undefined = lista sem seleção (Pagas). */
+  checked: boolean | undefined
+  onToggle: () => void
   onPay: () => void
   onReverse: () => void
 }) {
@@ -266,7 +384,16 @@ function ChargeRow({ charge: c, tab, former, onPay, onReverse }: {
   const installment = c.installment && c.installments_total && c.installments_total > 1 ? ` · ${c.installment}/${c.installments_total}` : ''
   const studentId = c.student_ids[0]
   return (
-    <li className="flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3">
+    <li className={`flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3 ${checked ? 'bg-tint' : ''}`}>
+      {checked !== undefined ? (
+        <input
+          type="checkbox"
+          className="size-4 shrink-0 cursor-pointer accent-[var(--kog-gold)]"
+          checked={checked}
+          onChange={onToggle}
+          aria-label={`Selecionar ${names}${competence}`}
+        />
+      ) : null}
       <div className="min-w-0 flex-1">
         <p className="truncate font-semibold text-text">
           {studentId ? <Link href={`/aluno?id=${studentId}`} className="hover:underline">{names}</Link> : names}
