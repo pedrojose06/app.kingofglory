@@ -2,7 +2,7 @@
 
 import {
   RANK_TRACKS, STUDENT_PORTAL_PATH, birthDateIssue, isMinor, TRACK_LABEL, getProfile, getSignupDirectory, getSignupRanks, keys, requestStudentAccess, setMySignupImageConsent, studentSignupMetadata, uploadMySignupTerm, uploadPendingSignupPhoto, uploadPendingSignupTerm,
-  todayISO, trackOf, uploadSignupPhoto, type DirectoryProfessor,
+  guardianSignFormIssue, signSignupGuardianTerm, todayISO, trackOf, uploadSignupPhoto, type DirectoryProfessor, type GuardianSignForm,
 } from '@kog/core'
 import { Button, Card, Chip, DateInput, EmptyState, Field, Input, Kicker, Select, cn } from '@kog/ui'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
@@ -12,6 +12,7 @@ import { useRouter } from 'next/navigation'
 import { useMemo, useState, type FormEvent } from 'react'
 import { FacePhotoField, storePendingFace } from '@/components/face-photo'
 import { DownloadButton, FilePicker } from '@/components/guardian-term'
+import { EMPTY_GUARDIAN_SIGN, GuardianSignFields } from '@/components/guardian-sign-fields'
 import { InstallPrompt } from '@/components/install-prompt'
 import { ImageConsentTerms } from '@/components/student-account'
 import { Loading } from '@/components/shell'
@@ -50,6 +51,10 @@ export default function StudentSignupPage() {
   const [birthDate, setBirthDate] = useState('')
   const [imageConsent, setImageConsent] = useState(false)
   const [termFile, setTermFile] = useState<File | null>(null)
+  // Menor de idade: o responsável assina aqui na tela (padrão) ou anexa o termo em papel.
+  const [termMode, setTermMode] = useState<'esign' | 'paper'>('esign')
+  const [guardianSign, setGuardianSign] = useState<GuardianSignForm>(EMPTY_GUARDIAN_SIGN)
+  const [signTried, setSignTried] = useState(false)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [password2, setPassword2] = useState('')
@@ -76,7 +81,12 @@ export default function StudentSignupPage() {
     const birthIssue = birthDateIssue(birthDate)
     if (birthIssue) return setMessage({ text: `${birthIssue}.`, error: true })
     if (!minor && !imageConsent) return setMessage({ text: 'Marque a autorização de uso de imagem para usar a conta.', error: true })
-    if (minor && !termFile) return setMessage({ text: 'Anexe o termo de autorização assinado pelo seu responsável.', error: true })
+    if (minor && termMode === 'paper' && !termFile) return setMessage({ text: 'Anexe o termo de autorização assinado pelo seu responsável.', error: true })
+    if (minor && termMode === 'esign') {
+      setSignTried(true)
+      const issue = guardianSignFormIssue(guardianSign)
+      if (issue) return setMessage({ text: `Termo do responsável: ${issue}`, error: true })
+    }
     if (!photo) {
       setPhotoMissing(true)
       return setMessage({ text: 'Tire uma foto do seu rosto.', error: true })
@@ -89,7 +99,8 @@ export default function StudentSignupPage() {
       if (session) {
         await requestStudentAccess(db(), { gymId, name, phone, rankId: rankId || null, graduatedAt: rankId ? graduatedAt : null, birthDate })
         if (!minor) await setMySignupImageConsent(db())
-        if (minor && termFile) await uploadMySignupTerm(db(), session.user.id, crypto.randomUUID(), termFile)
+        if (minor && termMode === 'esign') await signSignupGuardianTerm(db(), session.user.id, null, guardianSign)
+        else if (minor && termFile) await uploadMySignupTerm(db(), session.user.id, crypto.randomUUID(), termFile)
         await sendPhoto(session.user.id, photo)
         await queryClient.invalidateQueries({ queryKey: keys.mySignupRequest })
         router.replace(STUDENT_PORTAL_PATH)
@@ -109,6 +120,8 @@ export default function StudentSignupPage() {
         return
       }
       if (data.session && data.user) {
+        if (minor && termMode === 'esign') await signSignupGuardianTerm(db(), data.user.id, null, guardianSign)
+        else if (minor && termFile) await uploadMySignupTerm(db(), data.user.id, crypto.randomUUID(), termFile)
         await sendPhoto(data.user.id, photo)
         router.replace(STUDENT_PORTAL_PATH)
         return
@@ -124,7 +137,13 @@ export default function StudentSignupPage() {
         } catch {
           // Fica no aparelho; a área do aluno envia no primeiro acesso.
         }
-        if (minor && termFile) {
+        if (minor && termMode === 'esign') {
+          try {
+            await signSignupGuardianTerm(db(), data.user.id, photoToken, guardianSign)
+          } catch {
+            termFailed = true
+          }
+        } else if (minor && termFile) {
           try {
             await uploadPendingSignupTerm(db(), data.user.id, photoToken, termFile)
           } catch {
@@ -134,7 +153,7 @@ export default function StudentSignupPage() {
         }
       }
       if (termFailed) {
-        setMessage({ text: `Conta criada, mas o termo não foi enviado (confira a conexão). Confirme pelo link que enviamos para ${email}; depois da aprovação do professor, o app pede o termo de novo.`, error: true })
+        setMessage({ text: `Conta criada, mas o termo do responsável não foi enviado (confira a conexão). Confirme pelo link que enviamos para ${email}; depois da aprovação do professor, o app pede o termo de novo (dá para o responsável assinar pelo celular).`, error: true })
         return
       }
       setMessage({ text: `Conta criada! Confirme pelo link que enviamos para ${email}. Depois é só aguardar o professor aprovar.`, error: false })
@@ -237,7 +256,7 @@ export default function StudentSignupPage() {
               <Field
                 label="Data de nascimento"
                 hint={!birthDateIssue(birthDate) && isMinor(birthDate)
-                  ? 'Menor de 18 anos: anexe abaixo o termo de autorização assinado pelo seu responsável.'
+                  ? 'Menor de 18 anos: seu responsável assina o termo de autorização logo abaixo.'
                   : 'Obrigatória. Também para a equipe saber do seu aniversário.'}
               >
                 <DateInput value={birthDate} onChange={(e) => setBirthDate(e.target.value)} min="1900-01-01" max={todayISO()} autoComplete="bday" />
@@ -268,13 +287,32 @@ export default function StudentSignupPage() {
                 {minor ? (
                   <div className="mt-1 space-y-3">
                     <p className="text-sm text-soft">
-                      Como você é menor de 18 anos, quem autoriza é o seu responsável, no termo de autorização. Baixe o termo
-                      (já vem com seu nome e data de nascimento), peça para ele preencher e assinar e anexe aqui uma foto nítida
-                      ou o PDF do termo assinado.
+                      Como você é menor de 18 anos, quem autoriza é o seu responsável, no termo de autorização. Obrigatório:
+                      seu professor confere o termo ao aprovar seu cadastro.
                     </p>
-                    <DownloadButton name={name} birthDate={birthDate} block />
-                    <FilePicker file={termFile} onChange={setTermFile} label="Anexar termo assinado" />
-                    <p className="text-xs text-dim">Obrigatório. PDF, JPG ou PNG, até 10 MB. Seu professor confere o termo ao aprovar seu cadastro.</p>
+                    <div className="grid grid-cols-2 gap-2" role="group" aria-label="Como o responsável assina">
+                      <Chip active={termMode === 'esign'} onPress={() => setTermMode('esign')} className="w-full px-1">Assinar na tela</Chip>
+                      <Chip active={termMode === 'paper'} onPress={() => setTermMode('paper')} className="w-full px-1">Termo em papel</Chip>
+                    </div>
+                    {termMode === 'esign' ? (
+                      <>
+                        <p className="text-sm text-soft">
+                          Passe o celular para o seu responsável: ele preenche os dados dele, responde às autorizações e assina
+                          com o dedo aqui embaixo.
+                        </p>
+                        <GuardianSignFields form={guardianSign} onChange={setGuardianSign} tried={signTried} boxed={false} />
+                      </>
+                    ) : (
+                      <>
+                        <p className="text-sm text-soft">
+                          Baixe o termo (já vem com seu nome e data de nascimento), peça para ele preencher e assinar e anexe aqui
+                          uma foto nítida ou o PDF do termo assinado.
+                        </p>
+                        <DownloadButton name={name} birthDate={birthDate} block />
+                        <FilePicker file={termFile} onChange={setTermFile} label="Anexar termo assinado" />
+                        <p className="text-xs text-dim">PDF, JPG ou PNG, até 10 MB.</p>
+                      </>
+                    )}
                   </div>
                 ) : (
                   <>

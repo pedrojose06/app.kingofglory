@@ -1,15 +1,14 @@
 'use client'
 
 import {
-  GUARDIAN_RELATIONSHIPS, GUARDIAN_SIGN_DECLARATION, GUARDIAN_TERM, formatCpf, formatDateBR, getGuardianSignInfo, guardianSignFormIssue,
-  signGuardianTerm, type GuardianSignForm, type GuardianSignInfo,
+  GUARDIAN_TERM, formatDateBR, getGuardianSignInfo, guardianSignFormIssue, signGuardianTerm, type GuardianSignForm, type GuardianSignInfo,
 } from '@kog/core'
-import { Button, Card, Chip, EmptyState, Field, Input, Kicker } from '@kog/ui'
+import { Button, Card, EmptyState, Kicker } from '@kog/ui'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { CheckCircle2, Clock, Download, FileSignature } from 'lucide-react'
 import { useEffect, useState, type ReactNode } from 'react'
 import { formatDateTimeBR } from '@/components/student-account'
-import { SignaturePad } from '@/components/signature-pad'
+import { EMPTY_GUARDIAN_SIGN, GuardianSignFields } from '@/components/guardian-sign-fields'
 import { Loading } from '@/components/shell'
 import { downloadSignedGuardianTerm } from '@/lib/guardian-term'
 import { db, isConfigured } from '@/lib/supabase'
@@ -145,23 +144,13 @@ function Sign({ token, info }: { token: string; info: GuardianSignInfo }) {
   return <SignForm token={token} info={info} />
 }
 
-const EMPTY: GuardianSignForm = {
-  guardianName: '', guardianCpf: '', relationship: '', image: null, face: null, place: '', signature: '', declaration: false,
-}
-
 function SignForm({ token, info }: { token: string; info: GuardianSignInfo }) {
   const queryClient = useQueryClient()
-  const [form, setForm] = useState<GuardianSignForm>(EMPTY)
-  const [otherRel, setOtherRel] = useState(false)
+  const [form, setForm] = useState<GuardianSignForm>(EMPTY_GUARDIAN_SIGN)
   const [error, setError] = useState<string | null>(null)
   const [tried, setTried] = useState(false)
   const [busy, setBusy] = useState(false)
-  const set = <K extends keyof GuardianSignForm>(key: K, value: GuardianSignForm[K]) => {
-    setForm((f) => ({ ...f, [key]: value }))
-    setError(null)
-  }
   const t = GUARDIAN_TERM
-  const answers: [keyof GuardianSignForm & ('image' | 'face'), string][] = [['image', t.authorizations.rows[0]], ['face', t.authorizations.rows[1]]]
 
   async function submit() {
     setTried(true)
@@ -207,70 +196,17 @@ function SignForm({ token, info }: { token: string; info: GuardianSignInfo }) {
         </dl>
       </Card>
 
-      <Card className="space-y-4 p-4">
-        <p className="kicker">Responsável</p>
-        <Field label="Nome completo">
-          <Input value={form.guardianName} onChange={(e) => set('guardianName', e.target.value)} autoComplete="name" autoCapitalize="words" />
-        </Field>
-        <Field label="CPF">
-          <Input
-            value={form.guardianCpf}
-            onChange={(e) => set('guardianCpf', formatCpf(e.target.value))}
-            inputMode="numeric"
-            placeholder="000.000.000-00"
-            autoComplete="off"
-          />
-        </Field>
-        <div role="group" aria-labelledby="sign-rel">
-          <p id="sign-rel" className="mb-1.5 text-xs font-bold uppercase tracking-[0.12em] text-dim">Parentesco com o aluno</p>
-          <div className="flex flex-wrap gap-2">
-            {GUARDIAN_RELATIONSHIPS.map((r) => (
-              <Chip key={r} active={!otherRel && form.relationship === r} onPress={() => { setOtherRel(false); set('relationship', r) }}>{r}</Chip>
-            ))}
-            <Chip active={otherRel} onPress={() => { setOtherRel(true); set('relationship', '') }}>Outro</Chip>
-          </div>
-          {otherRel ? (
-            <Input className="mt-2" value={form.relationship} onChange={(e) => set('relationship', e.target.value)} placeholder="Ex.: tia, guardião" maxLength={40} />
-          ) : null}
-        </div>
-      </Card>
-
-      <Card className="space-y-4 p-4">
-        <p className="kicker">{t.authorizations.heading}</p>
-        {answers.map(([key, label]) => (
-          <div key={key} role="group" aria-label={label}>
-            <p className="text-sm text-text">{label}</p>
-            <div className="mt-2 grid grid-cols-2 gap-2">
-              <Chip active={form[key] === true} onPress={() => set(key, true)} className="w-full">Autorizo</Chip>
-              <Chip active={form[key] === false} onPress={() => set(key, false)} className="w-full">Não autorizo</Chip>
-            </div>
-          </div>
-        ))}
-        <p className="text-xs text-dim">Recusar não impede o aluno de treinar. {t.revocation}</p>
-      </Card>
-
-      <Card className="space-y-4 p-4">
-        <p className="kicker">{t.signature.heading}</p>
-        <Field label="Cidade">
-          <Input value={form.place} onChange={(e) => set('place', e.target.value)} autoCapitalize="words" placeholder="Ex.: Bauru" maxLength={80} />
-        </Field>
-        <SignaturePad onChange={(png) => set('signature', png)} invalid={tried && !form.signature} />
-        <label className="flex items-start gap-3 rounded-lg border border-line p-3">
-          <input
-            type="checkbox"
-            className="mt-0.5 size-5 shrink-0 accent-[var(--kog-gold)]"
-            checked={form.declaration}
-            onChange={(e) => set('declaration', e.target.checked)}
-          />
-          <span className="text-sm text-text">{GUARDIAN_SIGN_DECLARATION}</span>
-        </label>
-        {error ? <p className="text-sm text-danger" role="alert">{error}</p> : null}
-        <Button block loading={busy} onPress={() => void submit()}>Assinar termo</Button>
-        <p className="text-xs text-dim">
-          Assinatura eletrônica (Lei 14.063/2020). Junto com o termo ficam registrados a data e a hora, o endereço IP e o
-          navegador deste aparelho. Só os professores do aluno veem o termo e o CPF.
-        </p>
-      </Card>
+      <GuardianSignFields
+        form={form}
+        onChange={(f) => { setForm(f); setError(null) }}
+        tried={tried}
+        footer={
+          <>
+            {error ? <p className="text-sm text-danger" role="alert">{error}</p> : null}
+            <Button block loading={busy} onPress={() => void submit()}>Assinar termo</Button>
+          </>
+        }
+      />
     </div>
   )
 }

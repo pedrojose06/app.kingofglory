@@ -151,18 +151,29 @@ export async function getGuardianSignInfo(db: Db, token: string): Promise<Guardi
 }
 
 /** Responsável assina pelo link. O banco grava data, IP e navegador e devolve o código de verificação. */
+/** Campos da assinatura para as RPCs (nome e CPF normalizados). */
+const signArgs = (form: GuardianSignForm) => ({
+  p_guardian_name: form.guardianName.trim().replace(/\s+/g, ' '),
+  p_guardian_cpf: cpfDigits(form.guardianCpf),
+  p_relationship: form.relationship.trim(),
+  p_image: form.image === true,
+  p_face: form.face === true,
+  p_place: form.place.trim(),
+  p_signature: form.signature,
+  p_term_version: GUARDIAN_TERM_VERSION,
+})
+
+/**
+ * Responsável assina na tela já no cadastro do aluno menor. Sem sessão: `token` é o código do cadastro (o mesmo da
+ * foto, uma vez, até 24 h). Com a conta logada: `token` null. Vira "Termo para conferir" quando o professor aprovar.
+ */
+export async function signSignupGuardianTerm(db: Db, profileId: string, token: string | null, form: GuardianSignForm): Promise<void> {
+  const res = await db.rpc('sign_signup_guardian_term', { p_profile_id: profileId, p_token: token, ...signArgs(form) })
+  if (res.error) throw res.error
+}
+
 export async function signGuardianTerm(db: Db, token: string, form: GuardianSignForm): Promise<{ signed_at: string; document_sha256: string }> {
-  const res = await db.rpc('sign_guardian_term', {
-    p_token: token,
-    p_guardian_name: form.guardianName.trim().replace(/\s+/g, ' '),
-    p_guardian_cpf: cpfDigits(form.guardianCpf),
-    p_relationship: form.relationship.trim(),
-    p_image: form.image === true,
-    p_face: form.face === true,
-    p_place: form.place.trim(),
-    p_signature: form.signature,
-    p_term_version: GUARDIAN_TERM_VERSION,
-  })
+  const res = await db.rpc('sign_guardian_term', { p_token: token, ...signArgs(form) })
   return unwrap(res) as unknown as { signed_at: string; document_sha256: string }
 }
 

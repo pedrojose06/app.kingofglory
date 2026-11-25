@@ -916,6 +916,21 @@ export type Database = {
         Returns: Json
       }
       guardian_term_signature: { Args: { p_student_id?: string; p_token?: string }; Returns: Json }
+      sign_signup_guardian_term: {
+        Args: {
+          p_profile_id: string
+          p_token: string | null
+          p_guardian_name: string
+          p_guardian_cpf: string
+          p_relationship: string
+          p_image: boolean
+          p_face: boolean
+          p_place: string
+          p_signature: string
+          p_term_version: string
+        }
+        Returns: undefined
+      }
       is_valid_cpf: { Args: { p_cpf: string }; Returns: boolean }
       list_student_requests: { Args: never; Returns: Json }
       approve_student_request: { Args: { p_request_id: string; p_student_id?: string }; Returns: string }
