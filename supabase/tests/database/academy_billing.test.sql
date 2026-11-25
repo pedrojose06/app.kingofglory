@@ -1,6 +1,6 @@
 -- Cadastros e financeiro da academia: quem vê o quê, coerência entre academias, contrato com parcelas e atraso.
 begin;
-select plan(33);
+select plan(34);
 
 -- Pessoas: ADM (admin da academia), PRO (professor da academia), MEM (membro/pagador), OUT (professor de outra academia).
 insert into auth.users (instance_id, id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
@@ -55,6 +55,10 @@ select is((select gym_id from public.student_details where student_id = '5a00000
 -- ── admin ──
 set local role authenticated;
 set local request.jwt.claims = '{"sub":"a1000000-0000-0000-0000-000000000001"}';
+-- Sem o cabeçalho do app da academia (= app do professor), o admin não vê os alunos da academia.
+select is((select count(*)::int from public.students where gym_id = 'ac000000-0000-0000-0000-0000000000ac'), 0,
+  'no app do professor os alunos da academia não aparecem');
+set local request.headers = '{"x-kog-app":"academia"}';
 select is((select count(*)::int from public.students where gym_id = 'ac000000-0000-0000-0000-0000000000ac'), 2, 'admin vê os alunos da academia');
 select is((select count(*)::int from public.students where id = '5b000000-0000-0000-0000-000000000001'), 0, 'admin não vê aluno da parceira');
 select is((select count(*)::int from public.student_details), 1, 'admin vê a ficha completa');

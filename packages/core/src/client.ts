@@ -15,10 +15,13 @@ export interface CreateSupabaseOptions {
   detectSessionInUrl?: boolean
   /** Chave da sessão no storage. Padrão do supabase-js quando omitida (não muda a sessão de quem já está logado). */
   storageKey?: string
+  /** Cabeçalhos enviados em toda requisição (o app da academia se identifica com `x-kog-app: academia`). */
+  headers?: Record<string, string>
 }
 
 export function createSupabase(url: string, publishableKey: string, options: CreateSupabaseOptions = {}): Db {
   return createClient<Database>(url, publishableKey, {
+    ...(options.headers ? { global: { headers: options.headers } } : {}),
     auth: {
       storage: options.storage,
       ...(options.storageKey ? { storageKey: options.storageKey } : {}),

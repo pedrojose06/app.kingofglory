@@ -19,3 +19,4 @@ drop policy if exists students_select_academy on public.students;
 
 drop function if exists public.can_staff_student(uuid);
 drop function if exists public.can_admin_student(uuid);
+drop function if exists public.request_app();

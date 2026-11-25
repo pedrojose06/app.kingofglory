@@ -151,6 +151,178 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"belt_ranks": {
+                  Row: {
+                    "belt_system": string,"colors": (string)[],"id": string,"max_degrees": number,"name": string,"position": number,"track": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "belt_system": string,"colors"?: (string)[],"id"?: string,"max_degrees"?: number,"name": string,"position": number,"track": string
+                  }
+                  Update: {
+                    "belt_system"?: string,"colors"?: (string)[],"id"?: string,"max_degrees"?: number,"name"?: string,"position"?: number,"track"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"charge_students": {
+                  Row: {
+                    "charge_id": string,"student_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "charge_id": string,"student_id": string
+                  }
+                  Update: {
+                    "charge_id"?: string,"student_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "charge_students_charge_id_fkey"
+      columns: ["charge_id"]
+isOneToOne: false
+      referencedRelation: "charge_overview"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "charge_students_charge_id_fkey"
+      columns: ["charge_id"]
+isOneToOne: false
+      referencedRelation: "charges"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "charge_students_student_id_fkey"
+      columns: ["student_id"]
+isOneToOne: false
+      referencedRelation: "student_absence_streaks"
+      referencedColumns: ["student_id"]
+    },{
+      foreignKeyName: "charge_students_student_id_fkey"
+      columns: ["student_id"]
+isOneToOne: false
+      referencedRelation: "student_progress"
+      referencedColumns: ["student_id"]
+    },{
+      foreignKeyName: "charge_students_student_id_fkey"
+      columns: ["student_id"]
+isOneToOne: false
+      referencedRelation: "students"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"charges": {
+                  Row: {
+                    "amount_cents": number,"cancel_reason": string | null,"cancelled_at": string | null,"cancelled_by": string | null,"competence": string | null,"contract_id": string | null,"created_at": string,"created_by": string | null,"description": string | null,"due_on": string,"external_ref": string | null,"gateway": string | null,"gateway_charge_id": string | null,"gym_id": string,"id": string,"installment": number | null,"installments_total": number | null,"kind": string,"payer_id": string,"payment_url": string | null,"source": string,"status": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "amount_cents": number,"cancel_reason"?: string | null,"cancelled_at"?: string | null,"cancelled_by"?: string | null,"competence"?: string | null,"contract_id"?: string | null,"created_at"?: string,"created_by"?: string | null,"description"?: string | null,"due_on": string,"external_ref"?: string | null,"gateway"?: string | null,"gateway_charge_id"?: string | null,"gym_id": string,"id"?: string,"installment"?: number | null,"installments_total"?: number | null,"kind": string,"payer_id": string,"payment_url"?: string | null,"source"?: string,"status"?: string
+                  }
+                  Update: {
+                    "amount_cents"?: number,"cancel_reason"?: string | null,"cancelled_at"?: string | null,"cancelled_by"?: string | null,"competence"?: string | null,"contract_id"?: string | null,"created_at"?: string,"created_by"?: string | null,"description"?: string | null,"due_on"?: string,"external_ref"?: string | null,"gateway"?: string | null,"gateway_charge_id"?: string | null,"gym_id"?: string,"id"?: string,"installment"?: number | null,"installments_total"?: number | null,"kind"?: string,"payer_id"?: string,"payment_url"?: string | null,"source"?: string,"status"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "charges_cancelled_by_fkey"
+      columns: ["cancelled_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "charges_contract_id_fkey"
+      columns: ["contract_id"]
+isOneToOne: false
+      referencedRelation: "contracts"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "charges_created_by_fkey"
+      columns: ["created_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "charges_gym_id_fkey"
+      columns: ["gym_id"]
+isOneToOne: false
+      referencedRelation: "gyms"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "charges_payer_id_fkey"
+      columns: ["payer_id"]
+isOneToOne: false
+      referencedRelation: "payers"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"class_group_members": {
+                  Row: {
+                    "created_at": string,"group_id": string,"gym_id": string,"joined_on": string,"left_on": string | null,"student_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"group_id": string,"gym_id": string,"joined_on"?: string,"left_on"?: string | null,"student_id": string
+                  }
+                  Update: {
+                    "created_at"?: string,"group_id"?: string,"gym_id"?: string,"joined_on"?: string,"left_on"?: string | null,"student_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "class_group_members_group_id_fkey"
+      columns: ["group_id"]
+isOneToOne: false
+      referencedRelation: "class_groups"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "class_group_members_gym_id_fkey"
+      columns: ["gym_id"]
+isOneToOne: false
+      referencedRelation: "gyms"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "class_group_members_student_id_fkey"
+      columns: ["student_id"]
+isOneToOne: false
+      referencedRelation: "student_absence_streaks"
+      referencedColumns: ["student_id"]
+    },{
+      foreignKeyName: "class_group_members_student_id_fkey"
+      columns: ["student_id"]
+isOneToOne: false
+      referencedRelation: "student_progress"
+      referencedColumns: ["student_id"]
+    },{
+      foreignKeyName: "class_group_members_student_id_fkey"
+      columns: ["student_id"]
+isOneToOne: false
+      referencedRelation: "students"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"class_groups": {
+                  Row: {
+                    "active": boolean,"capacity": number | null,"color": string | null,"created_at": string,"gym_id": string,"id": string,"max_age": number | null,"min_age": number | null,"modality_id": string,"name": string,"notes": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "active"?: boolean,"capacity"?: number | null,"color"?: string | null,"created_at"?: string,"gym_id": string,"id"?: string,"max_age"?: number | null,"min_age"?: number | null,"modality_id": string,"name": string,"notes"?: string | null
+                  }
+                  Update: {
+                    "active"?: boolean,"capacity"?: number | null,"color"?: string | null,"created_at"?: string,"gym_id"?: string,"id"?: string,"max_age"?: number | null,"min_age"?: number | null,"modality_id"?: string,"name"?: string,"notes"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "class_groups_gym_id_fkey"
+      columns: ["gym_id"]
+isOneToOne: false
+      referencedRelation: "gyms"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "class_groups_modality_id_fkey"
+      columns: ["modality_id"]
+isOneToOne: false
+      referencedRelation: "modalities"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"class_photos": {
                   Row: {
                     "class_id": string,"id": string,"storage_path": string,"taken_at": string,"uploaded_by": string
@@ -238,6 +410,88 @@ isOneToOne: false
       columns: ["schedule_id"]
 isOneToOne: false
       referencedRelation: "class_schedules"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"contract_students": {
+                  Row: {
+                    "contract_id": string,"student_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "contract_id": string,"student_id": string
+                  }
+                  Update: {
+                    "contract_id"?: string,"student_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "contract_students_contract_id_fkey"
+      columns: ["contract_id"]
+isOneToOne: false
+      referencedRelation: "contracts"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "contract_students_student_id_fkey"
+      columns: ["student_id"]
+isOneToOne: false
+      referencedRelation: "student_absence_streaks"
+      referencedColumns: ["student_id"]
+    },{
+      foreignKeyName: "contract_students_student_id_fkey"
+      columns: ["student_id"]
+isOneToOne: false
+      referencedRelation: "student_progress"
+      referencedColumns: ["student_id"]
+    },{
+      foreignKeyName: "contract_students_student_id_fkey"
+      columns: ["student_id"]
+isOneToOne: false
+      referencedRelation: "students"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"contracts": {
+                  Row: {
+                    "amount_cents": number,"billing": string,"cancel_reason": string | null,"cancelled_at": string | null,"cancelled_by": string | null,"created_at": string,"created_by": string | null,"discount_cents": number,"due_day": number,"ends_on": string,"enrollment_fee_cents": number,"external_ref": string | null,"gym_id": string,"id": string,"notes": string | null,"payer_id": string,"plan_id": string | null,"review_needed": boolean,"source": string,"starts_on": string,"status": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "amount_cents": number,"billing"?: string,"cancel_reason"?: string | null,"cancelled_at"?: string | null,"cancelled_by"?: string | null,"created_at"?: string,"created_by"?: string | null,"discount_cents"?: number,"due_day": number,"ends_on": string,"enrollment_fee_cents"?: number,"external_ref"?: string | null,"gym_id": string,"id"?: string,"notes"?: string | null,"payer_id": string,"plan_id"?: string | null,"review_needed"?: boolean,"source"?: string,"starts_on": string,"status"?: string
+                  }
+                  Update: {
+                    "amount_cents"?: number,"billing"?: string,"cancel_reason"?: string | null,"cancelled_at"?: string | null,"cancelled_by"?: string | null,"created_at"?: string,"created_by"?: string | null,"discount_cents"?: number,"due_day"?: number,"ends_on"?: string,"enrollment_fee_cents"?: number,"external_ref"?: string | null,"gym_id"?: string,"id"?: string,"notes"?: string | null,"payer_id"?: string,"plan_id"?: string | null,"review_needed"?: boolean,"source"?: string,"starts_on"?: string,"status"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "contracts_cancelled_by_fkey"
+      columns: ["cancelled_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "contracts_created_by_fkey"
+      columns: ["created_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "contracts_gym_id_fkey"
+      columns: ["gym_id"]
+isOneToOne: false
+      referencedRelation: "gyms"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "contracts_payer_id_fkey"
+      columns: ["payer_id"]
+isOneToOne: false
+      referencedRelation: "payers"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "contracts_plan_id_fkey"
+      columns: ["plan_id"]
+isOneToOne: false
+      referencedRelation: "plans"
       referencedColumns: ["id"]
     }
                   ]
@@ -543,6 +797,134 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"modalities": {
+                  Row: {
+                    "active": boolean,"belt_system": string | null,"color": string | null,"created_at": string,"gym_id": string,"id": string,"name": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "active"?: boolean,"belt_system"?: string | null,"color"?: string | null,"created_at"?: string,"gym_id": string,"id"?: string,"name": string
+                  }
+                  Update: {
+                    "active"?: boolean,"belt_system"?: string | null,"color"?: string | null,"created_at"?: string,"gym_id"?: string,"id"?: string,"name"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "modalities_gym_id_fkey"
+      columns: ["gym_id"]
+isOneToOne: false
+      referencedRelation: "gyms"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"payers": {
+                  Row: {
+                    "cpf": string | null,"created_at": string,"email": string | null,"external_ref": string | null,"gym_id": string,"id": string,"name": string,"notes": string | null,"phone": string | null,"profile_id": string | null,"student_id": string | null,"updated_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "cpf"?: string | null,"created_at"?: string,"email"?: string | null,"external_ref"?: string | null,"gym_id": string,"id"?: string,"name": string,"notes"?: string | null,"phone"?: string | null,"profile_id"?: string | null,"student_id"?: string | null,"updated_at"?: string
+                  }
+                  Update: {
+                    "cpf"?: string | null,"created_at"?: string,"email"?: string | null,"external_ref"?: string | null,"gym_id"?: string,"id"?: string,"name"?: string,"notes"?: string | null,"phone"?: string | null,"profile_id"?: string | null,"student_id"?: string | null,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "payers_gym_id_fkey"
+      columns: ["gym_id"]
+isOneToOne: false
+      referencedRelation: "gyms"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "payers_profile_id_fkey"
+      columns: ["profile_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "payers_student_id_fkey"
+      columns: ["student_id"]
+isOneToOne: false
+      referencedRelation: "student_absence_streaks"
+      referencedColumns: ["student_id"]
+    },{
+      foreignKeyName: "payers_student_id_fkey"
+      columns: ["student_id"]
+isOneToOne: false
+      referencedRelation: "student_progress"
+      referencedColumns: ["student_id"]
+    },{
+      foreignKeyName: "payers_student_id_fkey"
+      columns: ["student_id"]
+isOneToOne: false
+      referencedRelation: "students"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"payments": {
+                  Row: {
+                    "amount_cents": number,"charge_id": string,"created_at": string,"external_ref": string | null,"gateway_payment_id": string | null,"gym_id": string,"id": string,"method": string,"notes": string | null,"paid_on": string,"received_by": string | null,"reverse_reason": string | null,"reversed_at": string | null,"reversed_by": string | null,"source": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "amount_cents": number,"charge_id": string,"created_at"?: string,"external_ref"?: string | null,"gateway_payment_id"?: string | null,"gym_id": string,"id"?: string,"method": string,"notes"?: string | null,"paid_on": string,"received_by"?: string | null,"reverse_reason"?: string | null,"reversed_at"?: string | null,"reversed_by"?: string | null,"source"?: string
+                  }
+                  Update: {
+                    "amount_cents"?: number,"charge_id"?: string,"created_at"?: string,"external_ref"?: string | null,"gateway_payment_id"?: string | null,"gym_id"?: string,"id"?: string,"method"?: string,"notes"?: string | null,"paid_on"?: string,"received_by"?: string | null,"reverse_reason"?: string | null,"reversed_at"?: string | null,"reversed_by"?: string | null,"source"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "payments_charge_id_fkey"
+      columns: ["charge_id"]
+isOneToOne: false
+      referencedRelation: "charge_overview"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "payments_charge_id_fkey"
+      columns: ["charge_id"]
+isOneToOne: false
+      referencedRelation: "charges"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "payments_gym_id_fkey"
+      columns: ["gym_id"]
+isOneToOne: false
+      referencedRelation: "gyms"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "payments_received_by_fkey"
+      columns: ["received_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "payments_reversed_by_fkey"
+      columns: ["reversed_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"plans": {
+                  Row: {
+                    "active": boolean,"created_at": string,"description": string | null,"duration_months": number,"enrollment_fee_cents": number,"gym_id": string,"id": string,"name": string,"price_cents": number
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "active"?: boolean,"created_at"?: string,"description"?: string | null,"duration_months"?: number,"enrollment_fee_cents"?: number,"gym_id": string,"id"?: string,"name": string,"price_cents": number
+                  }
+                  Update: {
+                    "active"?: boolean,"created_at"?: string,"description"?: string | null,"duration_months"?: number,"enrollment_fee_cents"?: number,"gym_id"?: string,"id"?: string,"name"?: string,"price_cents"?: number
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "plans_gym_id_fkey"
+      columns: ["gym_id"]
+isOneToOne: false
+      referencedRelation: "gyms"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"profiles": {
                   Row: {
                     "absence_alert_threshold": number,"avatar_url": string | null,"created_at": string,"face_auto_approve_min": number | null,"id": string,"name": string,"role": Database["public"]['Enums']["profile_role"]
@@ -629,6 +1011,50 @@ isOneToOne: true
       referencedColumns: ["id"]
     }
                   ]
+                },"student_belts": {
+                  Row: {
+                    "belt_rank_id": string,"created_at": string,"date_unknown": boolean,"degrees": number,"graduated_at": string,"id": string,"notes": string | null,"recorded_by": string | null,"student_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "belt_rank_id": string,"created_at"?: string,"date_unknown"?: boolean,"degrees"?: number,"graduated_at": string,"id"?: string,"notes"?: string | null,"recorded_by"?: string | null,"student_id": string
+                  }
+                  Update: {
+                    "belt_rank_id"?: string,"created_at"?: string,"date_unknown"?: boolean,"degrees"?: number,"graduated_at"?: string,"id"?: string,"notes"?: string | null,"recorded_by"?: string | null,"student_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "student_belts_belt_rank_id_fkey"
+      columns: ["belt_rank_id"]
+isOneToOne: false
+      referencedRelation: "belt_ranks"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "student_belts_recorded_by_fkey"
+      columns: ["recorded_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "student_belts_student_id_fkey"
+      columns: ["student_id"]
+isOneToOne: false
+      referencedRelation: "student_absence_streaks"
+      referencedColumns: ["student_id"]
+    },{
+      foreignKeyName: "student_belts_student_id_fkey"
+      columns: ["student_id"]
+isOneToOne: false
+      referencedRelation: "student_progress"
+      referencedColumns: ["student_id"]
+    },{
+      foreignKeyName: "student_belts_student_id_fkey"
+      columns: ["student_id"]
+isOneToOne: false
+      referencedRelation: "students"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"student_class_reminders": {
                   Row: {
                     "created_at": string,"enabled": boolean,"last_sent_on": string | null,"lead_minutes": number,"profile_id": string
@@ -646,6 +1072,44 @@ isOneToOne: true
       columns: ["profile_id"]
 isOneToOne: true
       referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"student_details": {
+                  Row: {
+                    "cep": string | null,"city": string | null,"complement": string | null,"cpf": string | null,"district": string | null,"email": string | null,"external_ref": string | null,"gym_id": string,"number": string | null,"phone_home": string | null,"registered_on": string | null,"rg": string | null,"state": string | null,"street": string | null,"student_id": string,"updated_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "cep"?: string | null,"city"?: string | null,"complement"?: string | null,"cpf"?: string | null,"district"?: string | null,"email"?: string | null,"external_ref"?: string | null,"gym_id": string,"number"?: string | null,"phone_home"?: string | null,"registered_on"?: string | null,"rg"?: string | null,"state"?: string | null,"street"?: string | null,"student_id": string,"updated_at"?: string
+                  }
+                  Update: {
+                    "cep"?: string | null,"city"?: string | null,"complement"?: string | null,"cpf"?: string | null,"district"?: string | null,"email"?: string | null,"external_ref"?: string | null,"gym_id"?: string,"number"?: string | null,"phone_home"?: string | null,"registered_on"?: string | null,"rg"?: string | null,"state"?: string | null,"street"?: string | null,"student_id"?: string,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "student_details_gym_id_fkey"
+      columns: ["gym_id"]
+isOneToOne: false
+      referencedRelation: "gyms"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "student_details_student_id_fkey"
+      columns: ["student_id"]
+isOneToOne: true
+      referencedRelation: "student_absence_streaks"
+      referencedColumns: ["student_id"]
+    },{
+      foreignKeyName: "student_details_student_id_fkey"
+      columns: ["student_id"]
+isOneToOne: true
+      referencedRelation: "student_progress"
+      referencedColumns: ["student_id"]
+    },{
+      foreignKeyName: "student_details_student_id_fkey"
+      columns: ["student_id"]
+isOneToOne: true
+      referencedRelation: "students"
       referencedColumns: ["id"]
     }
                   ]
@@ -743,6 +1207,44 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"student_guardians": {
+                  Row: {
+                    "created_at": string,"legal_guardian": boolean,"payer_id": string,"relationship": string | null,"student_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"legal_guardian"?: boolean,"payer_id": string,"relationship"?: string | null,"student_id": string
+                  }
+                  Update: {
+                    "created_at"?: string,"legal_guardian"?: boolean,"payer_id"?: string,"relationship"?: string | null,"student_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "student_guardians_payer_id_fkey"
+      columns: ["payer_id"]
+isOneToOne: false
+      referencedRelation: "payers"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "student_guardians_student_id_fkey"
+      columns: ["student_id"]
+isOneToOne: false
+      referencedRelation: "student_absence_streaks"
+      referencedColumns: ["student_id"]
+    },{
+      foreignKeyName: "student_guardians_student_id_fkey"
+      columns: ["student_id"]
+isOneToOne: false
+      referencedRelation: "student_progress"
+      referencedColumns: ["student_id"]
+    },{
+      foreignKeyName: "student_guardians_student_id_fkey"
+      columns: ["student_id"]
+isOneToOne: false
+      referencedRelation: "students"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"student_signup_requests": {
                   Row: {
                     "approval_notify_pending": boolean,"birth_date": string | null,"created_at": string,"decided_at": string | null,"decided_by": string | null,"graduated_at": string | null,"guardian_esign": Json | null,"guardian_file_path": string | null,"guardian_upload_token": string | null,"gym_id": string,"id": string,"image_consent_at": string | null,"name": string,"phone": string | null,"photo_path": string | null,"photo_upload_token": string | null,"profile_id": string,"rank_id": string | null,"status": string,"student_id": string | null
@@ -828,7 +1330,33 @@ isOneToOne: false
                 }
           }
           Views: {
-            "class_turnout": {
+            "charge_overview": {
+                  Row: {
+                    "amount_cents": number,"cancel_reason": string | null,"cancelled_at": string | null,"competence": string | null,"contract_id": string | null,"created_at": string,"days_late": number | null,"description": string | null,"due_on": string,"gym_id": string,"id": string,"installment": number | null,"installments_total": number | null,"kind": string,"paid_cents": number | null,"paid_on": string | null,"payer_id": string,"payer_name": string,"payment_id": string | null,"payment_method": string | null,"payment_notes": string | null,"source": string,"state": string | null,"status": string,"student_ids": (string)[] | null,"student_names": (string)[] | null
+                  }
+                  ComputedFields: never
+                  Relationships: [
+                    {
+      foreignKeyName: "charges_contract_id_fkey"
+      columns: ["contract_id"]
+isOneToOne: false
+      referencedRelation: "contracts"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "charges_gym_id_fkey"
+      columns: ["gym_id"]
+isOneToOne: false
+      referencedRelation: "gyms"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "charges_payer_id_fkey"
+      columns: ["payer_id"]
+isOneToOne: false
+      referencedRelation: "payers"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"class_turnout": {
                   Row: {
                     "class_id": string,"date": string,"gym_id": string,"present": number | null,"start_time": string | null
                   }
@@ -911,6 +1439,15 @@ isOneToOne: false
 "attendance_reminder_is_due":
 { Args: { "p_last_sent_on": string,"p_remind_at": string }; Returns: boolean
                            },
+"can_admin_charge":
+{ Args: { "p_charge_id": string }; Returns: boolean
+                           },
+"can_admin_contract":
+{ Args: { "p_contract_id": string }; Returns: boolean
+                           },
+"can_admin_student":
+{ Args: { "p_student_id": string }; Returns: boolean
+                           },
 "can_delete_own_guardian_file":
 { Args: { "p_name": string }; Returns: boolean
                            },
@@ -926,6 +1463,9 @@ isOneToOne: false
 "can_manage_student":
 { Args: { "p_student_id": string }; Returns: boolean
                            },
+"can_staff_student":
+{ Args: { "p_student_id": string }; Returns: boolean
+                           },
 "can_upload_own_signup_term":
 { Args: { "p_name": string }; Returns: boolean
                            },
@@ -935,11 +1475,20 @@ isOneToOne: false
 "can_upload_pending_signup_term":
 { Args: { "p_name": string }; Returns: boolean
                            },
+"can_view_charge":
+{ Args: { "p_charge_id": string }; Returns: boolean
+                           },
+"can_view_contract":
+{ Args: { "p_contract_id": string }; Returns: boolean
+                           },
 "can_view_signup_face":
 { Args: { "p_owner": string }; Returns: boolean
                            },
 "cancel_academy_invite":
 { Args: { "p_invite_id": string }; Returns: undefined
+                           },
+"cancel_contract":
+{ Args: { "p_contract_id": string,"p_from"?: string,"p_reason": string }; Returns: number
                            },
 "claim_attendance_reminders":
 { Args: Record<PropertyKey, never>; Returns: Json
@@ -967,6 +1516,9 @@ isOneToOne: false
                            },
 "create_academy_invite":
 { Args: { "p_email": string,"p_gym_id": string,"p_role": string }; Returns: string
+                           },
+"create_contract":
+{ Args: { "p_charges": Json,"p_contract": Json,"p_student_ids": (string)[] }; Returns: string
                            },
 "create_guardian_sign_link":
 { Args: { "p_renew"?: boolean,"p_student_id": string }; Returns: Json
@@ -1068,6 +1620,9 @@ isOneToOne: false
 "is_minor":
 { Args: { "p_birth": string,"p_today": string }; Returns: boolean
                            },
+"is_own_payer":
+{ Args: { "p_payer_id": string }; Returns: boolean
+                           },
 "is_own_student":
 { Args: { "p_student_id": string }; Returns: boolean
                            },
@@ -1111,6 +1666,9 @@ isOneToOne: false
                            },
 "reject_student_request":
 { Args: { "p_request_id": string }; Returns: undefined
+                           },
+"request_app":
+{ Args: Record<PropertyKey, never>; Returns: string
                            },
 "request_student_access":
 { Args: { "p_birth_date"?: string,"p_graduated_at"?: string,"p_gym_id": string,"p_name": string,"p_phone"?: string,"p_rank_id"?: string }; Returns: undefined

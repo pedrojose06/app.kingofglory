@@ -9,6 +9,16 @@
 --   professor (`ranks`, `student_graduations`) não muda e não enxerga o jiu-jitsu.
 -- Rollback: supabase/rollback/20261126120000_academy_catalog.down.sql
 
+-- ── qual app está consultando ──────────────────────────────────────────────
+-- O app da academia manda o cabeçalho `x-kog-app: academia` em toda requisição. As policies novas de `students` e
+-- `student_graduations` só valem com ele: assim quem é professor no app E da equipe da academia não passa a ver os
+-- alunos da academia no app do professor (que lista alunos sem filtrar academia, inclusive versões antigas
+-- instaladas). O cabeçalho só restringe: sem ser membro da academia ele não libera nada.
+create or replace function public.request_app() returns text
+language sql stable
+set search_path = ''
+as $$ select coalesce(nullif(current_setting('request.headers', true), '')::json ->> 'x-kog-app', '') $$;
+
 -- ── helpers de acesso por aluno ──────────────────────────────────────────
 create or replace function public.can_admin_student(p_student_id uuid) returns boolean
 language sql stable security definer
@@ -26,21 +36,22 @@ $$;
 
 -- Alunos: equipe da academia lê; só o admin cadastra e edita. Sem delete (aluno é inativado).
 create policy students_select_academy on public.students for select to authenticated
-  using (public.is_academy_staff(gym_id));
+  using (public.request_app() = 'academia' and public.is_academy_staff(gym_id));
 create policy students_insert_academy on public.students for insert to authenticated
-  with check (public.is_academy_admin(gym_id));
+  with check (public.request_app() = 'academia' and public.is_academy_admin(gym_id));
 create policy students_update_academy on public.students for update to authenticated
-  using (public.is_academy_admin(gym_id)) with check (public.is_academy_admin(gym_id));
+  using (public.request_app() = 'academia' and public.is_academy_admin(gym_id))
+  with check (public.is_academy_admin(gym_id));
 
 -- Graduação de muay thai (a mesma do app do professor): equipe lê, admin registra.
 create policy graduations_select_academy on public.student_graduations for select to authenticated
-  using (public.can_staff_student(student_id));
+  using (public.request_app() = 'academia' and public.can_staff_student(student_id));
 create policy graduations_insert_academy on public.student_graduations for insert to authenticated
-  with check (public.can_admin_student(student_id) and recorded_by = (select auth.uid()));
+  with check (public.request_app() = 'academia' and public.can_admin_student(student_id) and recorded_by = (select auth.uid()));
 create policy graduations_update_academy on public.student_graduations for update to authenticated
-  using (public.can_admin_student(student_id)) with check (public.can_admin_student(student_id));
+  using (public.request_app() = 'academia' and public.can_admin_student(student_id)) with check (public.can_admin_student(student_id));
 create policy graduations_delete_academy on public.student_graduations for delete to authenticated
-  using (public.can_admin_student(student_id));
+  using (public.request_app() = 'academia' and public.can_admin_student(student_id));
 
 -- ── ficha do aluno ─────────────────────────────────────────────────────────
 create table public.student_details (
@@ -226,5 +237,7 @@ create policy student_belts_select on public.student_belts for select to authent
 create policy student_belts_write on public.student_belts for all to authenticated
   using (public.can_admin_student(student_id)) with check (public.can_admin_student(student_id));
 
+revoke execute on function public.request_app() from public;
+grant execute on function public.request_app() to anon, authenticated;
 revoke execute on function public.can_admin_student(uuid), public.can_staff_student(uuid) from public, anon;
 grant execute on function public.can_admin_student(uuid), public.can_staff_student(uuid) to authenticated;
