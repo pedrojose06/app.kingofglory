@@ -308,7 +308,7 @@ export default function StudentSignupPage() {
                           Baixe o termo (já vem com seu nome e data de nascimento), peça para ele preencher e assinar e anexe aqui
                           uma foto nítida ou o PDF do termo assinado.
                         </p>
-                        <DownloadButton name={name} birthDate={birthDate} block />
+                        <DownloadButton name={name} birthDate={birthDate} block label="Baixar termo em branco" />
                         <FilePicker file={termFile} onChange={setTermFile} label="Anexar termo assinado" />
                         <p className="text-xs text-dim">PDF, JPG ou PNG, até 10 MB.</p>
                       </>

@@ -7,11 +7,11 @@ import {
 } from '@kog/core'
 import { Badge, Button, Card, Chip, Field, Sheet, Textarea } from '@kog/ui'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { ChevronRight, Clock, Copy, Download, Eye, FileCheck2, FileSignature, FileUp, MessageCircle, PenLine, Share2, X } from 'lucide-react'
+import { ChevronRight, Clock, Copy, Download, Eye, FileCheck2, FilePlus2, FileSignature, FileUp, MessageCircle, PenLine, Share2, X } from 'lucide-react'
 import { useMemo, useRef, useState, type ChangeEvent } from 'react'
 import { formatDateTimeBR } from '@/components/student-account'
 import { Section } from '@/components/common'
-import { downloadGuardianTerm, openSignedGuardianTerm } from '@/lib/guardian-term'
+import { downloadGuardianTerm, downloadSignedGuardianTerm, openSignedGuardianTerm } from '@/lib/guardian-term'
 import { useGuardianConsents, useGyms, useSave, useStudents, useToday } from '@/lib/queries'
 import { db } from '@/lib/supabase'
 import { errorMessage, toast, toastError } from '@/lib/toast'
@@ -44,11 +44,21 @@ export function useGuardianReviews() {
   }, [consents.data, students.data, today])
 }
 
-export function DownloadButton({ name, birthDate, block }: { name: string; birthDate: string; block?: boolean }) {
+/**
+ * Modelo do termo EM BRANCO (só com nome e nascimento do aluno), para imprimir e assinar à mão. Não é o termo que o
+ * aluno já enviou: esse é "Baixar termo" (TermDownloadButton).
+ */
+export function DownloadButton({ name, birthDate, block, label = 'Novo termo em branco', variant = 'ghost' }: {
+  name: string
+  birthDate: string
+  block?: boolean
+  label?: string
+  variant?: 'ghost' | 'plain'
+}) {
   const [busy, setBusy] = useState(false)
   return (
     <Button
-      variant="ghost"
+      variant={variant}
       size="sm"
       block={block}
       loading={busy}
@@ -57,6 +67,33 @@ export function DownloadButton({ name, birthDate, block }: { name: string; birth
         setBusy(true)
         try {
           await downloadGuardianTerm({ name, birthDate })
+        } catch (error) {
+          toastError(error)
+        } finally {
+          setBusy(false)
+        }
+      }}
+    >
+      <FilePlus2 className="size-4" /> {label}
+    </Button>
+  )
+}
+
+/** Baixa o termo que o aluno já tem (assinado na tela ou o arquivo enviado), preenchido e assinado. */
+function TermDownloadButton({ student, consent }: { student: Student; consent: GuardianConsent }) {
+  const [busy, setBusy] = useState(false)
+  const viewer = useOpenGuardianFile()
+  return (
+    <Button
+      variant="ghost"
+      size="sm"
+      block
+      loading={busy || viewer.opening}
+      onPress={async () => {
+        if (consent.file_path) return void viewer.open(consent.file_path)
+        setBusy(true)
+        try {
+          await downloadSignedGuardianTerm({ studentId: student.id }, student.name)
         } catch (error) {
           toastError(error)
         } finally {
@@ -426,7 +463,6 @@ export function GuardianTermSection({ student, consent }: { student: Student; co
   const status = guardianTermStatus(student, consent, today)
   const [file, setFile] = useState<File | null>(null)
   const [reviewOpen, setReviewOpen] = useState(false)
-  const viewer = useOpenGuardianFile()
   const upload = useSave(
     (f: File) => uploadGuardianConsent(db(), { studentId: student.id, fileId: crypto.randomUUID(), file: f }),
     [keys.guardianConsents, keys.students],
@@ -455,18 +491,18 @@ export function GuardianTermSection({ student, consent }: { student: Student; co
         ) : null}
         {status === 'pendente' ? <GuardianSignLinkCard studentId={student.id} studentName={student.name} phone={student.phone} /> : null}
         {status === 'pendente' ? <p className="text-xs font-bold uppercase tracking-[0.08em] text-dim">Ou em papel</p> : null}
-        <div className="grid grid-cols-2 gap-2">
-          {/* Modelo em branco (para imprimir): só enquanto falta o termo; depois confundiria com o termo enviado. */}
-          {status === 'pendente' && student.birth_date ? <DownloadButton name={student.name} birthDate={student.birth_date} block /> : null}
-          {status !== 'pendente' && consent?.signed_at ? (
-            <SignedTermButton studentId={student.id} studentName={student.name} label="Ver termo" />
-          ) : null}
-          {status !== 'pendente' && consent?.file_path ? (
-            <Button variant="ghost" size="sm" block loading={viewer.opening} onPress={() => viewer.open(consent.file_path!)}>
-              <Eye className="size-4" /> Ver termo
-            </Button>
-          ) : null}
-        </div>
+        {/* "Baixar termo" = o que o aluno já enviou (preenchido e assinado). O modelo em branco tem outro nome. */}
+        {status !== 'pendente' && consent && (consent.signed_at || consent.file_path) ? (
+          <TermDownloadButton student={student} consent={consent} />
+        ) : null}
+        {student.birth_date ? (
+          <DownloadButton
+            name={student.name}
+            birthDate={student.birth_date}
+            block
+            variant={status === 'pendente' ? 'ghost' : 'plain'}
+          />
+        ) : null}
         <FilePicker file={file} onChange={setFile} label={status === 'pendente' ? 'Enviar termo assinado' : 'Substituir termo'} />
         {file ? (
           <Button block loading={upload.isPending} onPress={() => upload.mutate(file)}>Enviar (já aprovado)</Button>
@@ -556,7 +592,7 @@ export function StudentGuardianScreen({ account, onSignOut }: { account: MyStude
       </ol>
 
       <div className="mt-4 space-y-2">
-        <DownloadButton name={account.name} birthDate={account.birth_date ?? ''} block />
+        <DownloadButton name={account.name} birthDate={account.birth_date ?? ''} block label="Baixar termo em branco" />
         <FilePicker file={file} onChange={setFile} label={status === 'em_analise' ? 'Enviar outro arquivo' : 'Escolher termo assinado'} />
         {file ? (
           <Button block loading={submit.isPending} onPress={() => submit.mutate(file)}>Enviar termo</Button>
