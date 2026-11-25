@@ -95,6 +95,7 @@ As migrations em `supabase/migrations` já estão aplicadas no projeto remoto, c
 | `fix_anon_storage_upload` | corrige o envio sem login da foto e do termo no cadastro (a policy do termo chamava uma função que `anon` não podia executar e derrubava todo envio sem login) |
 | `minor_account_from_guardian` | aluno menor: aprovar o termo com uso de imagem também marca o aceite da conta (`account_consent_at`), sem a tela de aceite do aluno |
 | `my_face_photo` | `my_face_photo()`: caminho da foto do cadastro do próprio aluno logado (aprovado), mostrada na área do aluno |
+| `academy_members` | sistema da academia (`academia.kingofglory.com.br`): `gyms.management_enabled`, `academy_members` (papéis `admin`/`professor`/`membro`, separados do app do professor), convites por e-mail (`academy_invites`, só o hash do token) aceitos apenas pela conta com aquele e-mail confirmado, `create_academy`, `update_academy`, `set_academy_member_role` (nunca sem admin) e `my_academies()`; academia com gestão não aparece no app do professor de quem não dá aula nela. Testes em `supabase/tests/database` (`pnpm db:test`) |
 
 Para criar uma migration nova e aplicar (com a CLI do Supabase):
 

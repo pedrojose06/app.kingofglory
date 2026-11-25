@@ -30,7 +30,7 @@ export async function listMyGymStarts(db: Db, userId: string): Promise<Record<st
 
 /** Corrige a data em que o próprio professor começou a dar aula na academia. Não mexe na grade nem nas aulas. */
 export async function setMyGymStart(db: Db, gymId: string, startedOn: string | null): Promise<void> {
-  unwrap(await db.rpc('set_my_gym_start', { p_gym_id: gymId, p_started_on: startedOn }))
+  unwrap(await db.rpc('set_my_gym_start', { p_gym_id: gymId, p_started_on: startedOn as string /* null apaga a data */ }))
 }
 
 export async function listSchedules(db: Db): Promise<ClassSchedule[]> {
