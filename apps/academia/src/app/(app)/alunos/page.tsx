@@ -13,11 +13,12 @@ import { AvatarImage, useStudentPhotoUrls } from '@/components/student-photo'
 import { useAcademy } from '@/lib/academy'
 import { useClassGroups, useStudents } from '@/lib/queries'
 
-type Quick = 'menores' | 'sem_contrato' | 'revisar' | 'sem_nascimento' | 'sem_foto'
+type Quick = 'menores' | 'sem_contrato' | 'revisar' | 'termina_mes' | 'sem_nascimento' | 'sem_foto'
 const QUICK: { id: Quick; label: string }[] = [
   { id: 'menores', label: 'Menores' },
   { id: 'sem_contrato', label: 'Sem contrato' },
   { id: 'revisar', label: 'Contrato a revisar' },
+  { id: 'termina_mes', label: 'Contrato termina no mês' },
   { id: 'sem_nascimento', label: 'Sem nascimento' },
   { id: 'sem_foto', label: 'Sem foto' },
 ]
@@ -57,7 +58,7 @@ function StudentsList() {
   const [q, setQ] = useState('')
   const [group, setGroup] = useState(params.get('turma') ?? '')
   const [status, setStatus] = useState<'ativos' | 'inativos' | 'todos'>('ativos')
-  const [quick, setQuick] = useState<Quick | null>(null)
+  const [quick, setQuick] = useState<Quick | null>(() => QUICK.find((f) => f.id === params.get('filtro'))?.id ?? null)
   const today = todayISO()
 
   const groupById = useMemo(() => new Map((groups.data ?? []).map((g) => [g.id, g])), [groups.data])
@@ -72,6 +73,7 @@ function StudentsList() {
       if (quick === 'menores' && !isMinor(s.birth_date, today)) return false
       if (quick === 'sem_contrato' && s.contract) return false
       if (quick === 'revisar' && !s.contract?.review_needed) return false
+      if (quick === 'termina_mes' && !(s.contract?.status === 'ativo' && s.contract.ends_on.slice(0, 7) === today.slice(0, 7))) return false
       if (quick === 'sem_nascimento' && s.birth_date) return false
       if (quick === 'sem_foto' && s.photo_path) return false
       if (term && !strip(s.name).includes(term) && !(digits.length >= 3 && s.cpf?.includes(digits))) return false

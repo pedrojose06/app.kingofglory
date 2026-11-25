@@ -1,7 +1,7 @@
 'use client'
 
 import {
-  countPresentByClass, ensureAcademyClasses, getAcademyClass, getAcademyStudent, getGraduationSchedule, getStudentProgress, listAcademyClasses, listAcademyMembers,
+  countPresentByClass, ensureAcademyClasses, getAcademyDashboardCounts, listAcademyProgress, getAcademyClass, getAcademyStudent, getGraduationSchedule, getStudentProgress, listAcademyClasses, listAcademyMembers,
   listAcademySchedules, listAcademyStudents, listBeltRanks, listClassAttendance, listClassGroups, listClassPhotos, listDiaryStudents,
   listFaceReferences, listGroupMemberships, listModalities, listPayers, listPlans, listRanks, listStudentCharges, listStudentContracts,
 } from '@kog/core'
@@ -30,6 +30,8 @@ export const keys = {
   diaryStudents: (gymId: string) => ['academia', gymId, 'diario', 'alunos'] as const,
   memberships: (gymId: string) => ['academia', gymId, 'diario', 'turmas-alunos'] as const,
   faceRefs: (gymId: string) => ['academia', gymId, 'diario', 'rostos'] as const,
+  dashboard: (gymId: string, today: string) => ['academia', gymId, 'painel', today] as const,
+  progress: (gymId: string) => ['academia', gymId, 'progresso'] as const,
 }
 
 export function useStudents() {
@@ -172,4 +174,22 @@ export function useInstructors() {
     queryFn: async () => (await listAcademyMembers(db(), academy.gym_id)).filter((m) => m.role !== 'membro'),
     enabled: isAdmin,
   })
+}
+
+// ── painel ────────────────────────────────────────────────────────────────────
+
+/** Contadores de contratos, cobranças e grade do painel (só o administrador). */
+export function useDashboardCounts(today: string) {
+  const { academy, isAdmin } = useAcademy()
+  return useQuery({
+    queryKey: keys.dashboard(academy.gym_id, today),
+    queryFn: () => getAcademyDashboardCounts(db(), academy.gym_id, today),
+    enabled: isAdmin,
+  })
+}
+
+/** Progresso de todos os alunos da academia (aptos a graduar). */
+export function useAcademyProgress() {
+  const { academy } = useAcademy()
+  return useQuery({ queryKey: keys.progress(academy.gym_id), queryFn: () => listAcademyProgress(db(), academy.gym_id) })
 }

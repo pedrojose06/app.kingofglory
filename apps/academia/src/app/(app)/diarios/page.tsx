@@ -6,7 +6,8 @@ import {
 import { Badge, Button, Card, EmptyState, Select } from '@kog/ui'
 import { ChevronLeft, ChevronRight, Plus } from 'lucide-react'
 import Link from 'next/link'
-import { useMemo, useState } from 'react'
+import { useSearchParams } from 'next/navigation'
+import { Suspense, useMemo, useState } from 'react'
 import { NewClassDialog, ScheduleDialog, useToggleSchedule } from '@/components/diary-dialogs'
 import { GroupTag } from '@/components/kit'
 import { PageHeader } from '@/components/shell'
@@ -17,8 +18,17 @@ import { useClassCounts, useClassGroups, useSchedules, useWeekClasses } from '@/
 type Tab = 'semana' | 'grade'
 
 export default function DiariesPage() {
+  return (
+    <Suspense fallback={<Loading />}>
+      <Diaries />
+    </Suspense>
+  )
+}
+
+function Diaries() {
+  const params = useSearchParams()
   const { academy, isAdmin } = useAcademy()
-  const [tab, setTab] = useState<Tab>('semana')
+  const [tab, setTab] = useState<Tab>(params.get('aba') === 'grade' ? 'grade' : 'semana')
   const [creating, setCreating] = useState(false)
   const [scheduleDialog, setScheduleDialog] = useState<ClassSchedule | 'new' | null>(null)
 
