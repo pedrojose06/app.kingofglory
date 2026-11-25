@@ -108,3 +108,26 @@ export function planReviewMessage(r: PlanReview): PushMessage {
     tag: `kog-review-${r.class_id}`,
   }
 }
+
+export interface GraduationStudent {
+  student: string
+  rank: string
+  /** YYYY-MM-DD */
+  held_on: string
+}
+
+/** Aluno do professor reconhecido nas fotos de uma graduação: um aviso por professor; tocar abre Pendências. */
+export function graduationMessage(profileId: string, students: GraduationStudent[]): PushMessage {
+  const first = students[0]!
+  const [y, m, d] = first.held_on.split('-')
+  const date = y ? `${d}/${m}` : first.held_on
+  const one = students.length === 1
+  return {
+    title: one ? 'Graduação para aprovar' : `${students.length} graduações para aprovar`,
+    body: one
+      ? `${first.student} foi reconhecido na graduação de ${date}. Aprova a passagem para ${first.rank}?`
+      : `${joinList(students.map((s) => s.student))} foram reconhecidos na graduação. Aprova o novo grau de cada um?`,
+    url: '/pendencias',
+    tag: `kog-graduation-${profileId}`,
+  }
+}
