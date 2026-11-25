@@ -1,6 +1,7 @@
 @import 'tailwindcss';
 @import '@kog/ui/tokens.css';
 @source '../../../../packages/ui/src';
+@source '../../../../packages/web-kit/src';
 
 @layer base {
   html {

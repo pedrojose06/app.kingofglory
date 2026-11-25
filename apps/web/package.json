@@ -14,6 +14,7 @@
     "@fontsource/anton": "^5.3.0",
     "@kog/core": "workspace:*",
     "@kog/ui": "workspace:*",
+    "@kog/web-kit": "workspace:*",
     "@serwist/next": "^9.5.13",
     "@supabase/supabase-js": "^2.119.0",
     "@tanstack/react-query": "^5.107.1",

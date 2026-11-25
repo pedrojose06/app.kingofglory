@@ -13,12 +13,15 @@ export interface CreateSupabaseOptions {
   storage?: SessionStorage
   /** true no web (lê o token da URL em links de recuperação de senha); false no nativo. */
   detectSessionInUrl?: boolean
+  /** Chave da sessão no storage. Padrão do supabase-js quando omitida (não muda a sessão de quem já está logado). */
+  storageKey?: string
 }
 
 export function createSupabase(url: string, publishableKey: string, options: CreateSupabaseOptions = {}): Db {
   return createClient<Database>(url, publishableKey, {
     auth: {
       storage: options.storage,
+      ...(options.storageKey ? { storageKey: options.storageKey } : {}),
       persistSession: true,
       autoRefreshToken: true,
       detectSessionInUrl: options.detectSessionInUrl ?? false,
