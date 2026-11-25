@@ -6,10 +6,10 @@ select plan(22);
 -- Contas de teste: A (professor, e-mail confirmado), B (convidado), C (outra pessoa), U (professor sem e-mail confirmado).
 insert into auth.users (instance_id, id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
 values
-  ('00000000-0000-0000-0000-000000000000', 'a0000000-0000-0000-0000-00000000000a', 'authenticated', 'authenticated', 'a@teste.com', '', now(), '{}', '{"name":"Admin A"}', now(), now()),
-  ('00000000-0000-0000-0000-000000000000', 'b0000000-0000-0000-0000-00000000000b', 'authenticated', 'authenticated', 'mestre@teste.com', '', null, '{}', '{"name":"Mestre B"}', now(), now()),
-  ('00000000-0000-0000-0000-000000000000', 'c0000000-0000-0000-0000-00000000000c', 'authenticated', 'authenticated', 'c@teste.com', '', now(), '{}', '{"name":"Outro C"}', now(), now()),
-  ('00000000-0000-0000-0000-000000000000', 'd0000000-0000-0000-0000-00000000000d', 'authenticated', 'authenticated', 'u@teste.com', '', null, '{}', '{"name":"Sem confirmar"}', now(), now());
+  ('00000000-0000-0000-0000-000000000000', 'a0000000-0000-0000-0000-00000000000a', 'authenticated', 'authenticated', 'a@pgtap.invalid', '', now(), '{}', '{"name":"Admin A"}', now(), now()),
+  ('00000000-0000-0000-0000-000000000000', 'b0000000-0000-0000-0000-00000000000b', 'authenticated', 'authenticated', 'mestre@pgtap.invalid', '', null, '{}', '{"name":"Mestre B"}', now(), now()),
+  ('00000000-0000-0000-0000-000000000000', 'c0000000-0000-0000-0000-00000000000c', 'authenticated', 'authenticated', 'c@pgtap.invalid', '', now(), '{}', '{"name":"Outro C"}', now(), now()),
+  ('00000000-0000-0000-0000-000000000000', 'd0000000-0000-0000-0000-00000000000d', 'authenticated', 'authenticated', 'u@pgtap.invalid', '', null, '{}', '{"name":"Sem confirmar"}', now(), now());
 update public.profiles set role = 'instructor'
  where id in ('a0000000-0000-0000-0000-00000000000a', 'd0000000-0000-0000-0000-00000000000d');
 
@@ -43,8 +43,8 @@ select lives_ok($$ select public.update_academy((select v::uuid from t where k =
 select is((select name from public.my_academies()), 'KOG Academy', 'nome alterado');
 
 -- ── convite ──
-insert into t values ('token', public.create_academy_invite((select v::uuid from t where k = 'gym'), ' Mestre@Teste.com ', 'admin'));
-select is((select count(*)::int from public.academy_invites where email = 'mestre@teste.com' and token_sha256 <> (select v from t where k = 'token')), 1,
+insert into t values ('token', public.create_academy_invite((select v::uuid from t where k = 'gym'), ' Mestre@PgTap.invalid ', 'admin'));
+select is((select count(*)::int from public.academy_invites where email = 'mestre@pgtap.invalid' and token_sha256 <> (select v from t where k = 'token')), 1,
   'convite guardado com e-mail normalizado e só o hash do token');
 
 set local role anon;
@@ -52,7 +52,7 @@ select is((select status from public.academy_invite_info((select v from t where 
 set local role authenticated;
 
 set local request.jwt.claims = '{"sub":"c0000000-0000-0000-0000-00000000000c"}';
-select throws_like($$ select public.accept_academy_invite((select v from t where k = 'token')) $$, '%Este convite é para mestre@teste.com%',
+select throws_like($$ select public.accept_academy_invite((select v from t where k = 'token')) $$, '%Este convite é para mestre@pgtap.invalid%',
   'outra conta não aceita o convite');
 
 set local request.jwt.claims = '{"sub":"b0000000-0000-0000-0000-00000000000b"}';
@@ -71,14 +71,14 @@ select is((select role from public.my_academies()), 'admin', 'convidado entra co
 set local request.jwt.claims = '{"sub":"a0000000-0000-0000-0000-00000000000a"}';
 select lives_ok($$ select public.set_academy_member_role((select v::uuid from t where k = 'gym'), 'a0000000-0000-0000-0000-00000000000a', 'membro') $$,
   'admin pode deixar de ser admin quando há outro');
-select throws_like($$ select public.create_academy_invite((select v::uuid from t where k = 'gym'), 'x@teste.com', 'membro') $$, '%Só o administrador%',
+select throws_like($$ select public.create_academy_invite((select v::uuid from t where k = 'gym'), 'x@pgtap.invalid', 'membro') $$, '%Só o administrador%',
   'membro não convida');
-select is((select count(*)::int from public.academy_invites), 0, 'membro não lê os convites');
+select is((select count(*)::int from public.academy_invites where gym_id = (select v::uuid from t where k = 'gym')), 0, 'membro não lê os convites');
 
 set local request.jwt.claims = '{"sub":"b0000000-0000-0000-0000-00000000000b"}';
 select throws_like($$ select public.set_academy_member_role((select v::uuid from t where k = 'gym'), 'b0000000-0000-0000-0000-00000000000b', null) $$,
   '%pelo menos um administrador%', 'o último admin não sai');
-select is((select count(*)::int from public.academy_members), 2, 'admin vê todos os membros');
+select is((select count(*)::int from public.academy_members where gym_id = (select v::uuid from t where k = 'gym')), 2, 'admin vê todos os membros');
 
 select * from finish();
 rollback;
