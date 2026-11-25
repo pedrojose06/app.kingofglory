@@ -57,8 +57,9 @@ export function DiaryPhotos({ klass, canEdit }: { klass: ClassRow; canEdit: bool
   })
 
   // ── presença pelo rosto ──
-  // Só entra no reconhecimento quem autorizou o uso de imagem (o banco também garante).
-  const faceStudents = useMemo(() => (students.data ?? []).filter((s) => s.active && s.image_consent_at), [students.data])
+  // O contrato de matrícula já autoriza o reconhecimento: entram todos os alunos ativos, menos quem pediu para ficar de
+  // fora (o banco também garante).
+  const faceStudents = useMemo(() => (students.data ?? []).filter((s) => s.active && !s.face_opt_out_at), [students.data])
   const refs = useFaceReferences(faceStudents.length > 0)
   const statusOf = useMemo(() => new Map((attendance.data ?? []).map((a) => [a.student_id, a.status])), [attendance.data])
   const [faceQueue, setFaceQueue] = useState<{ photoId: string; file: File }[]>([])
@@ -115,7 +116,7 @@ export function DiaryPhotos({ klass, canEdit }: { klass: ClassRow; canEdit: bool
       await queryClient.invalidateQueries({ queryKey: keys.classPhotos(academy.gym_id, klass.id) })
       // Reconhecimento: no próprio aparelho, com a foto original (mais nítida que a comprimida enviada).
       if (faceStudents.length === 0) {
-        toast('Foto salva. Para a presença pelo rosto, autorize o uso de imagem na ficha dos alunos.')
+        toast('Foto salva. Nenhum aluno ativo entra no reconhecimento facial.')
       } else {
         setFaceQueue((q) => [...q, ...queued])
       }
@@ -142,8 +143,8 @@ export function DiaryPhotos({ klass, canEdit }: { klass: ClassRow; canEdit: bool
       ) : null}
       <p className="mb-4 max-w-2xl text-sm text-dim">
         {faceStudents.length > 0
-          ? `Ao enviar a foto, o app procura os rostos e sugere quem é cada um (${faceStudents.length} ${faceStudents.length === 1 ? 'aluno autorizou' : 'alunos autorizaram'} o reconhecimento). A presença só é marcada depois da sua confirmação. O reconhecimento roda neste aparelho: a foto não vai para nenhum serviço externo.`
-          : 'Para marcar presença pelo rosto, autorize o uso de imagem e o reconhecimento facial na ficha de cada aluno (Cadastros › Alunos).'}
+          ? `Ao enviar a foto, o app procura os rostos e sugere quem é cada um entre ${faceStudents.length} ${faceStudents.length === 1 ? 'aluno ativo' : 'alunos ativos'}; o contrato de matrícula já autoriza o reconhecimento. A presença só é marcada depois da sua confirmação. O reconhecimento roda neste aparelho: a foto não vai para nenhum serviço externo.`
+          : 'Nenhum aluno ativo entra no reconhecimento facial (quem pediu para ficar de fora está marcado na ficha do aluno).'}
       </p>
 
       {list.length === 0 ? (

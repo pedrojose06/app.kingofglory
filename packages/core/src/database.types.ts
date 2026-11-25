@@ -1315,14 +1315,14 @@ isOneToOne: false
                   ]
                 },"students": {
                   Row: {
-                    "account_consent_at": string | null,"active": boolean,"birth_date": string | null,"created_at": string,"gym_id": string,"id": string,"image_consent_at": string | null,"name": string,"notes": string | null,"opening_absent": number,"opening_after_grad": number | null,"opening_from": string | null,"opening_present": number,"opening_until": string | null,"phone": string | null,"profile_id": string | null,"started_on": string,"track": string
+                    "account_consent_at": string | null,"active": boolean,"birth_date": string | null,"created_at": string,"face_opt_out_at": string | null,"gym_id": string,"id": string,"image_consent_at": string | null,"name": string,"notes": string | null,"opening_absent": number,"opening_after_grad": number | null,"opening_from": string | null,"opening_present": number,"opening_until": string | null,"phone": string | null,"profile_id": string | null,"started_on": string,"track": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "account_consent_at"?: string | null,"active"?: boolean,"birth_date"?: string | null,"created_at"?: string,"gym_id": string,"id"?: string,"image_consent_at"?: string | null,"name": string,"notes"?: string | null,"opening_absent"?: number,"opening_after_grad"?: number | null,"opening_from"?: string | null,"opening_present"?: number,"opening_until"?: string | null,"phone"?: string | null,"profile_id"?: string | null,"started_on"?: string,"track"?: string
+                    "account_consent_at"?: string | null,"active"?: boolean,"birth_date"?: string | null,"created_at"?: string,"face_opt_out_at"?: string | null,"gym_id": string,"id"?: string,"image_consent_at"?: string | null,"name": string,"notes"?: string | null,"opening_absent"?: number,"opening_after_grad"?: number | null,"opening_from"?: string | null,"opening_present"?: number,"opening_until"?: string | null,"phone"?: string | null,"profile_id"?: string | null,"started_on"?: string,"track"?: string
                   }
                   Update: {
-                    "account_consent_at"?: string | null,"active"?: boolean,"birth_date"?: string | null,"created_at"?: string,"gym_id"?: string,"id"?: string,"image_consent_at"?: string | null,"name"?: string,"notes"?: string | null,"opening_absent"?: number,"opening_after_grad"?: number | null,"opening_from"?: string | null,"opening_present"?: number,"opening_until"?: string | null,"phone"?: string | null,"profile_id"?: string | null,"started_on"?: string,"track"?: string
+                    "account_consent_at"?: string | null,"active"?: boolean,"birth_date"?: string | null,"created_at"?: string,"face_opt_out_at"?: string | null,"gym_id"?: string,"id"?: string,"image_consent_at"?: string | null,"name"?: string,"notes"?: string | null,"opening_absent"?: number,"opening_after_grad"?: number | null,"opening_from"?: string | null,"opening_present"?: number,"opening_until"?: string | null,"phone"?: string | null,"profile_id"?: string | null,"started_on"?: string,"track"?: string
                   }
                   Relationships: [
                     {
@@ -1525,6 +1525,9 @@ isOneToOne: false
                            },
 "claim_student_class_reminders":
 { Args: Record<PropertyKey, never>; Returns: Json
+                           },
+"delete_academy_class":
+{ Args: { "p_class_id": string }; Returns: string[]
                            },
 "conclude_academy_class":
 { Args: { "p_class_id": string }; Returns: undefined

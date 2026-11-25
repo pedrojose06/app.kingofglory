@@ -1,7 +1,7 @@
 'use client'
 
 import {
-  countPresentByClass, ensureAcademyClasses, getAcademyClass, getAcademyStudent, listAcademyClasses, listAcademyMembers,
+  countPresentByClass, ensureAcademyClasses, getAcademyClass, getAcademyStudent, getGraduationSchedule, getStudentProgress, listAcademyClasses, listAcademyMembers,
   listAcademySchedules, listAcademyStudents, listBeltRanks, listClassAttendance, listClassGroups, listClassPhotos, listDiaryStudents,
   listFaceReferences, listGroupMemberships, listModalities, listPayers, listPlans, listRanks, listStudentCharges, listStudentContracts,
 } from '@kog/core'
@@ -14,6 +14,7 @@ export const keys = {
   all: (gymId: string) => ['academia', gymId] as const,
   students: (gymId: string) => ['academia', gymId, 'alunos'] as const,
   student: (gymId: string, id: string) => ['academia', gymId, 'aluno', id] as const,
+  studentProgress: (gymId: string, id: string) => ['academia', gymId, 'aluno', id, 'progresso'] as const,
   studentContracts: (gymId: string, id: string) => ['academia', gymId, 'aluno', id, 'contratos'] as const,
   studentCharges: (gymId: string, id: string) => ['academia', gymId, 'aluno', id, 'cobrancas'] as const,
   modalities: (gymId: string) => ['academia', gymId, 'modalidades'] as const,
@@ -39,6 +40,17 @@ export function useStudents() {
 export function useStudent(id: string) {
   const { academy } = useAcademy()
   return useQuery({ queryKey: keys.student(academy.gym_id, id), queryFn: () => getAcademyStudent(db(), id), enabled: Boolean(id) })
+}
+
+/** Presenças do aluno e treinos desde a última graduação. */
+export function useStudentProgress(id: string) {
+  const { academy } = useAcademy()
+  return useQuery({ queryKey: keys.studentProgress(academy.gym_id, id), queryFn: () => getStudentProgress(db(), id), enabled: Boolean(id) })
+}
+
+/** Datas marcadas da próxima graduação da equipe (adulto e infantil). */
+export function useGraduationSchedule() {
+  return useQuery({ queryKey: ['academia', 'graduacao-marcada'], queryFn: () => getGraduationSchedule(db()), staleTime: 3_600_000 })
 }
 
 export function useStudentContracts(id: string) {

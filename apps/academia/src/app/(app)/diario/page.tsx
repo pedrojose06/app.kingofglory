@@ -1,12 +1,12 @@
 'use client'
 
-import { concludeAcademyClass, formatDayLong, formatTime, setClassStatus, todayISO, type ClassStatus } from '@kog/core'
+import { concludeAcademyClass, deleteAcademyClass, formatDayLong, formatTime, setClassStatus, todayISO, type ClassStatus } from '@kog/core'
 import { Badge, Button, EmptyState } from '@kog/ui'
 import { toast, toastError } from '@kog/web-kit'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, Trash2 } from 'lucide-react'
 import Link from 'next/link'
-import { useSearchParams } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { Suspense, useState } from 'react'
 import { DiaryPhotos } from '@/components/diary-photos'
 import { DiaryRollCall } from '@/components/diary-roll-call'
@@ -48,6 +48,7 @@ const TABS = [
 function DiaryClass({ id }: { id: string }) {
   const { academy } = useAcademy()
   const queryClient = useQueryClient()
+  const router = useRouter()
   const klass = useAcademyClass(id)
   const groups = useClassGroups()
   const [tab, setTab] = useState<(typeof TABS)[number]['id']>('chamada')
@@ -68,6 +69,17 @@ function DiaryClass({ id }: { id: string }) {
     onError: toastError,
   })
 
+  // Aula avulsa desmarcada pela própria academia: sai do diário (com chamada e fotos). Aula da grade usa "Não houve aula".
+  const remove = useMutation({
+    mutationFn: () => deleteAcademyClass(db(), id),
+    onSuccess: async () => {
+      router.replace('/diarios')
+      await queryClient.invalidateQueries({ queryKey: keys.all(academy.gym_id) })
+      toast('Aula apagada.')
+    },
+    onError: toastError,
+  })
+
   if (klass.isPending) return <Loading label="Carregando aula…" />
   if (klass.isError) return <ErrorState error={klass.error} onRetry={() => klass.refetch()} />
   const c = klass.data
@@ -76,7 +88,17 @@ function DiaryClass({ id }: { id: string }) {
   const group = c.group_id ? groups.data?.find((g) => g.id === c.group_id) : undefined
   const future = c.date > today && c.status === 'scheduled'
   const cancelled = c.status === 'cancelled'
-  const busy = conclude.isPending || setStatus.isPending
+  const busy = conclude.isPending || setStatus.isPending || remove.isPending
+  const extra = !c.schedule_id
+  const confirmDelete = () =>
+    window.confirm(
+      'Apagar esta aula? Ela some do diário junto com a chamada e as fotos. Use quando a aula foi desmarcada e não vai mais acontecer.',
+    ) && remove.mutate()
+  const deleteButton = extra ? (
+    <Button variant="plain" loading={remove.isPending} disabled={busy} onPress={confirmDelete}>
+      <Trash2 className="size-4" /> Apagar aula
+    </Button>
+  ) : null
 
   return (
     <>
@@ -95,6 +117,7 @@ function DiaryClass({ id }: { id: string }) {
         </div>
         {!future ? (
           <div className="flex flex-wrap gap-2">
+            {deleteButton}
             {cancelled ? (
               <Button variant="ghost" loading={busy} onPress={() => setStatus.mutate('scheduled')}>Reabrir aula</Button>
             ) : c.status === 'done' ? (
@@ -112,7 +135,9 @@ function DiaryClass({ id }: { id: string }) {
               </>
             )}
           </div>
-        ) : null}
+          ) : (
+          deleteButton
+        )}
       </div>
 
       {future ? (
