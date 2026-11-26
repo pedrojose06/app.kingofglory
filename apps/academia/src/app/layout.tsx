@@ -2,6 +2,7 @@ import '@fontsource/anton/400.css'
 import '@fontsource-variable/archivo'
 import './globals.css'
 import { Toaster } from '@kog/web-kit'
+import { Analytics } from '@vercel/analytics/next'
 import type { Metadata, Viewport } from 'next'
 import type { ReactNode } from 'react'
 import { Providers } from '@/lib/providers'
@@ -34,6 +35,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       <body>
         <Providers>{children}</Providers>
         <Toaster />
+        <Analytics />
       </body>
     </html>
   )
