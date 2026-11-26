@@ -15,6 +15,31 @@ export function todayISO(now: Date = new Date()): string {
   return isoFmt.format(now)
 }
 
+const wallFmt = new Intl.DateTimeFormat('en-CA', {
+  timeZone: TIME_ZONE,
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+  hour: '2-digit',
+  minute: '2-digit',
+  hourCycle: 'h23',
+})
+
+/**
+ * Minutos desde o início da aula (data 'YYYY-MM-DD' + horário 'HH:MM[:SS]', relógio de São Paulo).
+ * Negativo antes da aula; null sem horário.
+ */
+export function minutesSinceClassStart(date: string, startTime: string | null | undefined, now: Date = new Date()): number | null {
+  if (!startTime) return null
+  const part = (type: string) => Number(wallFmt.formatToParts(now).find((p) => p.type === type)?.value)
+  const nowWall = Date.UTC(part('year'), part('month') - 1, part('day'), part('hour'), part('minute'))
+  const [y, m, d] = date.split('-').map(Number)
+  const [hh, mm] = startTime.split(':').map(Number)
+  const start = Date.UTC(y!, m! - 1, d!, hh!, mm!)
+  if (Number.isNaN(start) || Number.isNaN(nowWall)) return null
+  return Math.round((nowWall - start) / 60_000)
+}
+
 /** Converte 'YYYY-MM-DD' num Date ao meio-dia UTC — seguro para aritmética e formatação de dia. */
 export function parseISODate(iso: string): Date {
   const [y, m, d] = iso.split('-').map(Number)
