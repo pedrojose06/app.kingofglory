@@ -163,7 +163,16 @@ export function FaceReview({ target, progress, result, error, students, refs, st
   }
 
   function close() {
-    if (decisions.size > 0 && !window.confirm('Sair sem salvar as respostas?')) return
+    // Rostos reconhecidos sem resposta não são salvos: sem este aviso, fechar a revisão descartava o reconhecimento em
+    // silêncio (comum quando o professor já tinha feito a chamada à mão antes da foto).
+    const unanswered = result ? suggestions.filter((s, i) => s.student_id && !decisions.has(i)).length : 0
+    const message =
+      decisions.size > 0
+        ? 'Sair sem salvar as respostas?'
+        : unanswered > 0
+          ? `${unanswered} ${unanswered === 1 ? 'aluno reconhecido ainda não foi confirmado' : 'alunos reconhecidos ainda não foram confirmados'}. Sair sem salvar?`
+          : null
+    if (message && !window.confirm(message)) return
     onClose()
   }
 
