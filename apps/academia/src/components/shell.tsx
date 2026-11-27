@@ -8,6 +8,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import type { ReactNode } from 'react'
 import { useAcademy } from '@/lib/academy'
+import { useSignupRequests } from '@/lib/queries'
 import { db } from '@/lib/supabase'
 
 interface NavItem {
@@ -24,7 +25,7 @@ interface NavItem {
 const STAFF: readonly AcademyRole[] = ['admin', 'professor']
 const NAV: readonly NavItem[] = [
   { href: '/', label: 'Painel', icon: LayoutDashboard, roles: ['admin', 'professor', 'membro'] },
-  { href: '/alunos', label: 'Cadastros', icon: Users, roles: ['admin'], match: ['/alunos', '/aluno', '/responsaveis', '/planos', '/turmas'] },
+  { href: '/alunos', label: 'Cadastros', icon: Users, roles: ['admin'], match: ['/alunos', '/aluno', '/responsaveis', '/planos', '/turmas', '/pedidos'] },
   { href: '/financeiro', label: 'Mensalidades', icon: Wallet, roles: ['admin'] },
   { href: '/diarios', label: 'Diários de aula', icon: CalendarDays, roles: STAFF, match: ['/diarios', '/diario'] },
   { href: '/graduacoes', label: 'Graduações', icon: Award, roles: STAFF, match: ['/graduacoes', '/graduacao'] },
@@ -38,6 +39,7 @@ function NavLinks({ orientation }: { orientation: 'vertical' | 'horizontal' }) {
   const pathname = usePathname()
   const { role } = useAcademy()
   const items = NAV.filter((i) => i.roles.includes(role))
+  const pending = useSignupRequests().data?.length ?? 0
   return (
     <ul className={cn(orientation === 'vertical' ? 'space-y-1' : 'flex gap-1 overflow-x-auto px-4 pb-2')}>
       {items.map(({ href, label, icon: Icon, soon, match }) => {
@@ -46,6 +48,11 @@ function NavLinks({ orientation }: { orientation: 'vertical' | 'horizontal' }) {
           <>
             <Icon className="size-[18px] shrink-0" strokeWidth={active ? 2.4 : 1.8} />
             <span className="truncate">{label}</span>
+            {href === '/alunos' && pending > 0 ? (
+              <span className="ml-auto inline-flex min-w-5 items-center justify-center rounded-full bg-gold px-1.5 text-[11px] font-bold text-ink" title="Pedidos de acesso">
+                {pending}
+              </span>
+            ) : null}
             {soon ? <Badge className="ml-auto hidden lg:inline-flex">Em breve</Badge> : null}
           </>
         )

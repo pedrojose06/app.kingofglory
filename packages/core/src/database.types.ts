@@ -697,14 +697,14 @@ isOneToOne: false
                   ]
                 },"gyms": {
                   Row: {
-                    "address": string | null,"created_at": string,"created_by": string,"id": string,"management_enabled": boolean,"name": string,"next_graduation_on": string | null
+                    "address": string | null,"created_at": string,"created_by": string,"id": string,"management_enabled": boolean,"name": string,"next_graduation_on": string | null,"signup_contact_id": string | null,"signup_label": string | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "address"?: string | null,"created_at"?: string,"created_by"?: string,"id"?: string,"management_enabled"?: boolean,"name": string,"next_graduation_on"?: string | null
+                    "address"?: string | null,"created_at"?: string,"created_by"?: string,"id"?: string,"management_enabled"?: boolean,"name": string,"next_graduation_on"?: string | null,"signup_contact_id"?: string | null,"signup_label"?: string | null
                   }
                   Update: {
-                    "address"?: string | null,"created_at"?: string,"created_by"?: string,"id"?: string,"management_enabled"?: boolean,"name"?: string,"next_graduation_on"?: string | null
+                    "address"?: string | null,"created_at"?: string,"created_by"?: string,"id"?: string,"management_enabled"?: boolean,"name"?: string,"next_graduation_on"?: string | null,"signup_contact_id"?: string | null,"signup_label"?: string | null
                   }
                   Relationships: [
                     {
@@ -1484,6 +1484,20 @@ isOneToOne: false
             "academy_invite_hash":
 { Args: { "p_token": string }; Returns: string
                            },
+"academy_approve_signup_request":
+{ Args: { "p_request_id": string,"p_student_id"?: string }; Returns: string
+                           },
+"academy_reject_signup_request":
+{ Args: { "p_request_id": string }; Returns: undefined
+                           },
+"academy_signup_requests":
+{ Args: { "p_gym_id": string }; Returns: Json
+                           },
+"academy_signup_settings":
+{ Args: { "p_gym_id": string }; Returns: {
+              "signup_contact_id": string,"signup_label": string
+            }[]
+                           },
 "academy_invite_info":
 { Args: { "p_token": string }; Returns: {
               "academy": string,"email": string,"role": string,"status": string
@@ -1900,6 +1914,9 @@ isOneToOne: false
                            },
 "today_sp":
 { Args: Record<PropertyKey, never>; Returns: string
+                           },
+"set_academy_signup":
+{ Args: { "p_contact_id": string | null,"p_gym_id": string,"p_label": string }; Returns: undefined
                            },
 "update_academy":
 { Args: { "p_address"?: string,"p_gym_id": string,"p_name": string }; Returns: undefined

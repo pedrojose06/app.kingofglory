@@ -8,6 +8,7 @@ import { Search, X } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useEffect, useState, type ReactNode } from 'react'
+import { useSignupRequests } from '@/lib/queries'
 
 /** Janela: no celular sobe de baixo; no desktop aparece centralizada. Fecha com Esc e clicando fora. */
 export function Dialog({ open, onClose, title, children, footer, wide }: {
@@ -57,11 +58,13 @@ const REGISTRY_TABS = [
   { href: '/responsaveis', label: 'Responsáveis', match: ['/responsaveis'] },
   { href: '/planos', label: 'Planos', match: ['/planos'] },
   { href: '/turmas', label: 'Turmas', match: ['/turmas'] },
+  { href: '/pedidos', label: 'Pedidos de acesso', match: ['/pedidos'] },
 ] as const
 
 /** Abas dos cadastros. */
 export function RegistryTabs() {
   const pathname = usePathname()
+  const pending = useSignupRequests().data?.length ?? 0
   return (
     <nav aria-label="Cadastros" className="-mx-1 mb-6 flex gap-1 overflow-x-auto border-b border-line px-1">
       {REGISTRY_TABS.map((t) => {
@@ -77,6 +80,9 @@ export function RegistryTabs() {
             )}
           >
             {t.label}
+            {t.href === '/pedidos' && pending > 0 ? (
+              <span className="ml-1.5 inline-flex min-w-5 items-center justify-center rounded-full bg-gold px-1.5 text-[11px] font-bold text-ink">{pending}</span>
+            ) : null}
           </Link>
         )
       })}

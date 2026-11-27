@@ -190,3 +190,41 @@ export async function approveStudentRequest(db: Db, requestId: string, studentId
 export async function rejectStudentRequest(db: Db, requestId: string): Promise<void> {
   unwrap(await db.rpc('reject_student_request', { p_request_id: requestId }))
 }
+
+// ── pedidos no sistema da academia (admin da academia com gestão) ─────────────
+
+/** Pedidos pendentes da academia (o admin não vê o próprio pedido). */
+export async function listAcademySignupRequests(db: Db, gymId: string): Promise<StudentRequest[]> {
+  const data = unwrap(await db.rpc('academy_signup_requests', { p_gym_id: gymId }))
+  return (data ?? []) as unknown as StudentRequest[]
+}
+
+/** Aprova ligando ao aluno `studentId` (da academia, sem conta) ou, sem ele, criando um aluno novo. Devolve o id do aluno. */
+export async function approveAcademySignupRequest(db: Db, requestId: string, studentId?: string): Promise<string> {
+  return unwrap(await db.rpc('academy_approve_signup_request', { p_request_id: requestId, ...(studentId ? { p_student_id: studentId } : {}) }))
+}
+
+export async function rejectAcademySignupRequest(db: Db, requestId: string): Promise<void> {
+  unwrap(await db.rpc('academy_reject_signup_request', { p_request_id: requestId }))
+}
+
+/** Alunos da academia ainda sem conta, para ligar a um pedido. */
+export async function listStudentsWithoutAccount(db: Db, gymId: string): Promise<{ id: string; name: string; active: boolean }[]> {
+  return unwrap(await db.from('students').select('id, name, active').eq('gym_id', gymId).is('profile_id', null).order('name'))
+}
+
+export interface AcademySignupSettings {
+  /** Nome da academia no cadastro do aluno (vazio = o nome da academia). */
+  signup_label: string | null
+  /** Quem aparece como professor no cadastro (sem ninguém, a academia não aparece). */
+  signup_contact_id: string | null
+}
+
+export async function getAcademySignupSettings(db: Db, gymId: string): Promise<AcademySignupSettings> {
+  const rows = unwrap(await db.rpc('academy_signup_settings', { p_gym_id: gymId }))
+  return rows[0] ?? { signup_label: null, signup_contact_id: null }
+}
+
+export async function setAcademySignup(db: Db, gymId: string, input: AcademySignupSettings): Promise<void> {
+  unwrap(await db.rpc('set_academy_signup', { p_gym_id: gymId, p_label: input.signup_label ?? '', p_contact_id: input.signup_contact_id }))
+}
