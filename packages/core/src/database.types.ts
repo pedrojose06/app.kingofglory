@@ -845,6 +845,32 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"message_templates": {
+                  Row: {
+                    "body": string,"created_at": string,"created_by": string | null,"defaults": Json,"gym_id": string,"id": string,"title": string,"updated_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "body": string,"created_at"?: string,"created_by"?: string | null,"defaults"?: Json,"gym_id": string,"id"?: string,"title": string,"updated_at"?: string
+                  }
+                  Update: {
+                    "body"?: string,"created_at"?: string,"created_by"?: string | null,"defaults"?: Json,"gym_id"?: string,"id"?: string,"title"?: string,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "message_templates_created_by_fkey"
+      columns: ["created_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "message_templates_gym_id_fkey"
+      columns: ["gym_id"]
+isOneToOne: false
+      referencedRelation: "gyms"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"modalities": {
                   Row: {
                     "active": boolean,"belt_system": string | null,"color": string | null,"created_at": string,"gym_id": string,"id": string,"name": string
