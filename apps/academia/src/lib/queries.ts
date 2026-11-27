@@ -3,7 +3,7 @@
 import {
   type ChargeList, countPresentByClass, ensureAcademyClasses, getAcademyDashboardCounts, listAcademyCharges, listAcademyProgress, getAcademyClass, getAcademyStudent, getGraduationSchedule, getStudentProgress, listAcademyClasses, listAcademyMembers,
   listAcademySchedules, listAcademyStudents, listBeltRanks, listClassAttendance, listClassGroups, listClassPhotos, listDiaryStudents,
-  listFaceReferences, listGroupMemberships, listModalities, listPayers, listPlans, listRanks, listStudentCharges, listStudentContracts,
+  listFaceReferences, listGroupMemberships, listMessageTemplates, listModalities, listPayers, listPlans, listRanks, listStudentCharges, listStudentContracts,
 } from '@kog/core'
 import {
   getGraduationEvent, listEventCandidates, listGraduationEvents, listGraduationPhotos,
@@ -41,6 +41,7 @@ export const keys = {
   graduationEvent: (gymId: string, id: string) => ['academia', gymId, 'graduacao', id] as const,
   graduationPhotos: (gymId: string, id: string) => ['academia', gymId, 'graduacao', id, 'fotos'] as const,
   graduationCandidates: (gymId: string, id: string) => ['academia', gymId, 'graduacao', id, 'candidatos'] as const,
+  messages: (gymId: string) => ['academia', gymId, 'mensagens'] as const,
 }
 
 export function useStudents() {
@@ -240,4 +241,11 @@ export function useGraduationPhotos(id: string) {
 export function useGraduationCandidates(id: string) {
   const { academy } = useAcademy()
   return useQuery({ queryKey: keys.graduationCandidates(academy.gym_id, id), queryFn: () => listEventCandidates(db(), id), enabled: Boolean(id) })
+}
+
+// ── mensagens padrão ──────────────────────────────────────────────────────────
+
+export function useMessageTemplates() {
+  const { academy, isStaff } = useAcademy()
+  return useQuery({ queryKey: keys.messages(academy.gym_id), queryFn: () => listMessageTemplates(db(), academy.gym_id), enabled: isStaff })
 }
