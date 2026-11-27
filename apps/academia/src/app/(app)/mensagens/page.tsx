@@ -114,6 +114,7 @@ function EditorDialog({ draft, onClose }: { draft: Draft; onClose: () => void })
   const [defaults, setDefaults] = useState(draft.defaults)
   const [emojiOpen, setEmojiOpen] = useState(false)
   const [newField, setNewField] = useState<string | null>(null)
+  const [confirmDelete, setConfirmDelete] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const area = useRef<HTMLTextAreaElement>(null)
   const fields = useMemo(() => templateFields(body), [body])
@@ -184,14 +185,20 @@ function EditorDialog({ draft, onClose }: { draft: Draft; onClose: () => void })
       footer={
         <>
           {draft.id ? (
-            <Button
-              variant="danger"
-              className="mr-auto"
-              loading={remove.isPending}
-              onPress={() => window.confirm(`Apagar a mensagem "${draft.title}"?`) && remove.mutate()}
-            >
-              Apagar
-            </Button>
+            confirmDelete ? (
+              <div className="mr-auto flex flex-wrap gap-2">
+                <Button variant="danger" loading={remove.isPending} onPress={() => remove.mutate()}>
+                  Confirmar
+                </Button>
+                <Button variant="plain" onPress={() => setConfirmDelete(false)}>
+                  Não apagar
+                </Button>
+              </div>
+            ) : (
+              <Button variant="danger" className="mr-auto" onPress={() => setConfirmDelete(true)}>
+                Apagar
+              </Button>
+            )
           ) : null}
           <Button variant="plain" onPress={onClose}>Cancelar</Button>
           <Button loading={save.isPending} onPress={submit}>Salvar</Button>
