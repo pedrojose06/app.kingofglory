@@ -2,11 +2,20 @@ import { z } from 'zod'
 import { birthDateIssue } from './domain/age'
 
 const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Data inválida')
-/** Data de nascimento obrigatória: válida, não futura e a partir de 1900. */
-const birthDate = z.string({ error: 'Informe a data de nascimento' }).superRefine((v, ctx) => {
-  const issue = birthDateIssue(v)
-  if (issue) ctx.addIssue({ code: 'custom', message: issue })
-})
+/**
+ * Data de nascimento opcional (o professor nem sempre sabe; o aluno informa no cadastro do portal).
+ * Vazio vira null; se informada, precisa ser válida, não futura e a partir de 1900.
+ */
+const birthDate = z
+  .string()
+  .trim()
+  .nullable()
+  .optional()
+  .transform((v) => (v ? v : null))
+  .superRefine((v, ctx) => {
+    const issue = v ? birthDateIssue(v) : null
+    if (issue) ctx.addIssue({ code: 'custom', message: issue })
+  })
 const optionalText = z
   .string()
   .trim()
