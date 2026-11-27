@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { planShareText } from './data/plan-share'
 import {
-  absenceAlerts, addDays, analyzeTurnout, buildImportPlan, diffReminders, enqueue, formatDayLong, graduationStatus, missingLabel, monthsBetween, nextBatch, overlayAttendance,
+  absenceAlerts, addDays, missedGraduationLabel, analyzeTurnout, buildImportPlan, diffReminders, enqueue, formatDayLong, graduationStatus, missingLabel, monthsBetween, nextBatch, overlayAttendance,
   overlayClassStatus, parseAttendanceExport, planHasContent, upcomingClasses, parseCsv, parseDateLoose, toCsv, toReminderPlan, todayISO, weekdayOf, welchT, attendanceStats,
   type AbsenceStreak, type Attendance, type ClassRow, type ClassSchedule, type AttendanceReminder, type ClassTurnout, type OutboxItem, type OutboxOp, type Rank,
 } from './index'
@@ -65,6 +65,19 @@ describe('graduationStatus', () => {
     expect(graduationStatus(prog(null, null, 30), ranks, '2026-05-26', '2026-11-16', { graduationOn: '2026-12-13' }).skipReady).toBe(false)
     // Data passada é ignorada: vale hoje.
     expect(graduationStatus(prog(null, null, 36), ranks, '2026-05-26', '2026-11-16', { graduationOn: '2026-11-01' }).on).toBeNull()
+  })
+  it('graduação marcada sem tempo mínimo: previsão pelo mês em que completa (caso real: 12/2025 + 18 meses)', () => {
+    const longo = [...ranks.slice(0, 2), rank(3, { required_classes: 173, min_months: 18 })]
+    const s = graduationStatus(prog('r2', '2025-12-14', 0), longo, '2023-01-01', '2026-11-27', { graduationOn: '2026-12-06' })
+    expect([s.on, s.missedOn, s.earliestMonth, s.monthsElapsed, s.missingMonths]).toEqual([null, '2026-12-06', '2027-06', 11, 7])
+    expect(missedGraduationLabel(s)).toBe(
+      'Não dá tempo para a graduação de 06/12/2026: o próximo grau pede 18 meses desde a última graduação. Previsão: junho de 2027 (data a definir).',
+    )
+    // Com tempo até a data marcada: conta até ela, sem aviso.
+    const ok = graduationStatus(prog('r1', '2026-06-10', 40), ranks, '2025-01-01', '2026-11-27', { graduationOn: '2026-12-13' })
+    expect([ok.on, ok.missedOn, ok.earliestMonth, missedGraduationLabel(ok)]).toEqual(['2026-12-13', null, null, null])
+    // Primeira graduação mantém a regra dela (conta até a data marcada).
+    expect(graduationStatus(prog(null, null, 10), ranks, '2026-11-01', '2026-11-27', { graduationOn: '2026-12-13' }).missedOn).toBeNull()
   })
   it('quantidade cheia sem *, e 80% da quantidade com *', () => {
     expect(graduationStatus(prog('r1', '2026-01-10', 35), ranks, '2025-01-01', '2026-08-01').missingClasses).toBe(1)

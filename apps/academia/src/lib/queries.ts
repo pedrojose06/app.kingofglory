@@ -3,7 +3,7 @@
 import {
   type ChargeList, countPresentByClass, ensureAcademyClasses, getAcademyDashboardCounts, listAcademyCharges, listAcademyProgress, getAcademyClass, getAcademyStudent, getGraduationSchedule, getStudentProgress, listAcademyClasses, listAcademyMembers,
   listAcademySchedules, listAcademyStudents, listBeltRanks, listClassAttendance, listClassGroups, listClassPhotos, listDiaryStudents,
-  listFaceReferences, listGroupMemberships, listMessageTemplates, listModalities, listPayers, listPlans, listRanks, listStudentCharges, listStudentContracts,
+  listFaceReferences, listAcademySignupRequests, listGroupMemberships, listMessageTemplates, listStudentsWithoutAccount, listModalities, listPayers, listPlans, listRanks, listStudentCharges, listStudentContracts,
 } from '@kog/core'
 import {
   getGraduationEvent, listEventCandidates, listGraduationEvents, listGraduationPhotos,
@@ -42,6 +42,8 @@ export const keys = {
   graduationPhotos: (gymId: string, id: string) => ['academia', gymId, 'graduacao', id, 'fotos'] as const,
   graduationCandidates: (gymId: string, id: string) => ['academia', gymId, 'graduacao', id, 'candidatos'] as const,
   messages: (gymId: string) => ['academia', gymId, 'mensagens'] as const,
+  signupRequests: (gymId: string) => ['academia', gymId, 'pedidos'] as const,
+  withoutAccount: (gymId: string) => ['academia', gymId, 'pedidos', 'alunos-sem-conta'] as const,
 }
 
 export function useStudents() {
@@ -248,4 +250,23 @@ export function useGraduationCandidates(id: string) {
 export function useMessageTemplates() {
   const { academy, isStaff } = useAcademy()
   return useQuery({ queryKey: keys.messages(academy.gym_id), queryFn: () => listMessageTemplates(db(), academy.gym_id), enabled: isStaff })
+}
+
+// ── pedidos de acesso (cadastro de aluno) ─────────────────────────────────────
+
+/** Pedidos de alunos que criaram a conta escolhendo esta academia (só o administrador). */
+export function useSignupRequests() {
+  const { academy, isAdmin } = useAcademy()
+  return useQuery({
+    queryKey: keys.signupRequests(academy.gym_id),
+    queryFn: () => listAcademySignupRequests(db(), academy.gym_id),
+    enabled: isAdmin,
+    refetchInterval: 5 * 60_000,
+  })
+}
+
+/** Alunos da academia sem conta, para ligar a um pedido. */
+export function useStudentsWithoutAccount(enabled: boolean) {
+  const { academy } = useAcademy()
+  return useQuery({ queryKey: keys.withoutAccount(academy.gym_id), queryFn: () => listStudentsWithoutAccount(db(), academy.gym_id), enabled })
 }

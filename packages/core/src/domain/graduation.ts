@@ -1,4 +1,5 @@
-import { monthsBetween } from '../dates'
+import { formatDateBR, formatMonth, monthsBetween } from '../dates'
+import { addMonths } from './billing'
 import type { Rank, StudentProgress } from '../types'
 
 export type RankTrack = 'adulto' | 'infantil'
@@ -43,6 +44,13 @@ export interface GraduationStatus {
   skipReady: boolean
   /** Data da próxima graduação usada no cálculo (meses e idade contam até ela); null = calculado para hoje. */
   on: string | null
+  /**
+   * Graduação marcada em que o aluno não chega ao tempo mínimo do próximo grau (ex.: 11 de 18 meses). Aí os meses
+   * contam até hoje (`on` = null) e a previsão é `earliestMonth`. Não vale para a primeira graduação.
+   */
+  missedOn: string | null
+  /** Mês ('AAAA-MM') em que o aluno completa o tempo mínimo desde a última graduação; null sem requisito de meses ou já cumprido. */
+  earliestMonth: string | null
   /** Graduação infantil: requisito é a idade que o aluno completa no ano. */
   byAge: boolean
   /** Idade que o aluno completa no ano de hoje; null sem data de nascimento. */
@@ -79,14 +87,24 @@ export function graduationStatus(
 ): GraduationStatus {
   const track = opts.track ?? 'adulto'
   const sorted = ranksOfTrack(ranks, track)
-  const on = opts.graduationOn && opts.graduationOn > today ? opts.graduationOn : null
-  const ref = on ?? today
-  if (track === 'infantil') return { ...kidsStatus(progress, ranks, sorted, studentSince, ref, opts.birthDate ?? null), on }
+  const scheduled = opts.graduationOn && opts.graduationOn > today ? opts.graduationOn : null
+  if (track === 'infantil') {
+    return { ...kidsStatus(progress, ranks, sorted, studentSince, scheduled ?? today, opts.birthDate ?? null), on: scheduled }
+  }
   const current = ranks.find((r) => r.id === progress?.current_rank_id) ?? null
   // Grau atual de outra trilha (ex.: criança que passou para o adulto): próximo é o primeiro da trilha.
   const next = current && trackOf(current) === track
     ? (sorted.find((r) => r.grade > current.grade) ?? null)
     : (sorted[0] ?? null)
+
+  // Tempo mínimo contado por mês (graduou em 12/2025 com 18 meses → 06/2027, seja qual for o dia).
+  const lastGraduated = current ? (progress?.last_graduated_at ?? null) : null
+  const minMonths = next?.min_months ?? null
+  const fullMonth = lastGraduated && minMonths != null ? addMonths(`${lastGraduated.slice(0, 7)}-01`, minMonths).slice(0, 7) : null
+  // Primeira graduação não entra: ela tem a regra própria (pode pular o primeiro grau).
+  const missedOn = scheduled && fullMonth && scheduled.slice(0, 7) < fullMonth ? scheduled : null
+  const on = missedOn ? null : scheduled
+  const ref = on ?? today
   const count = progress?.attendance_since ?? 0
   // Caches antigos não têm classes_since; nunca menor que as presenças.
   const classes = Math.max(progress?.classes_since ?? count, count)
@@ -100,6 +118,7 @@ export function graduationStatus(
 
   const missingClasses = needed == null ? 0 : Math.max(0, needed - count)
   const missingMonths = monthsNeeded == null ? 0 : Math.max(0, monthsNeeded - monthsElapsed)
+  const earliestMonth = fullMonth && (missedOn || missingMonths > 0) ? fullMonth : null
   const configured = next != null && (needed != null || monthsNeeded != null)
   const eligible = configured && missingClasses === 0 && missingMonths === 0
   const skipTo = !current && eligible && monthsElapsed >= SKIP_FIRST_RANK_MONTHS ? (sorted[1] ?? null) : null
@@ -124,6 +143,8 @@ export function graduationStatus(
     skipTo,
     skipReady,
     on,
+    missedOn,
+    earliestMonth,
     byAge: false,
     ageThisYear: null,
     ageNeeded: null,
@@ -183,6 +204,8 @@ function kidsStatus(
     skipTo: null,
     skipReady: false,
     on: null,
+    missedOn: null,
+    earliestMonth: null,
     byAge: true,
     ageThisYear,
     ageNeeded,
@@ -206,4 +229,12 @@ export function missingLabel(s: GraduationStatus): string {
   if (!parts.length) return ''
   const single = parts.length === 1 && (s.missingClasses === 1 || (s.missingClasses === 0 && s.missingMonths === 1))
   return `${single ? 'falta' : 'faltam'} ${parts.join(' e ')}`
+}
+
+/** Aviso quando não dá tempo para a graduação marcada, ex.: "Não dá tempo para a graduação de 06/12/2026 (...)". */
+export function missedGraduationLabel(s: GraduationStatus): string | null {
+  if (!s.missedOn || s.monthsNeeded == null) return null
+  const when = s.earliestMonth ? formatMonth(s.earliestMonth) : null
+  return `Não dá tempo para a graduação de ${formatDateBR(s.missedOn)}: o próximo grau pede ${s.monthsNeeded} meses desde a última graduação.` +
+    (when ? ` Previsão: ${when} (data a definir).` : '')
 }

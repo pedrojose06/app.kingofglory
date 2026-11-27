@@ -11,7 +11,7 @@ import { ErrorState, Loading } from '@/components/states'
 import { AvatarImage, useStudentPhotoUrls } from '@/components/student-photo'
 import { useAcademy } from '@/lib/academy'
 import {
-  useAcademyCharges, useAcademyProgress, useActiveStudentIds, useClassCounts, useClassGroups, useDashboardCounts, useDiaryStudents, useGraduationSchedule, useRanks, useStudents,
+  useAcademyCharges, useAcademyProgress, useActiveStudentIds, useClassCounts, useClassGroups, useDashboardCounts, useDiaryStudents, useGraduationSchedule, useRanks, useSignupRequests, useStudents,
   useWeekClasses,
 } from '@/lib/queries'
 
@@ -79,6 +79,7 @@ function Counters() {
   const { isAdmin } = useAcademy()
   const { today } = useClock()
   const counts = useDashboardCounts(today)
+  const requests = useSignupRequests()
   const eligible = useEligibleStudents(today)
   const [showEligible, setShowEligible] = useState(false)
   const c = counts.data
@@ -94,6 +95,12 @@ function Counters() {
       <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
         {isAdmin ? (
           <>
+            <Tile
+              value={requests.data?.length}
+              tone="gold"
+              label={plural(requests.data?.length, 'Pedido de acesso de aluno', 'Pedidos de acesso de alunos')}
+              href="/pedidos"
+            />
             <Tile
               value={overdue}
               tone="danger"

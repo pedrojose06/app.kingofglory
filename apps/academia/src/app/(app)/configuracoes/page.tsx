@@ -2,8 +2,8 @@
 
 import {
   ACADEMY_ROLE_HINT, ACADEMY_ROLE_LABEL, ACADEMY_ROLES, type AcademyInvite, type AcademyRole, academyInviteLink, academyInviteStatus,
-  cancelAcademyInvite, createAcademyInvite, isValidEmail, listAcademyInvites, listAcademyMembers, normalizeEmail, setAcademyMemberRole,
-  updateAcademy,
+  cancelAcademyInvite, createAcademyInvite, getAcademySignupSettings, isValidEmail, listAcademyInvites, listAcademyMembers, normalizeEmail, setAcademyMemberRole,
+  setAcademySignup, updateAcademy,
 } from '@kog/core'
 import { Badge, Button, Card, EmptyState, Field, Input, Select } from '@kog/ui'
 import { toast, toastError, useAuth } from '@kog/web-kit'
@@ -35,6 +35,7 @@ export default function SettingsPage() {
       <div className="grid gap-6 xl:grid-cols-2">
         <div className="space-y-6">
           <AcademyForm />
+          <SignupSettings />
           <Members />
         </div>
         <Invites />
@@ -92,6 +93,71 @@ function AcademyForm() {
           Salvar
         </Button>
       </form>
+    </Section>
+  )
+}
+
+/** Como a academia aparece no cadastro de aluno do app do professor (/cadastro-aluno). */
+function SignupSettings() {
+  const { academy } = useAcademy()
+  const queryClient = useQueryClient()
+  const settingsKey = ['academia', academy.gym_id, 'cadastro-aluno'] as const
+  const settings = useQuery({ queryKey: settingsKey, queryFn: () => getAcademySignupSettings(db(), academy.gym_id) })
+  const members = useQuery({ queryKey: academyKeys.members(academy.gym_id), queryFn: () => listAcademyMembers(db(), academy.gym_id) })
+  const [label, setLabel] = useState('')
+  const [contact, setContact] = useState('')
+  useEffect(() => {
+    if (!settings.data) return
+    setLabel(settings.data.signup_label ?? '')
+    setContact(settings.data.signup_contact_id ?? '')
+  }, [settings.data])
+
+  const save = useMutation({
+    mutationFn: () => setAcademySignup(db(), academy.gym_id, { signup_label: label.trim() || null, signup_contact_id: contact || null }),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: settingsKey })
+      toast('Cadastro de aluno salvo.')
+    },
+    onError: toastError,
+  })
+  const staff = (members.data ?? []).filter((m) => m.role !== 'membro')
+  const changed = settings.data != null && (label.trim() !== (settings.data.signup_label ?? '') || contact !== (settings.data.signup_contact_id ?? ''))
+
+  return (
+    <Section
+      title="Cadastro de aluno"
+      description="Como a academia aparece quando o aluno cria a conta no app (É aluno? Criar conta de aluno). Os pedidos chegam em Cadastros › Pedidos."
+    >
+      {settings.isPending ? (
+        <Loading />
+      ) : settings.isError ? (
+        <ErrorState error={settings.error} onRetry={() => settings.refetch()} />
+      ) : (
+        <form
+          className="space-y-4"
+          onSubmit={(e) => {
+            e.preventDefault()
+            save.mutate()
+          }}
+        >
+          <Field label="Professor que aparece" hint="Sem ninguém escolhido, a academia não aparece no cadastro.">
+            <Select value={contact} onChange={(e) => setContact(e.target.value)}>
+              <option value="">Não aparecer no cadastro</option>
+              {staff.map((m) => (
+                <option key={m.profile_id} value={m.profile_id}>
+                  {m.name || 'Sem nome'}
+                </option>
+              ))}
+            </Select>
+          </Field>
+          <Field label="Nome da academia no cadastro" hint={`Opcional. Vazio = "${academy.name}".`}>
+            <Input maxLength={80} placeholder="Ex.: King of Glory – Matriz" value={label} onChange={(e) => setLabel(e.target.value)} />
+          </Field>
+          <Button type="submit" disabled={!changed} loading={save.isPending}>
+            Salvar
+          </Button>
+        </form>
+      )}
     </Section>
   )
 }
