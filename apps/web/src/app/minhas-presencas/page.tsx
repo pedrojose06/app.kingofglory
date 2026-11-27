@@ -3,7 +3,7 @@
 import {
   STUDENT_SIGNUP_PATH, acceptImageConsent, attendanceStats, getMySignupRequest, claimStudentAccount, formatDateBR, getMyFacePhotoUrl, getMyStudentAccount, getMyStudentPortal, hasAccountConsent,
   monthsBetween, formatDayShort, formatMonth, formatTime, getStudentPortal, graduationStatus, isCounted,
-  keys, missingLabel, trackOf, uploadSignupPhoto, walkInLabel, type StudentPortal,
+  keys, missingLabel, missedGraduationLabel, trackOf, uploadSignupPhoto, walkInLabel, type StudentPortal,
 } from '@kog/core'
 import { Badge, Button, Card, EmptyState, Kicker, ProgressBar, RankBand, Sheet, Title } from '@kog/ui'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -487,7 +487,7 @@ function PortalView({ data, updatedAt, offline, top, bottom, photoUrl, onSignOut
                 </>
               )}
               <p className="mt-2 text-xs text-dim">
-                {status.on ? `Próxima graduação: ${formatDateBR(status.on)}. Meses contados até essa data. ` : ''}
+                {missedGraduationLabel(status) ? `${missedGraduationLabel(status)} ` : status.on ? `Próxima graduação: ${formatDateBR(status.on)}. Meses contados até essa data. ` : ''}
                 Quem decide a graduação é o professor.
               </p>
             </div>

@@ -1,7 +1,7 @@
 'use client'
 
 import {
-  addGraduation, attendanceStats, birthDatePending, deleteGraduation, firstIssue, formatDateBR, formatMonth, graduationInput, graduationStatus,
+  addGraduation, attendanceStats, birthDatePending, deleteGraduation, firstIssue, formatDateBR, formatMonth, graduationInput, graduationStatus, missedGraduationLabel,
   guardianTermStatus, keys, missingLabel, ranksOfTrack, setImageConsent, trackOf, updateStudent, walkInLabel, type Graduation,
 } from '@kog/core'
 import { Badge, Button, Card, Chip, DateInput, EmptyState, Field, Input, ProgressBar, RankBand, Select, Sheet } from '@kog/ui'
@@ -135,6 +135,7 @@ export default function StudentPage() {
 
         {status.next ? (
           <div className="mt-4 border-t border-line pt-4">
+            {missedGraduationLabel(status) ? <p className="mb-2 text-xs font-medium text-warning">{missedGraduationLabel(status)}</p> : null}
             {status.on ? (
               <p className="mb-2 text-xs font-medium text-accent">Calculado para a graduação de {formatDateBR(status.on)} (meses até a data; treinos até hoje)</p>
             ) : null}

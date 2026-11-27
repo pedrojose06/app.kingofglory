@@ -4,7 +4,7 @@ import {
   type AcademyStudent, type AcademyStudentInput, addGraduation, addStudentBelt, cancelContract, CHARGE_KIND_LABEL, CHARGE_STATE_LABEL,
   chargeTotals, CONTRACT_BILLING_LABEL, contractExtensionCharges, contractExtensionEnd, contractExtensionIssue, contractPeriodState,
   contractTermsOf, type ContractRow, extendContract, formatBRL, formatCpf, formatDateBR, isMinor, isValidCpf,
-  graduationStatus, linkGuardian, missingLabel, PAYMENT_METHOD_LABEL, savePayer, saveAcademyStudent, setStudentFaceOptOut, todayISO, unlinkGuardian,
+  graduationStatus, missedGraduationLabel, linkGuardian, missingLabel, PAYMENT_METHOD_LABEL, savePayer, saveAcademyStudent, setStudentFaceOptOut, todayISO, unlinkGuardian,
   updateContractNotes,
 } from '@kog/core'
 import { Badge, Button, Card, DateInput, EmptyState, Field, Input, ProgressBar, RankBand, Select, Textarea } from '@kog/ui'
@@ -418,6 +418,7 @@ function AttendanceSection({ data }: { data: AcademyStudent }) {
             ) : null}
             {missing ? <p className="mt-2 text-sm font-semibold text-accent">{missing.charAt(0).toUpperCase() + missing.slice(1)}.</p> : null}
             {status.on ? <p className="mt-1 text-xs text-dim">Próxima graduação marcada para {formatDateBR(status.on)}.</p> : null}
+            {missedGraduationLabel(status) ? <p className="mt-1 text-xs font-medium text-warning">{missedGraduationLabel(status)}</p> : null}
           </>
         )}
       </div>
