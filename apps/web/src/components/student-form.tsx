@@ -104,7 +104,11 @@ export function StudentForm({ open, onClose, gyms, ranks, student, defaultGymId,
   const minor = !birthDateIssue(birth, today) && isMinor(birth, today)
   const termSent = !!student && guardianTermStatus(student, consents.data?.find((c) => c.student_id === student.id), today) === 'enviado'
   const showTerm = minor && !termSent
-  const birthPending = !!student && !student.birth_date
+  const birthHint = birth
+    ? undefined
+    : track === 'infantil'
+      ? 'Opcional. Sem data, o termo do responsável fica para quando ela for informada.'
+      : 'Opcional: o aluno pode informar no cadastro do portal.'
 
   return (
     <Sheet open={open} onClose={onClose} title={student ? 'Editar aluno' : 'Novo aluno'}>
@@ -135,7 +139,7 @@ export function StudentForm({ open, onClose, gyms, ranks, student, defaultGymId,
           <Field label="Telefone">
             <Input value={phone} onChange={(e) => setPhone(e.target.value)} type="tel" inputMode="tel" />
           </Field>
-          <Field label="Nascimento" hint={birthPending && !birth ? 'Data pendente: preencha para salvar.' : undefined}>
+          <Field label="Nascimento" hint={birthHint}>
             <DateInput value={birth} max={today} onChange={(e) => setBirth(e.target.value)} />
           </Field>
         </div>
@@ -148,7 +152,7 @@ export function StudentForm({ open, onClose, gyms, ranks, student, defaultGymId,
             <Input inputMode="numeric" value={afterGrad} onChange={(e) => setAfterGrad(e.target.value.replace(/\D/g, ''))} placeholder="—" />
           </Field>
         ) : null}
-        <Field label="Graduação" hint="Define a sequência de graus sugerida para o aluno.">
+        <Field label="Adulto ou infantil" hint="Define a sequência de graus sugerida para o aluno.">
           <div className="flex gap-2">
             {RANK_TRACKS.map((t) => (
               <Chip key={t} active={track === t} onPress={() => { setTrack(t); setRankId('') }}>{TRACK_LABEL[t]}</Chip>

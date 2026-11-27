@@ -52,10 +52,11 @@ describe('data de nascimento', () => {
     expect(birthDateIssue('2026-11-20', today)).toBeNull()
     expect(birthDateIssue('2012-02-29', today)).toBeNull()
   })
-  it('schema do aluno exige a data', () => {
+  it('schema do aluno aceita sem data, mas valida a data informada', () => {
     const base = { gym_id: '3f2504e0-4f89-41d3-9a0c-0305e82c3301', name: 'Ana Souza' }
-    expect(studentInput.safeParse(base).success).toBe(false)
-    expect(studentInput.safeParse({ ...base, birth_date: null }).success).toBe(false)
+    expect(studentInput.parse(base).birth_date).toBeNull()
+    expect(studentInput.parse({ ...base, birth_date: null }).birth_date).toBeNull()
+    expect(studentInput.parse({ ...base, birth_date: '' }).birth_date).toBeNull()
     expect(studentInput.safeParse({ ...base, birth_date: '2999-01-01' }).success).toBe(false)
     expect(studentInput.safeParse({ ...base, birth_date: '2012-05-05' }).success).toBe(true)
   })

@@ -116,7 +116,7 @@ export default function StudentPage() {
         <Card className="mb-4 flex items-center gap-3 border-warning p-3">
           <div className="min-w-0 flex-1">
             <p className="text-sm font-bold text-text">Data de nascimento pendente</p>
-            <p className="text-xs text-dim">Agora é obrigatória: mostra se o aluno é menor e precisa do termo do responsável.</p>
+            <p className="text-xs text-dim">Mostra se o aluno é menor e precisa do termo do responsável. Preencha aqui ou aguarde o aluno informar no portal.</p>
           </div>
           <Button size="sm" onPress={() => setEditOpen(true)}>Preencher</Button>
         </Card>
